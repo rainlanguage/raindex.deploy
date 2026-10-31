@@ -14,7 +14,7 @@ Never include:
 - A restated diff, or a list of changed files.
 - The story of the investigation, or of the review rounds.
 - Test counts, or lists of lint, fmt, CI, or review runs. The checks tab shows them.
-- A tool-generated summary (for example "Summary by CodeRabbit").
+- A tool-generated summary.
 
 Writing:
 - Plain, simple English. One idea per sentence. Short sentences. Active voice with a real subject.

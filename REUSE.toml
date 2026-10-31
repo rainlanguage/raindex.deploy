@@ -41,7 +41,6 @@ path = [
   "meta/**/",
   "test-resources/**/",
   "audit/**/",
-  ".coderabbit.yaml",
 ]
 SPDX-FileCopyrightText = "Copyright (c) 2020 Rain Open Source Software Ltd"
 SPDX-License-Identifier = "LicenseRef-DCL-1.0"
