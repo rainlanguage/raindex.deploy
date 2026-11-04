@@ -42,6 +42,11 @@ contract RaindexV6ClaimsDoubleTakeForkTest is Test {
         (uint256(CLAIM) & ~((uint256(1) << 224) - 1)) | ((uint256(CLAIM) & ((uint256(1) << 224) - 1)) * CLAIM_COPIES)
     );
     uint256 internal constant CLAIM_USDC = 5_970_208;
+    /// USDC paid for `CLAIM_COPIES` leaves. The leaf exponent is -18 and USDC has 6 decimals, so this divides the
+    /// scaled coefficient by 10^12. `takeOrders4` sums the floats and truncates once. `CLAIM_COPIES * CLAIM_USDC` is
+    /// the sum of per-leaf truncations, which is 1 raw unit lower at 3 copies.
+    uint256 internal constant CLAIM_COPIES_USDC =
+        ((uint256(CLAIM) & ((uint256(1) << 224) - 1)) * CLAIM_COPIES) / 1e12;
 
     bytes internal constant BYTECODE =
         hex"000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000457870656374656420636c61696dee000000000000000000000000000000000000000000000000636c61696d6564e70000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000436c61696d6564e713595e07b47595143f3c8574b2a03918d8faac9de11cc20a4eb15187673efb4e000000000000000000000000000000000000000000000000000050726f6f66e500000000000000000000000022d83c031bc02737ad3eaf5aa3386de2bf7f7fbc00000000000000000000000000000000000000000000000000000000000000df0500000024005c0070009808040004031001060b100002001000010b010003001000010b01000400100000011000000d060002031001060b1000020110000100100000031004041f1200001e020000011000030110000200100001031000010c13000047020000040300010310010603100201031000060c1300000906010101100004011000000110000200100000031000010c130000461100001f1200001e0200000e0b010203100906031008060310070603100606031005060310040603100306031002060010000001100005021a000701100006001000011e020000";
@@ -106,8 +111,8 @@ contract RaindexV6ClaimsDoubleTakeForkTest is Test {
         uint256 usdcAfter = IERC20(USDC).balanceOf(TAKER);
         console2.log("double take USDC received", usdcAfter - before);
         assertEq(takerOutput, bytes32(0), "ratio 0 pays nothing");
-        assertEq(usdcAfter - before, CLAIM_COPIES * CLAIM_USDC, "leaf paid once per copy");
-        // The returned input float is the sum of the two fills. Its exact
+        assertEq(usdcAfter - before, CLAIM_COPIES_USDC, "leaf paid once per copy");
+        // The returned input float is the sum of the fills. Its exact
         // packing is the contract's, so the USDC balance is the assertion.
         assertTrue(takerInput != bytes32(0), "batch took a non-zero input");
     }
