@@ -2,5 +2,10 @@ name: rainix-sol
 on: [push]
 jobs:
   rainix-sol:
+    # rainix's fork proxy signs in to our own RPC nodes with this job's
+    # GitHub OIDC token (rainix#444); nothing else in the job writes.
+    permissions:
+      contents: read
+      id-token: write
     uses: rainlanguage/rainix/.github/workflows/rainix-sol.yaml@main
     secrets: inherit
