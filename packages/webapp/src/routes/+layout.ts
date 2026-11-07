@@ -8,14 +8,55 @@ import type { LayoutLoad } from './$types';
 
 export interface LayoutData {
 	errorMessage?: string;
+	registryWarning?: string;
 	stores: AppStoresInterface | null;
 	raindexClient: RaindexClient | null;
 	registry: DotrainRegistry | null;
 	localDb: SQLiteWasmDatabase | null;
 }
 
+/** Remove the persisted custom registry from localStorage and the URL param. */
+const clearCustomRegistry = (url: URL): void => {
+	if (typeof localStorage !== 'undefined') {
+		try {
+			localStorage.removeItem('registry');
+		} catch {
+			// ignore removal failure
+		}
+	}
+	if (typeof window !== 'undefined') {
+		try {
+			const next = new URL(window.location.href);
+			next.searchParams.delete('registry');
+			window.history.replaceState({}, '', next.toString());
+		} catch {
+			// ignore URL update failure
+		}
+	}
+	url.searchParams.delete('registry');
+};
+
+/** Build a DotrainRegistry, surfacing a readable message on failure. */
+const buildRegistry = async (
+	registryUrl: string
+): Promise<{ registry: DotrainRegistry | null; error?: string }> => {
+	try {
+		const registryResult = await DotrainRegistry.new(registryUrl);
+		if (registryResult.error) {
+			return {
+				registry: null,
+				error: 'Failed to load registry. ' + registryResult.error.readableMsg
+			};
+		}
+		return { registry: registryResult.value };
+	} catch (error: unknown) {
+		return { registry: null, error: 'Failed to load registry. ' + (error as Error).message };
+	}
+};
+
 export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 	let errorMessage: string | undefined;
+	let registryWarning: string | undefined;
 
 	const registryParam = url.searchParams.get('registry');
 	let registryUrl = REGISTRY_URL;
@@ -40,16 +81,25 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 	}
 
 	let registry: DotrainRegistry | null = null;
-	if (!errorMessage) {
-		try {
-			const registryResult = await DotrainRegistry.new(registryUrl);
-			if (registryResult.error) {
-				errorMessage = 'Failed to load registry. ' + registryResult.error.readableMsg;
+	{
+		const result = await buildRegistry(registryUrl);
+		registry = result.registry;
+		if (result.error) {
+			if (registryUrl !== REGISTRY_URL) {
+				// A custom registry failed to load. Clear it so the next load uses the
+				// default, then retry the default in this load so the app still mounts.
+				clearCustomRegistry(url);
+				const fallback = await buildRegistry(REGISTRY_URL);
+				registry = fallback.registry;
+				if (fallback.error) {
+					errorMessage = fallback.error;
+				} else {
+					registryWarning =
+						'The custom registry failed to load and has been reset to the default registry.';
+				}
 			} else {
-				registry = registryResult.value;
+				errorMessage = result.error;
 			}
-		} catch (error: unknown) {
-			errorMessage = 'Failed to load registry. ' + (error as Error).message;
 		}
 	}
 
@@ -100,6 +150,7 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 	}
 
 	return {
+		registryWarning,
 		stores: {
 			selectedChainIds: writable<number[]>([]),
 			showInactiveOrders: writable<boolean>(false),
@@ -234,6 +285,76 @@ if (import.meta.vitest) {
 				localDb,
 				statusCallback: updateStatus
 			});
+		});
+
+		it('should reset a failing custom registry from localStorage, retry the default, and warn', async () => {
+			localStorage.setItem('registry', 'https://custom.example/registry');
+			mockGetRaindexClient.mockResolvedValue({ value: { client: true } });
+			const defaultRegistry = { getRaindexClient: mockGetRaindexClient };
+			mockRegistryNew
+				.mockRejectedValueOnce(new Error('Network error'))
+				.mockResolvedValueOnce({ value: defaultRegistry });
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const result = await load({ url: new URL('http://localhost:3000') } as any);
+
+			expect(mockRegistryNew).toHaveBeenNthCalledWith(1, 'https://custom.example/registry');
+			expect(mockRegistryNew).toHaveBeenNthCalledWith(2, REGISTRY_URL);
+			expect(localStorage.getItem('registry')).toBeNull();
+			expect(result.errorMessage).toBeUndefined();
+			expect(result.registryWarning).toContain('custom registry');
+			expect(result.stores).not.toBeNull();
+			expect(result.registry).toEqual(defaultRegistry);
+		});
+
+		it('should reset a failing custom registry from the ?registry= param, retry the default, and warn', async () => {
+			mockGetRaindexClient.mockResolvedValue({ value: { client: true } });
+			const defaultRegistry = { getRaindexClient: mockGetRaindexClient };
+			mockRegistryNew
+				.mockRejectedValueOnce(new Error('Network error'))
+				.mockResolvedValueOnce({ value: defaultRegistry });
+
+			const result = await load({
+				url: new URL('http://localhost:3000?registry=https://custom.example/registry')
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any);
+
+			expect(mockRegistryNew).toHaveBeenNthCalledWith(1, 'https://custom.example/registry');
+			expect(mockRegistryNew).toHaveBeenNthCalledWith(2, REGISTRY_URL);
+			expect(localStorage.getItem('registry')).toBeNull();
+			expect(result.errorMessage).toBeUndefined();
+			expect(result.registryWarning).toContain('custom registry');
+			expect(result.registry).toEqual(defaultRegistry);
+		});
+
+		it('should stay fatal when a failing custom registry resets but the default also fails', async () => {
+			localStorage.setItem('registry', 'https://custom.example/registry');
+			mockRegistryNew
+				.mockRejectedValueOnce(new Error('Custom network error'))
+				.mockRejectedValueOnce(new Error('Default network error'));
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const result = await load({ url: new URL('http://localhost:3000') } as any);
+
+			expect(mockRegistryNew).toHaveBeenNthCalledWith(1, 'https://custom.example/registry');
+			expect(mockRegistryNew).toHaveBeenNthCalledWith(2, REGISTRY_URL);
+			expect(localStorage.getItem('registry')).toBeNull();
+			expect(result.registryWarning).toBeUndefined();
+			expect(result).toHaveProperty('stores', null);
+			expect(result.errorMessage).toContain('Failed to load registry');
+		});
+
+		it('should stay fatal without resetting when the default registry fails', async () => {
+			mockRegistryNew.mockRejectedValueOnce(new Error('Network error'));
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const result = await load({ url: new URL('http://localhost:3000') } as any);
+
+			expect(mockRegistryNew).toHaveBeenCalledTimes(1);
+			expect(mockRegistryNew).toHaveBeenCalledWith(REGISTRY_URL);
+			expect(result.registryWarning).toBeUndefined();
+			expect(result).toHaveProperty('stores', null);
+			expect(result.errorMessage).toContain('Failed to load registry');
 		});
 	});
 }

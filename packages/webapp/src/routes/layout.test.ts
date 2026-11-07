@@ -147,4 +147,29 @@ describe('Layout component', () => {
 			expect(screen.getByTestId('error-page')).toBeInTheDocument();
 		});
 	});
+
+	it('shows a non-fatal registry warning banner and still renders the app', async () => {
+		mockPageStore.mockSetSubscribeValue({
+			...initialPageState,
+			url: new URL('http://localhost/some-page'),
+			data: {
+				...initialPageState.data,
+				registryWarning: 'The custom registry failed to load and has been reset to the default registry.'
+			}
+		});
+
+		render(Layout);
+
+		await waitFor(() => {
+			expect(screen.getByTestId('registry-warning')).toBeInTheDocument();
+			expect(
+				screen.getByText(
+					'The custom registry failed to load and has been reset to the default registry.'
+				)
+			).toBeInTheDocument();
+			// The warning is non-fatal: the app still mounts and the error page is absent.
+			expect(screen.getByTestId('layout-container')).toBeInTheDocument();
+			expect(screen.queryByTestId('error-page')).not.toBeInTheDocument();
+		});
+	});
 });
