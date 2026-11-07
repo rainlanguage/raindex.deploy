@@ -14,16 +14,6 @@ set -euxo pipefail
 
 cd "$(dirname "$0")/.."
 
-# `forge script script/Build.sol` stages the generated network config here,
-# because forge refuses filesystem writes to the root `foundry.toml`.
-staged=.staged-config
-if [ ! -d "$staged" ] || [ -z "$(find "$staged" -mindepth 1 -maxdepth 1 -type f)" ]; then
-  echo "::error::$staged/ is missing or empty; run forge script ./script/Build.sol first." >&2
-  exit 1
-fi
-find "$staged" -mindepth 1 -maxdepth 1 -type f -exec cp {} . \;
-rm -rf "$staged"
-
 # Pass the whole pipeline via `bash -c '...'` rather than `bash <<INNER`:
 # graph codegen / npm ci consume the heredoc body off stdin otherwise,
 # turning the rest of the script into bogus argv for the codegen command.
