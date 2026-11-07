@@ -427,11 +427,13 @@ mod tests {
             inputs: vec![OrderIOCfg {
                 token_key: "token1".to_string(),
                 token: Some(Arc::new(token.clone())),
+                vaultless: false,
                 vault_id: Some(U256::from(42)),
             }],
             outputs: vec![OrderIOCfg {
                 token_key: "token2".to_string(),
                 token: Some(Arc::new(token.clone())),
+                vaultless: false,
                 vault_id: None,
             }],
             network: mock_network(),
@@ -448,6 +450,7 @@ mod tests {
             inputs: vec![OrderIOCfg {
                 token_key: "token1".to_string(),
                 token: None,
+                vaultless: false,
                 vault_id: None,
             }],
             outputs: vec![],
@@ -579,11 +582,13 @@ mod tests {
             inputs: vec![OrderIOCfg {
                 token_key: "token1".to_string(),
                 token: Some(mock_token("token1")),
+                vaultless: false,
                 vault_id: Some(U256::from(10)),
             }],
             outputs: vec![OrderIOCfg {
                 token_key: "token2".to_string(),
                 token: Some(mock_token("token2")),
+                vaultless: false,
                 vault_id: None,
             }],
             network: mock_network(),
