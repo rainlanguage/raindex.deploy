@@ -13,7 +13,7 @@
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
-	import { Button, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
+	import { Button, Dropdown, DropdownItem, TabItem, Tabs, Tooltip } from 'flowbite-svelte';
 	import { onDestroy } from 'svelte';
 	// import OrderApy from '../tables/OrderAPY.svelte';
 	import type { DebugTradeModalHandler, QuoteDebugModalHandler } from '../../types/modal';
@@ -22,6 +22,7 @@
 	import {
 		ArrowDownToBracketOutline,
 		ArrowUpFromBracketOutline,
+		ChevronDownOutline,
 		InfoCircleOutline,
 		WalletOutline
 	} from 'flowbite-svelte-icons';
@@ -51,6 +52,19 @@
 	 * @param order The order to remove
 	 */
 	export let onRemove: (raindexClient: RaindexClient, order: RaindexOrder) => void;
+
+	/** Callback function when remove-and-withdraw-all action is triggered for an order.
+	 * Removes the order and withdraws all of its vault balances in a single transaction.
+	 * @param order The order to remove
+	 * @param vaultsList The VaultsList struct containing the order's vaults to withdraw from
+	 */
+	export let onRemoveAndWithdrawAll:
+		| ((
+				raindexClient: RaindexClient,
+				order: RaindexOrder,
+				vaultsList: RaindexVaultsList
+		  ) => void)
+		| undefined = undefined;
 
 	/** Callback function when deposit action is triggered for a vault
 	 * @param vault The vault to deposit into
@@ -143,11 +157,32 @@
 
 			<div class="flex items-center gap-2">
 				{#if matchesAccount(data.owner) && data.active}
-					<Button
-						on:click={() => onRemove(raindexClient, data)}
-						data-testid="remove-button"
-						aria-label="Remove order">Remove</Button
-					>
+					{#if onRemoveAndWithdrawAll}
+						<Button
+							id="remove-order-menu"
+							data-testid="remove-order-menu"
+							aria-label="Remove order">
+							Remove
+							<ChevronDownOutline size="sm" class="ml-2" />
+						</Button>
+						<Dropdown placement="bottom-end" triggeredBy="#remove-order-menu">
+							<DropdownItem
+								on:click={() => onRemove(raindexClient, data)}
+								data-testid="remove-button">Remove</DropdownItem
+							>
+							<DropdownItem
+								on:click={() => onRemoveAndWithdrawAll(raindexClient, data, data.vaultsList)}
+								data-testid="remove-and-withdraw-all-button"
+								>Remove and withdraw all vaults</DropdownItem
+							>
+						</Dropdown>
+					{:else}
+						<Button
+							on:click={() => onRemove(raindexClient, data)}
+							data-testid="remove-button"
+							aria-label="Remove order">Remove</Button
+						>
+					{/if}
 				{/if}
 				{#if data.active && onTakeOrder}
 					<Button

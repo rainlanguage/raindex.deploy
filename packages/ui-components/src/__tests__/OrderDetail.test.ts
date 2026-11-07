@@ -248,6 +248,94 @@ describe("OrderDetail", () => {
     });
   });
 
+  it("renders a remove dropdown (not a bare remove button) when onRemoveAndWithdrawAll is provided", async () => {
+    mockMatchesAccount.mockReturnValue(true);
+    render(OrderDetail, {
+      props: { ...defaultProps, onRemoveAndWithdrawAll: vi.fn() },
+      context: new Map([["$$_queryClient", queryClient]]),
+    });
+
+    await waitFor(() => {
+      // When onRemoveAndWithdrawAll is provided, the dropdown trigger renders.
+      expect(screen.getByTestId("remove-order-menu")).toBeInTheDocument();
+    });
+
+    // Dropdown items are hidden until the trigger is opened.
+    expect(
+      screen.queryByTestId("remove-and-withdraw-all-button"),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId("remove-order-menu"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("remove-button")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("remove-and-withdraw-all-button"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("calls onRemove (not onRemoveAndWithdrawAll) when the Remove dropdown item is clicked", async () => {
+    mockMatchesAccount.mockReturnValue(true);
+    const onRemove = vi.fn();
+    const onRemoveAndWithdrawAll = vi.fn();
+    render(OrderDetail, {
+      props: { ...defaultProps, onRemove, onRemoveAndWithdrawAll },
+      context: new Map([["$$_queryClient", queryClient]]),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("remove-order-menu")).toBeInTheDocument();
+    });
+    await userEvent.click(screen.getByTestId("remove-order-menu"));
+    await userEvent.click(await screen.findByTestId("remove-button"));
+
+    expect(onRemove).toHaveBeenCalledWith(mockRaindexClient, mockOrder);
+    expect(onRemoveAndWithdrawAll).not.toHaveBeenCalled();
+  });
+
+  it("calls onRemoveAndWithdrawAll with the order's vaultsList when that dropdown item is clicked", async () => {
+    mockMatchesAccount.mockReturnValue(true);
+    const onRemove = vi.fn();
+    const onRemoveAndWithdrawAll = vi.fn();
+    render(OrderDetail, {
+      props: { ...defaultProps, onRemove, onRemoveAndWithdrawAll },
+      context: new Map([["$$_queryClient", queryClient]]),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("remove-order-menu")).toBeInTheDocument();
+    });
+    await userEvent.click(screen.getByTestId("remove-order-menu"));
+    await userEvent.click(
+      await screen.findByTestId("remove-and-withdraw-all-button"),
+    );
+
+    expect(onRemoveAndWithdrawAll).toHaveBeenCalledWith(
+      mockRaindexClient,
+      mockOrder,
+      mockOrder.vaultsList,
+    );
+    expect(onRemove).not.toHaveBeenCalled();
+  });
+
+  it("does not show the remove dropdown for inactive orders even with onRemoveAndWithdrawAll", async () => {
+    mockMatchesAccount.mockReturnValue(true);
+    (mockRaindexClient.getOrderByHash as Mock).mockResolvedValue({
+      value: { ...mockOrder, active: false },
+    });
+    render(OrderDetail, {
+      props: { ...defaultProps, onRemoveAndWithdrawAll: vi.fn() },
+      context: new Map([["$$_queryClient", queryClient]]),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Order")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("remove-order-menu")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("remove-button")).not.toBeInTheDocument();
+  });
+
   it("does not show remove button if account does not match owner", async () => {
     mockMatchesAccount.mockReturnValue(false);
 
