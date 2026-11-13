@@ -6,8 +6,8 @@ Every line must help them decide to merge, or know what to watch after the merge
 
 Hard limits:
 - Budget: about 150 words for low risk, 250 for medium, and 400 for high. Never more than 500 words, not counting links.
-- At most 3 bullets per section. Each bullet is one or two lines.
-- Delete every section that has nothing real to say, but always keep the Not verified bullet in Proof. A trivial PR is the headline, the slot line, and a Proof section with only the Not verified bullet.
+- At most 3 bullets per section. The slot list does not count. Each bullet is one or two lines.
+- Delete every section that has nothing real to say, but always keep the Not verified bullet in Proof. A trivial PR is the headline, the slot list, and a Proof section with only the Not verified bullet.
 
 Never include:
 - A What, Why, How, or Implementation section.
@@ -26,7 +26,10 @@ Writing:
 
 <!-- Headline: 1 to 3 sentences, with no heading above them. What the system does after the merge, where its output goes, and why now. Link the issue. In a stack, say which part this is and what the next part adds. -->
 
-**Live effect:** <!-- none, or what changes for users, money, services, or alerts --> · **Risk:** <!-- low, medium, or high, with the triggers in parentheses: money path, keys or IAM, production config or infrastructure, stored data, hard to undo. Name them even for low risk. --> · **Ships:** <!-- on merge, next release, or after a manual step --> · **Blocks:** <!-- PRs that must merge after this one, or delete this slot -->
+- **Live effect:** <!-- none, or what changes for users, money, services, or alerts -->
+- **Risk:** <!-- low, medium, or high, with the triggers in parentheses: money path, keys or IAM, production config or infrastructure, stored data, hard to undo. Name them even for low risk. -->
+- **Ships:** <!-- on merge, next release, or after a manual step -->
+- **Blocks:** <!-- PRs that must merge after this one, or delete this slot -->
 
 ## Needs your call
 
