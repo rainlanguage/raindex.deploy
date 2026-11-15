@@ -17,7 +17,7 @@ import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
 import {StateNamespace} from "rainlang-0.2.35/src/interface/IInterpreterV4.sol";
 import {LibNamespace} from "rainlang-0.2.35/src/lib/ns/LibNamespace.sol";
-import {LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
 
 contract RaindexV7ArbOrderTakerContextTest is RaindexV7ExternalRealTest {
     function testRaindexV7ArbOrderTakerContext() external {

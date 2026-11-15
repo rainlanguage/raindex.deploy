@@ -17,7 +17,7 @@ import {IInterpreterV4} from "rainlang-0.2.35/src/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rainlang-0.2.35/src/interface/IInterpreterStoreV3.sol";
 import {IParserV2} from "rainlang-0.2.35/src/interface/IParserV2.sol";
 import {SignedContextV2} from "rainlang-0.2.35/src/interface/IInterpreterCallerV5.sol";
-import {Float, LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {Float, LibDecimalFloat} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
 import {
     TEST_INTERPRETER_ADDRESS,
     TEST_STORE_ADDRESS,

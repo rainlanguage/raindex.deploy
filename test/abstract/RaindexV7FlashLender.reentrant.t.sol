@@ -17,7 +17,7 @@ import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibTestTakeOrder} from "test/util/lib/LibTestTakeOrder.sol";
 import {EvaluableV4, SignedContextV2} from "rainlang-0.2.35/src/interface/IInterpreterCallerV5.sol";
-import {Float, LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {Float, LibDecimalFloat} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
 
 /// @title RaindexV7FlashLenderReentrant
 /// Test that flash borrowers can reenter the raindex, which is necessary for

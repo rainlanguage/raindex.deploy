@@ -11,10 +11,10 @@ import {Reenteroor, IERC20} from "test/util/concrete/Reenteroor.sol";
 import {TaskV3, IRaindexV7} from "raindex-interface-0.1.13/src/interface/IRaindexV7.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {Float, LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {Float, LibDecimalFloat} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
 import {
     LibDecimalFloatImplementation
-} from "rain-math-float-0.3.12/src/lib/implementation/LibDecimalFloatImplementation.sol";
+} from "rain-math-float-0.3.11/src/lib/implementation/LibDecimalFloatImplementation.sol";
 import {SafeERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/utils/SafeERC20.sol";
 
 /// @title RaindexV7WithdrawTest

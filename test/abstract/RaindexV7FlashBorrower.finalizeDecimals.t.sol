@@ -19,7 +19,7 @@ import {
     IInterpreterV4
 } from "raindex-interface-0.1.13/src/interface/IRaindexV7.sol";
 import {IInterpreterStoreV3} from "rainlang-0.2.35/src/interface/IInterpreterStoreV3.sol";
-import {LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
 
 /// @dev Discriminates that `arb5` passes the INPUT token's OWN decimals and the
 /// OUTPUT token's OWN decimals to `finalizeArb` in the correct positions. The

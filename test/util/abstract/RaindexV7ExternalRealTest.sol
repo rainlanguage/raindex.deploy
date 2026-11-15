@@ -17,7 +17,7 @@ import {
 import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {RaindexV7SubParser} from "../../../src/concrete/parser/RaindexV7SubParser.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
-import {LibDecimalFloat, Float} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat, Float} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
 import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
 import {
     LibTestInterpreterDeploy,
@@ -26,7 +26,7 @@ import {
     TEST_COMPILER_ADDRESS,
     TEST_PARSER_ADDRESS
 } from "rainlang-0.2.35/test/lib/deploy/LibTestInterpreterDeploy.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.33/src/lib/LibRainDeploy.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.32/src/lib/LibRainDeploy.sol";
 import {
     CREATION_CODE as DECIMAL_FLOAT_CREATION_CODE
 } from "rain-math-float-deploy-0.1.9/src/generated/0_1_5/DecimalFloat.sol";

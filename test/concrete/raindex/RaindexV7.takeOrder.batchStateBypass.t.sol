@@ -12,7 +12,7 @@ import {
     SignedContextV2,
     TaskV3
 } from "raindex-interface-0.1.13/src/interface/IRaindexV7.sol";
-import {Float, LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {Float, LibDecimalFloat} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
 
 /// @title RaindexV7TakeOrderBatchStateBypassTest
 /// @notice Audit Protofire H01 (#2617): a stateful per-order cap enforced in an

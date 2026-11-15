@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.25;
 
-import {Float} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {Float} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.

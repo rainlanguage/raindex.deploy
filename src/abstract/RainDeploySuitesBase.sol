@@ -14,4 +14,4 @@ import {
     DeployMechanism,
     DeploySuite,
     RainDeploySuitesBase
-} from "rain-deploy-0.1.33/src/abstract/RainDeploySuitesBase.sol";
+} from "rain-deploy-0.1.32/src/abstract/RainDeploySuitesBase.sol";
