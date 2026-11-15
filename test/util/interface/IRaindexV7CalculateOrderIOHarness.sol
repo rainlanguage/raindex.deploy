@@ -3,7 +3,7 @@
 pragma solidity ^0.8.25;
 
 import {IRaindexV7, OrderV4, SignedContextV2, Float} from "raindex-interface-0.1.13/src/interface/IRaindexV7.sol";
-import {TOFUOutcome} from "rain-tofu-erc20-decimals-0.1.4/src/interface/ITOFUTokenDecimals.sol";
+import {TOFUOutcome} from "rain-tofu-erc20-decimals-0.1.5/src/interface/ITOFUTokenDecimals.sol";
 import {OrderIOCalculationV4} from "src/struct/OrderIOCalculationV4.sol";
 
 interface IRaindexV7CalculateOrderIOHarness is IRaindexV7 {

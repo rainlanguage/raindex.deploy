@@ -3,9 +3,9 @@
 pragma solidity ^0.8.19;
 
 import {TaskV3} from "raindex-interface-0.1.13/src/interface/IRaindexV7.sol";
-import {SourceIndexV2, StateNamespace, StackItem, EvalV4} from "rainlang-0.2.30/src/interface/IInterpreterV4.sol";
-import {LibNamespace, FullyQualifiedNamespace} from "rainlang-0.2.30/src/lib/ns/LibNamespace.sol";
-import {LibContext} from "rainlang-0.2.30/src/lib/caller/LibContext.sol";
+import {SourceIndexV2, StateNamespace, StackItem, EvalV4} from "rainlang-0.2.35/src/interface/IInterpreterV4.sol";
+import {LibNamespace, FullyQualifiedNamespace} from "rainlang-0.2.35/src/lib/ns/LibNamespace.sol";
+import {LibContext} from "rainlang-0.2.35/src/lib/caller/LibContext.sol";
 
 /// @dev Raindex context is actually fairly complex. The calling context column
 /// is populated before calculate order, but the remaining columns are only

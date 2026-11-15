@@ -12,7 +12,7 @@ import {RaindexV7ArbCommon, BadRaindex} from "./RaindexV7ArbCommon.sol";
 import {LibRaindexArb} from "../lib/LibRaindexArb.sol";
 import {LibRaindexDeploy} from "../lib/deploy/LibRaindexDeploy.sol";
 import {IRaindexV7OrderTaker} from "raindex-interface-0.1.13/src/interface/IRaindexV7OrderTaker.sol";
-import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.4/src/lib/LibTOFUTokenDecimals.sol";
+import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
 
 /// Thrown when `onTakeOrders2` is called during an arb by anything other than
 /// the trusted raindex.

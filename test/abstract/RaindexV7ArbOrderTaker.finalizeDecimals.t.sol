@@ -15,7 +15,7 @@ import {
 } from "raindex-interface-0.1.13/src/interface/IRaindexV7.sol";
 import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
-import {LibDecimalFloat} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
 
 /// @dev Discriminates that `arb6` passes the input token's OWN decimals and the
 /// output token's OWN decimals to `finalizeArb` in the correct positions. The

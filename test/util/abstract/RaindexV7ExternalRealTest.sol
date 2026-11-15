@@ -5,8 +5,8 @@ pragma solidity =0.8.25;
 import {Test, Vm, console2} from "forge-std-1.17.0/src/Test.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IRaindexV7Stub} from "test/util/abstract/IRaindexV7Stub.sol";
-import {IInterpreterStoreV3} from "rainlang-0.2.30/src/interface/IInterpreterStoreV3.sol";
-import {IParserV2} from "rainlang-0.2.30/src/interface/IParserV2.sol";
+import {IInterpreterStoreV3} from "rainlang-0.2.35/src/interface/IInterpreterStoreV3.sol";
+import {IParserV2} from "rainlang-0.2.35/src/interface/IParserV2.sol";
 import {
     IRaindexV7,
     IInterpreterV4,
@@ -17,16 +17,16 @@ import {
 import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {RaindexV7SubParser} from "../../../src/concrete/parser/RaindexV7SubParser.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
-import {LibDecimalFloat, Float} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
-import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.4/src/lib/LibTOFUTokenDecimals.sol";
+import {LibDecimalFloat, Float} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
 import {
     LibTestInterpreterDeploy,
     TEST_INTERPRETER_ADDRESS,
     TEST_STORE_ADDRESS,
     TEST_COMPILER_ADDRESS,
     TEST_PARSER_ADDRESS
-} from "rainlang-0.2.30/test/lib/deploy/LibTestInterpreterDeploy.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.25/src/lib/LibRainDeploy.sol";
+} from "rainlang-0.2.35/test/lib/deploy/LibTestInterpreterDeploy.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.33/src/lib/LibRainDeploy.sol";
 import {
     CREATION_CODE as DECIMAL_FLOAT_CREATION_CODE
 } from "rain-math-float-deploy-0.1.9/src/generated/0_1_5/DecimalFloat.sol";

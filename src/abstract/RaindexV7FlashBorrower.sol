@@ -14,8 +14,8 @@ import {IERC3156FlashBorrower} from "raindex-interface-0.1.13/src/interface/ierc
 import {RaindexV7ArbCommon, BadRaindex} from "./RaindexV7ArbCommon.sol";
 import {LibRaindexArb} from "../lib/LibRaindexArb.sol";
 import {LibRaindexDeploy} from "../lib/deploy/LibRaindexDeploy.sol";
-import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.4/src/lib/LibTOFUTokenDecimals.sol";
-import {LibDecimalFloat} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
+import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
+import {LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
 
 /// Thrown when the flash loan initiator is not this contract.
 /// @param badInitiator The untrusted initiator of the flash loan.

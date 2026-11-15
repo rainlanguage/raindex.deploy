@@ -48,7 +48,7 @@ import {
     CONTEXT_BASE_ROWS,
     CONTEXT_BASE_ROW_SENDER,
     CONTEXT_BASE_ROW_CALLING_CONTRACT
-} from "rainlang-0.2.30/src/lib/caller/LibContext.sol";
+} from "rainlang-0.2.35/src/lib/caller/LibContext.sol";
 
 library LibRaindexSubParserContextFixture {
     function hashedNamesContext() internal pure returns (bytes32[][] memory) {

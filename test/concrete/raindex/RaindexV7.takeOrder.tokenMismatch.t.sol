@@ -12,7 +12,7 @@ import {
     SignedContextV2
 } from "raindex-interface-0.1.13/src/interface/IRaindexV7.sol";
 import {TokenMismatch} from "../../../src/error/ErrRaindexV7.sol";
-import {Float, LibDecimalFloat} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
+import {Float, LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
 
 /// @title RaindexV7TakeOrderTokenMismatchTest
 /// @notice A test harness for testing the RaindexV7 takeOrder function.

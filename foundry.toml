@@ -77,29 +77,29 @@ forge-std = "1.17.0"
 "@openzeppelin-contracts" = "5.7.0"
 # rainlanguage/rain.interpreter was renamed to rainlanguage/rainlang;
 # its Soldeer registry name follows.
-rainlang = "0.2.30"
+rainlang = "0.2.35"
 # rainlanguage/rain.raindex.interface was renamed to
 # rainlanguage/raindex.interface; Soldeer registry name follows.
 raindex-interface = "0.1.13"
-rain-metadata = "0.1.43"
+rain-metadata = "0.1.46"
 # The MetaBoard split out of `rain.metadata` into its own deploy repo. The
 # deploy pin lives there now; `rain-metadata` keeps the interfaces and libs.
 rain-metadata-deploy = "0.1.4"
 rain-intorastring = "0.1.4"
 rain-sol-codegen = "0.1.39"
 rain-solmem = "0.1.28"
-rain-math-float = "0.3.11"
+rain-math-float = "0.3.12"
 rain-math-float-deploy = "0.1.9"
-rain-tofu-erc20-decimals = "0.1.4"
-rain-tofu-erc20-decimals-deploy = "0.1.4"
-rain-deploy = "0.1.25"
-rain-factory = "0.2.5"
+rain-tofu-erc20-decimals = "0.1.5"
+rain-tofu-erc20-decimals-deploy = "0.1.5"
+rain-deploy = "0.1.33"
+rain-factory = "0.2.13"
 rain-lib-typecast = "0.1.4"
 rain-lib-hash = "0.1.27"
 rain-math-binary = "0.1.4"
-rain-string = "0.3.9"
+rain-string = "0.3.10"
 rain-lib-memkv = "0.2.0"
-rain-extrospection = "0.1.16"
+rain-extrospection = "0.1.19"
 
 [soldeer]
 recursive_deps = false

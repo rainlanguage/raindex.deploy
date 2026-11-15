@@ -16,7 +16,7 @@ import {
     TaskV3
 } from "raindex-interface-0.1.13/src/interface/IRaindexV7.sol";
 import {LibTestTakeOrder} from "test/util/lib/LibTestTakeOrder.sol";
-import {LibDecimalFloat, Float} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat, Float} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
 
 contract RaindexV7TakeOrderMaximumOutputTest is RaindexV7ExternalRealTest {
     using LibDecimalFloat for Float;

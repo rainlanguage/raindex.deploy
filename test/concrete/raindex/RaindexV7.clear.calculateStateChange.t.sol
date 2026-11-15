@@ -6,8 +6,8 @@ import {Test} from "forge-std-1.17.0/src/Test.sol";
 import {OrderIOCalculationV4} from "src/struct/OrderIOCalculationV4.sol";
 import {ClearStateChangeV2} from "raindex-interface-0.1.13/src/interface/IRaindexV7.sol";
 import {OrderV4} from "raindex-interface-0.1.13/src/interface/IRaindexV7.sol";
-import {Float, LibDecimalFloat} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
-import {StateNamespace} from "rainlang-0.2.30/src/interface/IInterpreterV4.sol";
+import {Float, LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {StateNamespace} from "rainlang-0.2.35/src/interface/IInterpreterV4.sol";
 import {IRaindexV7ClearStateChangeHarness} from "test/util/interface/IRaindexV7ClearStateChangeHarness.sol";
 
 /// @title RaindexV7ClearStateChangeTest

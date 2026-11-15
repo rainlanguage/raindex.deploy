@@ -2,14 +2,14 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {RainDeployVerifyDeclaration} from "rain-deploy-0.1.25/src/abstract/RainDeployVerifyDeclaration.sol";
-import {ExternalDeployment} from "rain-deploy-0.1.25/src/abstract/RainDeployDeclarationChecks.sol";
+import {RainDeployVerifyDeclaration} from "rain-deploy-0.1.33/src/abstract/RainDeployVerifyDeclaration.sol";
+import {ExternalDeployment} from "rain-deploy-0.1.33/src/abstract/RainDeployDeclarationChecks.sol";
 import {RaindexDeploySuites} from "../../src/abstract/RaindexDeploySuites.sol";
 import {RaindexV7SubParser} from "../../src/concrete/parser/RaindexV7SubParser.sol";
 import {GenericPoolRaindexV7ArbOrderTaker} from "../../src/concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol";
 import {RouteProcessorRaindexV7ArbOrderTaker} from "../../src/concrete/arb/RouteProcessorRaindexV7ArbOrderTaker.sol";
 import {GenericPoolRaindexV7FlashBorrower} from "../../src/concrete/arb/GenericPoolRaindexV7FlashBorrower.sol";
-import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.4/src/lib/LibTOFUTokenDecimals.sol";
+import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
 
 /// @title RaindexDeployDeclarationTest
 /// @notice The suite fields only a dispatch, a verifier or a broadcast reads.

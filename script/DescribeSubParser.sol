@@ -3,8 +3,8 @@
 pragma solidity =0.8.25;
 
 import {Script} from "forge-std-1.17.0/src/Script.sol";
-import {IMetaBoardV1_2} from "rain-metadata-0.1.43/src/interface/unstable/IMetaBoardV1_2.sol";
-import {LibDescribedByMeta} from "rain-metadata-0.1.43/src/lib/LibDescribedByMeta.sol";
+import {IMetaBoardV1_2} from "rain-metadata-0.1.46/src/interface/unstable/IMetaBoardV1_2.sol";
+import {LibDescribedByMeta} from "rain-metadata-0.1.46/src/lib/LibDescribedByMeta.sol";
 import {LibMetaBoardDeploy} from "rain-metadata-deploy-0.1.4/src/lib/LibMetaBoardDeploy.sol";
 import {RaindexV7SubParser} from "../src/concrete/parser/RaindexV7SubParser.sol";
 import {LibRaindexDeploy} from "../src/lib/deploy/LibRaindexDeploy.sol";
