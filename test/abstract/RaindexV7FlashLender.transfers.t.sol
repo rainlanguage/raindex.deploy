@@ -5,7 +5,7 @@ pragma solidity =0.8.25;
 import {RaindexV7ExternalMockTest} from "test/util/abstract/RaindexV7ExternalMockTest.sol";
 import {IERC20Errors} from "@openzeppelin-contracts-5.7.0/token/ERC20/ERC20.sol";
 
-import {IERC3156FlashBorrower} from "raindex-interface-0.1.13/src/interface/ierc3156/IERC3156FlashBorrower.sol";
+import {IERC3156FlashBorrower} from "raindex-interface-0.1.14/src/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {FlashLenderCallbackFailed} from "../../src/abstract/RaindexV7FlashLender.sol";
 import {TKN} from "test/util/concrete/TKN.sol";
 import {IPull} from "test/util/concrete/IPull.sol";

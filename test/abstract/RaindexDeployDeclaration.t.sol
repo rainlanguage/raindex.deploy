@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {RainDeployVerifyDeclaration} from "rain-deploy-0.1.32/src/abstract/RainDeployVerifyDeclaration.sol";
-import {ExternalDeployment} from "rain-deploy-0.1.32/src/abstract/RainDeployDeclarationChecks.sol";
+import {RainDeployVerifyDeclaration} from "rain-deploy-0.1.33/src/abstract/RainDeployVerifyDeclaration.sol";
+import {ExternalDeployment} from "rain-deploy-0.1.33/src/abstract/RainDeployDeclarationChecks.sol";
 import {RaindexDeploySuites} from "../../src/abstract/RaindexDeploySuites.sol";
 import {RaindexV7SubParser} from "../../src/concrete/parser/RaindexV7SubParser.sol";
 import {GenericPoolRaindexV7ArbOrderTaker} from "../../src/concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol";

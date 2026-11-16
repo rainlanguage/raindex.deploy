@@ -3,9 +3,9 @@
 pragma solidity =0.8.25;
 
 import {Test} from "forge-std-1.17.0/src/Test.sol";
-import {DeploySuite} from "rain-deploy-0.1.32/src/abstract/RainDeploySuitesBase.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.32/src/lib/LibRainDeploy.sol";
-import {LibBlockSearch} from "rain-deploy-0.1.32/src/lib/LibBlockSearch.sol";
+import {DeploySuite} from "rain-deploy-0.1.33/src/abstract/RainDeploySuitesBase.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.33/src/lib/LibRainDeploy.sol";
+import {LibBlockSearch} from "rain-deploy-0.1.33/src/lib/LibBlockSearch.sol";
 import {LibRaindexV7StartBlock} from "src/lib/deploy/LibRaindexV7StartBlock.sol";
 import {LibRaindexV7NewestRelease} from "test/util/lib/LibRaindexV7NewestRelease.sol";
 

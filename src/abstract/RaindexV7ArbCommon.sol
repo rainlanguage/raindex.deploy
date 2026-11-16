@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {TaskV3} from "raindex-interface-0.1.13/src/interface/IRaindexV7.sol";
+import {TaskV3} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
 
 /// @param task The task to run as post for each arb.
 struct RaindexV7ArbConfig {
