@@ -16,13 +16,13 @@ import {DeployCandidate} from "src/abstract/RainDeploySuitesBase.sol";
 contract BuildHarness is Build {
     /// The generator's list.
     /// @return The generated contracts.
-    function externalGeneratedContracts() external pure returns (GeneratedContract[] memory) {
+    function externalGeneratedContracts() external view returns (GeneratedContract[] memory) {
         return generatedContracts(declaration());
     }
 
     /// The names a release cut from this script freezes.
     /// @return The snapshot contract names.
-    function externalSnapshotContractNames() external pure returns (string[] memory) {
+    function externalSnapshotContractNames() external view returns (string[] memory) {
         return snapshotContractNames(generatedContracts(declaration()));
     }
 
@@ -41,7 +41,7 @@ contract BuildHarness is Build {
     /// The deploy declaration's list, through the same guarded reader every
     /// other consumer of the declaration uses.
     /// @return The declared candidates.
-    function externalCandidateSuites() external pure returns (DeployCandidate[] memory) {
+    function externalCandidateSuites() external view returns (DeployCandidate[] memory) {
         return checkedCandidateSuites(declaration());
     }
 }

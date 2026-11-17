@@ -12,7 +12,7 @@ import {
 } from "rain-deploy-0.1.33/src/abstract/RainDeploySuitesBase.sol";
 import {LibRainDeployDeclaration} from "rain-deploy-0.1.33/src/lib/LibRainDeployDeclaration.sol";
 import {LibRainDeployZoltuMechanism} from "rain-deploy-0.1.33/src/lib/LibRainDeployZoltuMechanism.sol";
-import {RaindexV7} from "../concrete/raindex/RaindexV7.sol";
+import {Vm} from "forge-std-1.17.0/src/Vm.sol";
 import {RaindexV7SubParser} from "../concrete/parser/RaindexV7SubParser.sol";
 import {GenericPoolRaindexV7ArbOrderTaker} from "../concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol";
 import {RouteProcessorRaindexV7ArbOrderTaker} from "../concrete/arb/RouteProcessorRaindexV7ArbOrderTaker.sol";
@@ -57,6 +57,8 @@ string constant GENERIC_POOL_ARB_ORDER_TAKER_SUITE = "arb-generic-pool-order-tak
 string constant ROUTE_PROCESSOR_ARB_ORDER_TAKER_SUITE = "arb-route-processor-order-taker";
 string constant GENERIC_POOL_FLASH_BORROWER_SUITE = "arb-generic-pool-flash-borrower";
 
+string constant RAINDEX_ARTIFACT_PATH = "src/concrete/raindex/RaindexV7.sol:RaindexV7";
+
 /// @title RaindexDeploySuites
 /// @notice Everything this repo deploys, declared ONCE: the six hand-written
 /// candidates below, and the released side read from the generated
@@ -70,7 +72,7 @@ string constant GENERIC_POOL_FLASH_BORROWER_SUITE = "arb-generic-pool-flash-borr
 /// the product.
 abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     /// @inheritdoc RainDeploySuitesBase
-    function declaration() internal pure override returns (DeployDeclaration memory) {
+    function declaration() internal view override returns (DeployDeclaration memory) {
         DeployDeclaration memory declared;
         LibRainDeployDeclaration.extend(declared);
         LibRainDeployZoltuMechanism.extend(declared);
@@ -88,9 +90,12 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
         return declared;
     }
 
-    function sourceCreationCode(string memory suite) internal pure returns (bytes memory) {
+    function sourceCreationCode(string memory suite) internal view returns (bytes memory) {
         bytes32 key = keccak256(bytes(suite));
-        if (key == keccak256(bytes(RAINDEX_SUITE))) return type(RaindexV7).creationCode;
+        // Read by path: importing RaindexV7 drags this file into its via-IR compilation unit.
+        if (key == keccak256(bytes(RAINDEX_SUITE))) {
+            return Vm(address(uint160(uint256(keccak256("hevm cheat code"))))).getCode(RAINDEX_ARTIFACT_PATH);
+        }
         if (key == keccak256(bytes(SUB_PARSER_SUITE))) return type(RaindexV7SubParser).creationCode;
         if (key == keccak256(bytes(ROUTE_PROCESSOR_SUITE))) return ROUTE_PROCESSOR_4_CREATION_CODE;
         if (key == keccak256(bytes(GENERIC_POOL_ARB_ORDER_TAKER_SUITE))) {
@@ -177,7 +182,7 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 storedDeployedAddress: LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS,
                 storedBytecodeHash: LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH,
                 storedRuntimeCode: RAINDEX_RUNTIME_CODE_CANDIDATE,
-                artifactPath: "src/concrete/raindex/RaindexV7.sol:RaindexV7",
+                artifactPath: RAINDEX_ARTIFACT_PATH,
                 dependencies: raindexDependencies(),
                 mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
                 networks: new string[](0),
