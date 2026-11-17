@@ -13,7 +13,7 @@ import {
     CONTEXT_SIGNED_CONTEXT_DOMAINS_ROWS,
     CONTEXT_SIGNED_CONTEXT_START_ROWS
 } from "../../../src/lib/LibRaindex.sol";
-import {CONTEXT_BASE_ROWS} from "rainlang-0.2.30/src/lib/caller/LibContext.sol";
+import {CONTEXT_BASE_ROWS} from "rainlang-0.2.36/src/lib/caller/LibContext.sol";
 
 /// @title RaindexV7SubParserWordParsersWiringTest
 /// @notice Every word reads its own context cell, so no two word parsers can

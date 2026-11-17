@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 
 import {RaindexV7} from "src/concrete/raindex/RaindexV7.sol";
 import {IRaindexV7VaultBalanceHarness} from "test/util/interface/IRaindexV7VaultBalanceHarness.sol";
-import {Float} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
+import {Float} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
 
 /// @dev Exposes RaindexV7's internal vault-balance / token helpers for testing.
 contract RaindexV7VaultBalanceHarness is RaindexV7, IRaindexV7VaultBalanceHarness {

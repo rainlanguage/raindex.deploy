@@ -2,41 +2,32 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {RainDeployVerifyDeclaration} from "rain-deploy-0.1.25/src/abstract/RainDeployVerifyDeclaration.sol";
-import {ExternalDeployment} from "rain-deploy-0.1.25/src/abstract/RainDeployDeclarationChecks.sol";
-import {RaindexDeploySuites} from "../../src/abstract/RaindexDeploySuites.sol";
-import {RaindexV7SubParser} from "../../src/concrete/parser/RaindexV7SubParser.sol";
-import {GenericPoolRaindexV7ArbOrderTaker} from "../../src/concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol";
-import {RouteProcessorRaindexV7ArbOrderTaker} from "../../src/concrete/arb/RouteProcessorRaindexV7ArbOrderTaker.sol";
-import {GenericPoolRaindexV7FlashBorrower} from "../../src/concrete/arb/GenericPoolRaindexV7FlashBorrower.sol";
-import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.4/src/lib/LibTOFUTokenDecimals.sol";
+import {RainDeployVerifyDeclaration} from "rain-deploy-0.1.33/src/abstract/RainDeployVerifyDeclaration.sol";
+import {DeployDeclaration, DeploySuite} from "rain-deploy-0.1.33/src/abstract/RainDeploySuitesBase.sol";
+import {RaindexDeploySuites, NoSourceForSuite} from "../../src/abstract/RaindexDeploySuites.sol";
 
-/// @title RaindexDeployDeclarationTest
-/// @notice The suite fields only a dispatch, a verifier or a broadcast reads.
 contract RaindexDeployDeclarationTest is RaindexDeploySuites, RainDeployVerifyDeclaration {
-    function sourceCreationCode(string memory suite) internal view override returns (bytes memory) {
-        bytes32 key = keccak256(bytes(suite));
-        // `RaindexV7` is via-IR only; importing it here would pull this test under that restriction.
-        if (key == keccak256("raindex")) return vm.getCode("src/concrete/raindex/RaindexV7.sol:RaindexV7");
-        if (key == keccak256("subparser")) return type(RaindexV7SubParser).creationCode;
-        if (key == keccak256("arb-generic-pool-order-taker")) {
-            return type(GenericPoolRaindexV7ArbOrderTaker).creationCode;
-        }
-        if (key == keccak256("arb-route-processor-order-taker")) {
-            return type(RouteProcessorRaindexV7ArbOrderTaker).creationCode;
-        }
-        if (key == keccak256("arb-generic-pool-flash-borrower")) {
-            return type(GenericPoolRaindexV7FlashBorrower).creationCode;
-        }
-        revert(string.concat("no source for suite: ", suite));
+    /// @param suite The suite key.
+    /// @return The declared source of `suite`.
+    function externalSourceCreationCode(string memory suite) external view returns (bytes memory) {
+        return declaration().sourceCreationCode(suite);
     }
 
-    function externalDeployments() internal pure override returns (ExternalDeployment[] memory) {
-        ExternalDeployment[] memory externals = new ExternalDeployment[](1);
-        externals[0] = ExternalDeployment({
-            deployedAddress: address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT),
-            codeHash: LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CODE_HASH
-        });
-        return externals;
+    /// `script/Build.sol` regenerates an unanchorable candidate from its declared source.
+    function testCandidateCreationCodeIsTheDeclaredSource() external view {
+        DeployDeclaration memory d = declaration();
+        for (uint256 i = 0; i < d.candidates.length; i++) {
+            DeploySuite memory suite = d.candidates[i].snapshot;
+            assertEq(keccak256(d.sourceCreationCode(suite.suite)), keccak256(suite.creationCode), suite.suite);
+        }
+    }
+
+    function testSourceCreationCodeRefusesAnUndeclaredSuite(string memory suite) external {
+        DeployDeclaration memory d = declaration();
+        for (uint256 i = 0; i < d.candidates.length; i++) {
+            vm.assume(keccak256(bytes(suite)) != keccak256(bytes(d.candidates[i].snapshot.suite)));
+        }
+        vm.expectRevert(abi.encodeWithSelector(NoSourceForSuite.selector, suite));
+        this.externalSourceCreationCode(suite);
     }
 }

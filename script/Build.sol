@@ -2,35 +2,27 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {BuildScript} from "rain-deploy-0.1.25/src/abstract/BuildScript.sol";
-import {LibRainDeploySnapshot} from "rain-deploy-0.1.25/src/lib/LibRainDeploySnapshot.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.25/src/lib/LibRainDeploy.sol";
+import {BuildScript, GeneratedContract, RetiredContract} from "rain-deploy-0.1.33/src/abstract/BuildScript.sol";
+import {LibRainDeploySnapshot} from "rain-deploy-0.1.33/src/lib/LibRainDeploySnapshot.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.33/src/lib/LibRainDeploy.sol";
+import {DeployDeclaration, DeploySuite} from "rain-deploy-0.1.33/src/abstract/RainDeploySuitesBase.sol";
 import {LibCodeGen} from "rain-sol-codegen-0.1.39/src/lib/LibCodeGen.sol";
 import {LibFs} from "rain-sol-codegen-0.1.39/src/lib/LibFs.sol";
-import {LibGenParseMeta} from "rainlang-0.2.30/src/lib/codegen/LibGenParseMeta.sol";
-import {DeployCandidate} from "../src/abstract/RainDeploySuitesBase.sol";
-import {RaindexDeploySuites} from "../src/abstract/RaindexDeploySuites.sol";
+import {LibGenParseMeta} from "rainlang-0.2.36/src/lib/codegen/LibGenParseMeta.sol";
+import {
+    RaindexDeploySuites,
+    RAINDEX_SUITE,
+    SUB_PARSER_SUITE,
+    ROUTE_PROCESSOR_SUITE,
+    GENERIC_POOL_ARB_ORDER_TAKER_SUITE,
+    ROUTE_PROCESSOR_ARB_ORDER_TAKER_SUITE,
+    GENERIC_POOL_FLASH_BORROWER_SUITE
+} from "../src/abstract/RaindexDeploySuites.sol";
 import {RaindexV7SubParser} from "../src/concrete/parser/RaindexV7SubParser.sol";
-import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../src/lib/deploy/LibRouteProcessor4CreationCode.sol";
 import {LibRaindexSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "../src/lib/LibRaindexSubParser.sol";
-
-/// One contract's generated snapshot and the released-suites lib emitted from
-/// its record.
-struct GeneratedContract {
-    /// Places the snapshot inside `src/generated/<dir>/` and names the
-    /// generated released-suites lib.
-    string contractName;
-    /// The released lib takes its suite key and artifact path from its
-    /// `snapshot`.
-    DeployCandidate candidate;
-    /// Creation code for an unanchorable candidate; empty means read the
-    /// `artifactPath` artifact, keeping restricted compiler profiles out of here.
-    bytes pinnedCreationCode;
-}
 
 /// @title Build
 /// @notice Generates the deploy pins for every contract this repo deploys.
-/// `generatedContracts()` is the only list, read by every hook below.
 ///
 /// `run()` (what CI regenerates against) rewrites the rolling
 /// `src/generated/candidate/` snapshots, the sub-parser's non-deploy codegen
@@ -38,145 +30,96 @@ struct GeneratedContract {
 /// `src/generated/<tag>/` first. Frozen snapshots are append-only historical
 /// records, never regenerated here.
 ///
-/// Unlike the org's template deploy repos there are no generated alias libs:
-/// `src/lib/deploy/LibRaindexDeploy.sol` is hand-written over the candidate
-/// snapshots because its constant names are consumed across this repo and its
-/// crates.
+/// The V6 contracts are retired: their records were cut under the V6 names and
+/// stay released under the V7 suite keys.
+///
+/// There are no generated alias libs: `src/lib/deploy/LibRaindexDeploy.sol` is
+/// hand-written over the candidate snapshots because its constant names are
+/// consumed across this repo and its crates.
 contract Build is BuildScript, RaindexDeploySuites {
-    /// Every contract this repo generates deploy pins for.
-    /// @return The generated contracts.
-    function generatedContracts() internal pure returns (GeneratedContract[] memory) {
+    /// @inheritdoc BuildScript
+    function generatedContracts(DeployDeclaration memory d)
+        internal
+        pure
+        override
+        returns (GeneratedContract[] memory)
+    {
         GeneratedContract[] memory contracts = new GeneratedContract[](6);
-        contracts[0] =
-            GeneratedContract({contractName: "RaindexV7", candidate: raindexCandidate(), pinnedCreationCode: ""});
+        contracts[0] = GeneratedContract({
+            contractName: "RaindexV7", constantPrefix: "", candidate: declaredCandidate(d, RAINDEX_SUITE)
+        });
         contracts[1] = GeneratedContract({
-            contractName: "RaindexV7SubParser", candidate: subParserCandidate(), pinnedCreationCode: ""
+            contractName: "RaindexV7SubParser", constantPrefix: "", candidate: declaredCandidate(d, SUB_PARSER_SUITE)
         });
         contracts[2] = GeneratedContract({
-            contractName: "RouteProcessor4",
-            candidate: routeProcessorCandidate(),
-            pinnedCreationCode: ROUTE_PROCESSOR_4_CREATION_CODE
+            contractName: "RouteProcessor4", constantPrefix: "", candidate: declaredCandidate(d, ROUTE_PROCESSOR_SUITE)
         });
         contracts[3] = GeneratedContract({
             contractName: "GenericPoolRaindexV7ArbOrderTaker",
-            candidate: genericPoolArbOrderTakerCandidate(),
-            pinnedCreationCode: ""
+            constantPrefix: "",
+            candidate: declaredCandidate(d, GENERIC_POOL_ARB_ORDER_TAKER_SUITE)
         });
         contracts[4] = GeneratedContract({
             contractName: "RouteProcessorRaindexV7ArbOrderTaker",
-            candidate: routeProcessorArbOrderTakerCandidate(),
-            pinnedCreationCode: ""
+            constantPrefix: "",
+            candidate: declaredCandidate(d, ROUTE_PROCESSOR_ARB_ORDER_TAKER_SUITE)
         });
         contracts[5] = GeneratedContract({
             contractName: "GenericPoolRaindexV7FlashBorrower",
-            candidate: genericPoolFlashBorrowerCandidate(),
-            pinnedCreationCode: ""
+            constantPrefix: "",
+            candidate: declaredCandidate(d, GENERIC_POOL_FLASH_BORROWER_SUITE)
         });
         return contracts;
     }
 
-    /// Frozen records cut under a contract's former name, each released under
-    /// the current candidate it was renamed to, keeping the artifact path it
-    /// was cut with.
-    /// @return The renamed records.
-    function renamedRecords() internal pure returns (GeneratedContract[] memory) {
-        GeneratedContract[] memory contracts = new GeneratedContract[](5);
-        contracts[0] = renamedRecord("RaindexV6", raindexCandidate(), "src/concrete/raindex/RaindexV6.sol:RaindexV6");
-        contracts[1] = renamedRecord(
-            "RaindexV6SubParser", subParserCandidate(), "src/concrete/parser/RaindexV6SubParser.sol:RaindexV6SubParser"
+    /// @inheritdoc BuildScript
+    function retiredContracts() internal pure override returns (RetiredContract[] memory) {
+        RetiredContract[] memory retired = new RetiredContract[](5);
+        retired[0] =
+            retiredContract("RaindexV6", raindexCandidate().snapshot, "src/concrete/raindex/RaindexV6.sol:RaindexV6");
+        retired[1] = retiredContract(
+            "RaindexV6SubParser",
+            subParserCandidate().snapshot,
+            "src/concrete/parser/RaindexV6SubParser.sol:RaindexV6SubParser"
         );
-        contracts[2] = renamedRecord(
+        retired[2] = retiredContract(
             "GenericPoolRaindexV6ArbOrderTaker",
-            genericPoolArbOrderTakerCandidate(),
+            genericPoolArbOrderTakerCandidate().snapshot,
             "src/concrete/arb/GenericPoolRaindexV6ArbOrderTaker.sol:GenericPoolRaindexV6ArbOrderTaker"
         );
-        contracts[3] = renamedRecord(
+        retired[3] = retiredContract(
             "RouteProcessorRaindexV6ArbOrderTaker",
-            routeProcessorArbOrderTakerCandidate(),
+            routeProcessorArbOrderTakerCandidate().snapshot,
             "src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol:RouteProcessorRaindexV6ArbOrderTaker"
         );
-        contracts[4] = renamedRecord(
+        retired[4] = retiredContract(
             "GenericPoolRaindexV6FlashBorrower",
-            genericPoolFlashBorrowerCandidate(),
+            genericPoolFlashBorrowerCandidate().snapshot,
             "src/concrete/arb/GenericPoolRaindexV6FlashBorrower.sol:GenericPoolRaindexV6FlashBorrower"
         );
-        return contracts;
+        return retired;
     }
 
     /// A record cut as `contractName` from `formerArtifactPath`, released under
-    /// `candidate`.
+    /// `template`'s suite key.
     /// @param contractName The former contract name.
-    /// @param candidate The current candidate it was renamed to.
+    /// @param template The current candidate's snapshot it was renamed to.
     /// @param formerArtifactPath The artifact path the record was cut with.
-    /// @return The renamed record.
-    function renamedRecord(
-        string memory contractName,
-        DeployCandidate memory candidate,
-        string memory formerArtifactPath
-    ) internal pure returns (GeneratedContract memory) {
-        candidate.snapshot.artifactPath = formerArtifactPath;
-        return GeneratedContract({contractName: contractName, candidate: candidate, pinnedCreationCode: ""});
-    }
-
-    /// Every contract with a released-suites lib: the renamed records first,
-    /// so each suite key's releases stay in tag order across the aggregate.
-    /// @return The released contracts.
-    function releasedContracts() internal pure returns (GeneratedContract[] memory) {
-        GeneratedContract[] memory renamed = renamedRecords();
-        GeneratedContract[] memory generated = generatedContracts();
-        GeneratedContract[] memory contracts = new GeneratedContract[](renamed.length + generated.length);
-        for (uint256 i = 0; i < renamed.length; i++) {
-            contracts[i] = renamed[i];
-        }
-        for (uint256 i = 0; i < generated.length; i++) {
-            contracts[renamed.length + i] = generated[i];
-        }
-        return contracts;
-    }
-
-    /// The names of `contracts`, in order.
-    /// @param contracts The contracts.
-    /// @return The names.
-    function contractNames(GeneratedContract[] memory contracts) internal pure returns (string[] memory) {
-        string[] memory names = new string[](contracts.length);
-        for (uint256 i = 0; i < contracts.length; i++) {
-            names[i] = contracts[i].contractName;
-        }
-        return names;
+    /// @return The retired contract.
+    function retiredContract(string memory contractName, DeploySuite memory template, string memory formerArtifactPath)
+        internal
+        pure
+        returns (RetiredContract memory)
+    {
+        template.artifactPath = formerArtifactPath;
+        return RetiredContract({contractName: contractName, template: template});
     }
 
     /// @inheritdoc BuildScript
-    /// @dev `releasedContracts()` in order — the order the aggregate emits its
-    /// entries in.
-    function snapshotContractNames() internal pure override returns (string[] memory) {
-        return contractNames(releasedContracts());
-    }
-
-    /// @inheritdoc BuildScript
-    function releaseRecordNames() internal pure override returns (string[] memory) {
-        return contractNames(generatedContracts());
-    }
-
-    /// @inheritdoc BuildScript
-    /// @dev Every released-suites lib and the aggregate over them. No alias
-    /// libs: `LibRaindexDeploy` is hand-written.
-    function regenerateLibs() internal override {
-        GeneratedContract[] memory contracts = releasedContracts();
-        for (uint256 i = 0; i < contracts.length; i++) {
-            LibRainDeploySnapshot.writeReleasedSuitesLib(
-                vm,
-                LibRainDeploySnapshot.LIB_DIR,
-                recordRoot(),
-                contracts[i].contractName,
-                contracts[i].candidate.snapshot
-            );
-        }
-        LibRainDeploySnapshot.writeReleasedSuitesAggregate(vm, LibRainDeploySnapshot.LIB_DIR, snapshotContractNames());
-    }
-
-    /// @inheritdoc BuildScript
+    /// @dev An unanchorable candidate's creation code is its declared source;
+    /// every other is read from its artifact.
     function regenerateSnapshots() internal override {
-        GeneratedContract[] memory contracts = generatedContracts();
+        GeneratedContract[] memory contracts = checkedGeneratedContracts(declaration());
         for (uint256 i = 0; i < contracts.length; i++) {
             LibRainDeploySnapshot.writeSnapshot(
                 vm,
@@ -185,7 +128,7 @@ contract Build is BuildScript, RaindexDeploySuites {
                 contracts[i].contractName,
                 bytes(contracts[i].candidate.unanchorableReason).length == 0
                     ? vm.getCode(contracts[i].candidate.snapshot.artifactPath)
-                    : contracts[i].pinnedCreationCode,
+                    : sourceCreationCode(contracts[i].candidate.snapshot.suite),
                 contracts[i].candidate.snapshot.dependencies
             );
         }

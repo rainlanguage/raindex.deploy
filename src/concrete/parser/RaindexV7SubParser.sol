@@ -7,7 +7,7 @@ import {
     BaseRainlangSubParser,
     OperandV2,
     IParserToolingV1
-} from "rainlang-0.2.30/src/abstract/BaseRainlangSubParser.sol";
+} from "rainlang-0.2.36/src/abstract/BaseRainlangSubParser.sol";
 import {LibConvert} from "rain-lib-typecast-0.1.4/src/LibConvert.sol";
 import {LibUint256Matrix} from "rain-solmem-0.1.28/src/lib/LibUint256Matrix.sol";
 
@@ -35,7 +35,7 @@ import {
     CONTEXT_BASE_ROW_SENDER,
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
     CONTEXT_BASE_ROWS
-} from "rainlang-0.2.30/src/lib/caller/LibContext.sol";
+} from "rainlang-0.2.36/src/lib/caller/LibContext.sol";
 import {
     CONTEXT_COLUMNS_EXTENDED,
     CONTEXT_VAULT_OUTPUTS_COLUMN,
@@ -74,7 +74,7 @@ import {
     SUB_PARSER_WORD_PARSERS,
     OPERAND_HANDLER_FUNCTION_POINTERS as SUB_PARSER_OPERAND_HANDLERS
 } from "../../generated/RaindexV7SubParserPointers.sol";
-import {IDescribedByMetaV1} from "rain-metadata-0.1.43/src/interface/IDescribedByMetaV1.sol";
+import {IDescribedByMetaV1} from "rain-metadata-0.1.46/src/interface/IDescribedByMetaV1.sol";
 import {ISubParserToolingV1} from "rain-sol-codegen-0.1.39/src/interface/ISubParserToolingV1.sol";
 
 /// @title RaindexV7SubParser

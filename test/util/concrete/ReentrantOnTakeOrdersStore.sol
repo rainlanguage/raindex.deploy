@@ -3,9 +3,9 @@
 pragma solidity =0.8.25;
 
 import {GenericPoolRaindexV7ArbOrderTaker} from "../../../src/concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol";
-import {StateNamespace} from "rainlang-0.2.30/src/interface/IInterpreterV4.sol";
+import {StateNamespace} from "rainlang-0.2.36/src/interface/IInterpreterV4.sol";
 import {MockToken} from "./MockToken.sol";
-import {Float} from "rain-math-float-0.3.11/src/lib/LibDecimalFloat.sol";
+import {Float} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
 
 /// Store that, on `set`, calls the arb's `onTakeOrders2` naming itself as
 /// spender and pool, and records the revert data.
