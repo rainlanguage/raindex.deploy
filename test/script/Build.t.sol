@@ -4,7 +4,9 @@ pragma solidity =0.8.25;
 
 import {Test} from "forge-std-1.17.0/src/Test.sol";
 import {GeneratedContract, RetiredContract} from "script/Build.sol";
-import {DeployCandidate} from "src/abstract/RainDeploySuitesBase.sol";
+import {DeployCandidate, DeploySuite} from "src/abstract/RainDeploySuitesBase.sol";
+import {LibRainDeploySnapshot} from "rain-deploy-0.1.33/src/lib/LibRainDeploySnapshot.sol";
+import {LibReleasedSuites} from "src/lib/LibReleasedSuites.sol";
 import {BuildHarness} from "test/util/concrete/BuildHarness.sol";
 
 /// @title BuildTest
@@ -216,6 +218,57 @@ contract BuildTest is Test {
             assertEq(
                 components[components.length - 1], retired[i].contractName, "retired contract's artifact is not its own"
             );
+        }
+    }
+
+    /// The committed aggregate is what `regenerateLibs` emits from these lists: each released contract's records
+    /// in tag order, under its template's key and artifact path, in `releasedContractNames()` order.
+    function testReleasedSuitesAreTheRecordUnderTheBuildLists() external view {
+        RetiredContract[] memory retired = sBuild.externalRetiredContracts();
+        GeneratedContract[] memory generated = sBuild.externalGeneratedContracts();
+        DeploySuite[] memory released = LibReleasedSuites.releasedSuites();
+
+        uint256 k = 0;
+        for (uint256 i = 0; i < retired.length; i++) {
+            k = checkReleasedRecords(released, k, retired[i].contractName, retired[i].template);
+        }
+        for (uint256 i = 0; i < generated.length; i++) {
+            k = checkReleasedRecords(released, k, generated[i].contractName, generated[i].candidate.snapshot);
+        }
+        assertEq(k, released.length, "a released suite is no released contract's record");
+    }
+
+    /// @return The position in `released` after `contractName`'s records.
+    function checkReleasedRecords(
+        DeploySuite[] memory released,
+        uint256 k,
+        string memory contractName,
+        DeploySuite memory template
+    ) internal view returns (uint256) {
+        string[] memory records = LibRainDeploySnapshot.recordPathsForContract(
+            vm, sBuild.externalRecordRoot(), contractName
+        );
+        for (uint256 j = 0; j < records.length; j++) {
+            assertLt(k, released.length, string.concat("record is not released: ", records[j]));
+            assertEq(
+                released[k].suite,
+                string.concat(template.suite, "@", LibRainDeploySnapshot.tagForRecordPath(vm, records[j])),
+                string.concat("released key is not the template's: ", records[j])
+            );
+            assertEq(
+                released[k].artifactPath,
+                template.artifactPath,
+                string.concat("released artifact path is not the template's: ", records[j])
+            );
+            k++;
+        }
+        return k;
+    }
+
+    function testEveryGeneratedPathIsCommitted() external view {
+        string[] memory paths = sBuild.externalGeneratedPaths();
+        for (uint256 i = 0; i < paths.length; i++) {
+            assertTrue(vm.isFile(paths[i]), string.concat("generated path is not committed: ", paths[i]));
         }
     }
 }

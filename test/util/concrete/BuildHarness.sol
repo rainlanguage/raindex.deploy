@@ -4,6 +4,7 @@ pragma solidity =0.8.25;
 
 import {Build, GeneratedContract, RetiredContract} from "script/Build.sol";
 import {DeployCandidate} from "src/abstract/RainDeploySuitesBase.sol";
+import {DeployDeclaration} from "rain-deploy-0.1.33/src/abstract/RainDeploySuitesBase.sol";
 
 /// @title BuildHarness
 /// @notice An external seam onto the internal declarations `BuildTest`
@@ -43,5 +44,16 @@ contract BuildHarness is Build {
     /// @return The declared candidates.
     function externalCandidateSuites() external pure returns (DeployCandidate[] memory) {
         return checkedCandidateSuites(declaration());
+    }
+
+    /// @return Every path `run()` rewrites.
+    function externalGeneratedPaths() external view returns (string[] memory) {
+        DeployDeclaration memory d = declaration();
+        return generatedPaths(d, generatedContracts(d));
+    }
+
+    /// @return The record root releases are frozen into.
+    function externalRecordRoot() external view returns (string memory) {
+        return recordRoot();
     }
 }
