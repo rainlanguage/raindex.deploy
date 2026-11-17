@@ -163,9 +163,7 @@ contract BuildTest is Test {
                     break;
                 }
             }
-            assertTrue(
-                found, string.concat("retired contract is not a generated candidate: ", retired[i].contractName)
-            );
+            assertTrue(found, string.concat("retired contract is not a generated candidate: ", retired[i].contractName));
 
             uint256 count = 0;
             for (uint256 k = 0; k < names.length; k++) {

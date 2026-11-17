@@ -75,9 +75,8 @@ contract Build is BuildScript, RaindexDeploySuites {
     /// @inheritdoc BuildScript
     function retiredContracts() internal pure override returns (RetiredContract[] memory) {
         RetiredContract[] memory retired = new RetiredContract[](5);
-        retired[0] = retiredContract(
-            "RaindexV6", raindexCandidate().snapshot, "src/concrete/raindex/RaindexV6.sol:RaindexV6"
-        );
+        retired[0] =
+            retiredContract("RaindexV6", raindexCandidate().snapshot, "src/concrete/raindex/RaindexV6.sol:RaindexV6");
         retired[1] = retiredContract(
             "RaindexV6SubParser",
             subParserCandidate().snapshot,
