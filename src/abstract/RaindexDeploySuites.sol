@@ -20,6 +20,7 @@ import {GenericPoolRaindexV7FlashBorrower} from "../concrete/arb/GenericPoolRain
 import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../lib/deploy/LibRouteProcessor4CreationCode.sol";
 import {LibRaindexDeploy} from "../lib/deploy/LibRaindexDeploy.sol";
 import {LibReleasedSuites} from "../lib/LibReleasedSuites.sol";
+import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
 import {
     DEPLOYED_ADDRESS as TOFU_DECIMALS_ADDRESS,
     RUNTIME_CODE as TOFU_DECIMALS_RUNTIME_CODE
@@ -107,7 +108,8 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     function externalDeployments() internal pure returns (ExternalDeployment[] memory) {
         ExternalDeployment[] memory externals = new ExternalDeployment[](1);
         externals[0] = ExternalDeployment({
-            deployedAddress: TOFU_DECIMALS_ADDRESS, codeHash: keccak256(TOFU_DECIMALS_RUNTIME_CODE)
+            deployedAddress: address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT),
+            codeHash: LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CODE_HASH
         });
         return externals;
     }
