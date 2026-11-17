@@ -50,6 +50,10 @@ import {
     RUNTIME_CODE as GENERIC_POOL_FB_RUNTIME_CODE_CANDIDATE
 } from "../generated/candidate/GenericPoolRaindexV7FlashBorrower.sol";
 
+/// Thrown when no candidate source is declared under a suite key.
+/// @param suite The suite key.
+error NoSourceForSuite(string suite);
+
 string constant RAINDEX_SUITE = "raindex";
 string constant SUB_PARSER_SUITE = "subparser";
 string constant ROUTE_PROCESSOR_SUITE = "route-processor";
@@ -107,7 +111,7 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
         if (key == keccak256(bytes(GENERIC_POOL_FLASH_BORROWER_SUITE))) {
             return type(GenericPoolRaindexV7FlashBorrower).creationCode;
         }
-        revert(string.concat("no source for suite: ", suite));
+        revert NoSourceForSuite(suite);
     }
 
     function externalDeployments() internal pure returns (ExternalDeployment[] memory) {
