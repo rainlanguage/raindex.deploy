@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {Test} from "forge-std-1.17.0/src/Test.sol";
-import {GeneratedContract} from "script/Build.sol";
+import {GeneratedContract, RetiredContract} from "script/Build.sol";
 import {DeployCandidate} from "src/abstract/RainDeploySuitesBase.sol";
 import {BuildHarness} from "test/util/concrete/BuildHarness.sol";
 
@@ -13,7 +13,7 @@ import {BuildHarness} from "test/util/concrete/BuildHarness.sol";
 /// `generatedContracts()` is the one list every hook inside `Build` reads, so
 /// the regeneration, the released-lib writer and the freeze cannot disagree
 /// with each other. The boundary is where they can: what this repo deploys is
-/// declared in `RaindexDeploySuites.candidateSuites()`, and the generator's
+/// declared in `RaindexDeploySuites.declaration()`, and the generator's
 /// list is a second hard-coded array in a second file.
 ///
 /// A candidate dropped from `generatedContracts()` by a refactor or a merge
@@ -36,7 +36,7 @@ import {BuildHarness} from "test/util/concrete/BuildHarness.sol";
 /// repos: this repo emits no generated alias libs, so `GeneratedContract` has
 /// no prefix to collide.
 contract BuildTest is Test {
-    /// The harness the two declarations are read through.
+    /// The harness the declarations are read through.
     BuildHarness internal sBuild;
 
     function setUp() external {
@@ -99,16 +99,16 @@ contract BuildTest is Test {
         }
     }
 
-    /// PROPERTY: `releaseRecordNames()` is every `generatedContracts()`
+    /// PROPERTY: `snapshotContractNames()` is every `generatedContracts()`
     /// entry's `contractName`, positionally.
     ///
     /// It is the list `cutRelease()` freezes, reached only through `forge
     /// script`. A name list shorter than the declaration freezes one contract
     /// fewer, while the test above stays green: it reads
     /// `generatedContracts()`, which this list does not pass through.
-    function testReleaseRecordNamesAreTheDeclarationInOrder() external view {
+    function testSnapshotContractNamesAreTheDeclarationInOrder() external view {
         GeneratedContract[] memory generated = sBuild.externalGeneratedContracts();
-        string[] memory names = sBuild.externalReleaseRecordNames();
+        string[] memory names = sBuild.externalSnapshotContractNames();
 
         assertEq(names.length, generated.length, "a different number of names than generated contracts");
 
@@ -117,64 +117,63 @@ contract BuildTest is Test {
         }
     }
 
-    /// PROPERTY: `snapshotContractNames()` is every `renamedRecords()` entry's
-    /// `contractName` followed by every `generatedContracts()` entry's,
+    /// PROPERTY: `releasedContractNames()` is every `retiredContracts()`
+    /// entry's `contractName` followed by every `generatedContracts()` entry's,
     /// positionally.
     ///
     /// It is the list the released-suites aggregate is emitted from. A name
     /// missing from it is a contract whose releases the aggregate declares as
     /// nothing at all. Positional because the aggregate documents its entries
     /// as being in this order and nothing else pins that.
-    function testSnapshotContractNamesAreRenamedThenDeclarationInOrder() external view {
-        GeneratedContract[] memory renamed = sBuild.externalRenamedRecords();
+    function testReleasedContractNamesAreRetiredThenDeclarationInOrder() external view {
+        RetiredContract[] memory retired = sBuild.externalRetiredContracts();
         GeneratedContract[] memory generated = sBuild.externalGeneratedContracts();
-        string[] memory names = sBuild.externalSnapshotContractNames();
+        string[] memory names = sBuild.externalReleasedContractNames();
 
-        assertEq(names.length, renamed.length + generated.length, "a different number of names than released contracts");
+        assertEq(names.length, retired.length + generated.length, "a different number of names than released contracts");
 
-        for (uint256 i = 0; i < renamed.length; i++) {
-            assertEq(names[i], renamed[i].contractName, "the renamed records do not lead in order");
+        for (uint256 i = 0; i < retired.length; i++) {
+            assertEq(names[i], retired[i].contractName, "the retired contracts do not lead in order");
         }
         for (uint256 i = 0; i < generated.length; i++) {
-            assertEq(names[renamed.length + i], generated[i].contractName, "the declaration does not follow in order");
+            assertEq(names[retired.length + i], generated[i].contractName, "the declaration does not follow in order");
         }
     }
 
-    /// PROPERTY: every renamed record is released under a generated candidate,
-    /// by suite key and creation code, and its name is no released contract's
-    /// other than its own. A renamed record under an undeclared key is a
-    /// release no chain check is handed, and a shared name writes one released
-    /// lib twice.
-    function testRenamedRecordsReleaseUnderAGeneratedCandidate() external view {
-        GeneratedContract[] memory renamed = sBuild.externalRenamedRecords();
+    /// PROPERTY: every retired contract is released under a generated
+    /// candidate's suite key, and its name is no released contract's other
+    /// than its own. A retired contract under an undeclared key is a release no
+    /// chain check is handed, and a shared name writes one released lib twice.
+    ///
+    /// Only the template's key and artifact path reach the released lib; every
+    /// other field is read from the record.
+    function testRetiredContractsReleaseUnderAGeneratedCandidate() external view {
+        RetiredContract[] memory retired = sBuild.externalRetiredContracts();
         GeneratedContract[] memory generated = sBuild.externalGeneratedContracts();
-        string[] memory names = sBuild.externalSnapshotContractNames();
+        string[] memory names = sBuild.externalReleasedContractNames();
 
-        for (uint256 i = 0; i < renamed.length; i++) {
+        for (uint256 i = 0; i < retired.length; i++) {
             bool found = false;
             for (uint256 j = 0; j < generated.length; j++) {
                 if (
-                    keccak256(bytes(renamed[i].candidate.snapshot.suite))
+                    keccak256(bytes(retired[i].template.suite))
                         == keccak256(bytes(generated[j].candidate.snapshot.suite))
                 ) {
-                    assertEq(
-                        keccak256(renamed[i].candidate.snapshot.creationCode),
-                        keccak256(generated[j].candidate.snapshot.creationCode),
-                        "renamed record carries another contract's creation code"
-                    );
                     found = true;
                     break;
                 }
             }
-            assertTrue(found, string.concat("renamed record is not a generated candidate: ", renamed[i].contractName));
+            assertTrue(
+                found, string.concat("retired contract is not a generated candidate: ", retired[i].contractName)
+            );
 
             uint256 count = 0;
             for (uint256 k = 0; k < names.length; k++) {
-                if (keccak256(bytes(names[k])) == keccak256(bytes(renamed[i].contractName))) {
+                if (keccak256(bytes(names[k])) == keccak256(bytes(retired[i].contractName))) {
                     count++;
                 }
             }
-            assertEq(count, 1, string.concat("renamed record name is not unique: ", renamed[i].contractName));
+            assertEq(count, 1, string.concat("retired contract name is not unique: ", retired[i].contractName));
         }
     }
 
@@ -197,10 +196,6 @@ contract BuildTest is Test {
     /// artifact path names. A disagreement writes one contract's pins into
     /// another contract's file, which every downstream check then reads as
     /// self-consistent.
-    ///
-    /// The artifact path of a suite with no local Solidity source is the bare
-    /// contract name, which splits to itself, so the same comparison holds for
-    /// it without an exemption.
     function testGeneratedContractNameMatchesTheArtifactPath() external view {
         GeneratedContract[] memory generated = sBuild.externalGeneratedContracts();
         for (uint256 i = 0; i < generated.length; i++) {
@@ -213,15 +208,15 @@ contract BuildTest is Test {
         }
     }
 
-    /// PROPERTY: a renamed record keeps the artifact path it was cut with, the
-    /// one naming its former contract, so its released-suites lib re-emits the
-    /// frozen record unchanged.
-    function testRenamedRecordArtifactPathNamesTheFormerContract() external view {
-        GeneratedContract[] memory renamed = sBuild.externalRenamedRecords();
-        for (uint256 i = 0; i < renamed.length; i++) {
-            string[] memory components = vm.split(renamed[i].candidate.snapshot.artifactPath, ":");
+    /// PROPERTY: a retired contract keeps the artifact path it was cut with,
+    /// the one naming its former contract, so its released-suites lib re-emits
+    /// the frozen record unchanged.
+    function testRetiredContractArtifactPathNamesTheFormerContract() external view {
+        RetiredContract[] memory retired = sBuild.externalRetiredContracts();
+        for (uint256 i = 0; i < retired.length; i++) {
+            string[] memory components = vm.split(retired[i].template.artifactPath, ":");
             assertEq(
-                components[components.length - 1], renamed[i].contractName, "renamed record's artifact is not its own"
+                components[components.length - 1], retired[i].contractName, "retired contract's artifact is not its own"
             );
         }
     }
