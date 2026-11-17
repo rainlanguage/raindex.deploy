@@ -93,13 +93,11 @@ rain-math-float-deploy = "0.1.10"
 rain-tofu-erc20-decimals = "0.1.5"
 rain-tofu-erc20-decimals-deploy = "0.1.6"
 rain-deploy = "0.1.33"
-rain-factory = "0.2.14"
 rain-lib-typecast = "0.1.4"
 rain-lib-hash = "0.1.27"
 rain-math-binary = "0.1.4"
 rain-string = "0.3.10"
 rain-lib-memkv = "0.2.0"
-rain-extrospection = "0.1.19"
 
 [soldeer]
 recursive_deps = false
