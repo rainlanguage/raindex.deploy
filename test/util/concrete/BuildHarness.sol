@@ -41,7 +41,7 @@ contract BuildHarness is Build {
     /// The deploy declaration's list, through the same guarded reader every
     /// other consumer of the declaration uses.
     /// @return The declared candidates.
-    function externalCandidateSuites() external view returns (DeployCandidate[] memory) {
+    function externalCandidateSuites() external pure returns (DeployCandidate[] memory) {
         return checkedCandidateSuites(declaration());
     }
 }

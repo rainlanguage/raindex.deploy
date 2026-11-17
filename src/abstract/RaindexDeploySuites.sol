@@ -72,7 +72,7 @@ string constant RAINDEX_ARTIFACT_PATH = "src/concrete/raindex/RaindexV7.sol:Rain
 /// the product.
 abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     /// @inheritdoc RainDeploySuitesBase
-    function declaration() internal view override returns (DeployDeclaration memory) {
+    function declaration() internal pure override returns (DeployDeclaration memory) {
         DeployDeclaration memory declared;
         LibRainDeployDeclaration.extend(declared);
         LibRainDeployZoltuMechanism.extend(declared);
