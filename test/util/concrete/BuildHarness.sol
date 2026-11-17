@@ -28,7 +28,7 @@ contract BuildHarness is Build {
 
     /// The names the released-suites aggregate is emitted from.
     /// @return The released contract names.
-    function externalReleasedContractNames() external pure returns (string[] memory) {
+    function externalReleasedContractNames() external view returns (string[] memory) {
         return releasedContractNames(generatedContracts(declaration()));
     }
 
