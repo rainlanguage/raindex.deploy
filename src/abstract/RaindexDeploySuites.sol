@@ -4,11 +4,20 @@ pragma solidity =0.8.25;
 
 import {
     DeployCandidate,
+    DeployDeclaration,
     DeployDependency,
-    DeployMechanism,
     DeploySuite,
+    ExternalDeployment,
     RainDeploySuitesBase
-} from "./RainDeploySuitesBase.sol";
+} from "rain-deploy-0.1.33/src/abstract/RainDeploySuitesBase.sol";
+import {LibRainDeployDeclaration} from "rain-deploy-0.1.33/src/lib/LibRainDeployDeclaration.sol";
+import {LibRainDeployZoltuMechanism} from "rain-deploy-0.1.33/src/lib/LibRainDeployZoltuMechanism.sol";
+import {RaindexV7} from "../concrete/raindex/RaindexV7.sol";
+import {RaindexV7SubParser} from "../concrete/parser/RaindexV7SubParser.sol";
+import {GenericPoolRaindexV7ArbOrderTaker} from "../concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol";
+import {RouteProcessorRaindexV7ArbOrderTaker} from "../concrete/arb/RouteProcessorRaindexV7ArbOrderTaker.sol";
+import {GenericPoolRaindexV7FlashBorrower} from "../concrete/arb/GenericPoolRaindexV7FlashBorrower.sol";
+import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../lib/deploy/LibRouteProcessor4CreationCode.sol";
 import {LibRaindexDeploy} from "../lib/deploy/LibRaindexDeploy.sol";
 import {LibReleasedSuites} from "../lib/LibReleasedSuites.sol";
 import {
@@ -40,6 +49,13 @@ import {
     RUNTIME_CODE as GENERIC_POOL_FB_RUNTIME_CODE_CANDIDATE
 } from "../generated/candidate/GenericPoolRaindexV7FlashBorrower.sol";
 
+string constant RAINDEX_SUITE = "raindex";
+string constant SUB_PARSER_SUITE = "subparser";
+string constant ROUTE_PROCESSOR_SUITE = "route-processor";
+string constant GENERIC_POOL_ARB_ORDER_TAKER_SUITE = "arb-generic-pool-order-taker";
+string constant ROUTE_PROCESSOR_ARB_ORDER_TAKER_SUITE = "arb-route-processor-order-taker";
+string constant GENERIC_POOL_FLASH_BORROWER_SUITE = "arb-generic-pool-flash-borrower";
+
 /// @title RaindexDeploySuites
 /// @notice Everything this repo deploys, declared ONCE: the six hand-written
 /// candidates below, and the released side read from the generated
@@ -53,12 +69,11 @@ import {
 /// the product.
 abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     /// @inheritdoc RainDeploySuitesBase
-    function releasedSuites() internal pure override returns (DeploySuite[] memory) {
-        return LibReleasedSuites.releasedSuites();
-    }
-
-    /// @inheritdoc RainDeploySuitesBase
-    function candidateSuites() internal pure override returns (DeployCandidate[] memory) {
+    function declaration() internal pure override returns (DeployDeclaration memory) {
+        DeployDeclaration memory declared;
+        LibRainDeployDeclaration.extend(declared);
+        LibRainDeployZoltuMechanism.extend(declared);
+        LibRainDeployDeclaration.addReleased(declared, LibReleasedSuites.releasedSuites());
         DeployCandidate[] memory candidates = new DeployCandidate[](6);
         candidates[0] = raindexCandidate();
         candidates[1] = subParserCandidate();
@@ -66,7 +81,35 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
         candidates[3] = genericPoolArbOrderTakerCandidate();
         candidates[4] = routeProcessorArbOrderTakerCandidate();
         candidates[5] = genericPoolFlashBorrowerCandidate();
-        return candidates;
+        LibRainDeployDeclaration.addCandidates(declared, candidates);
+        declared.sourceCreationCode = sourceCreationCode;
+        declared.externalDeployments = externalDeployments();
+        return declared;
+    }
+
+    function sourceCreationCode(string memory suite) internal pure returns (bytes memory) {
+        bytes32 key = keccak256(bytes(suite));
+        if (key == keccak256(bytes(RAINDEX_SUITE))) return type(RaindexV7).creationCode;
+        if (key == keccak256(bytes(SUB_PARSER_SUITE))) return type(RaindexV7SubParser).creationCode;
+        if (key == keccak256(bytes(ROUTE_PROCESSOR_SUITE))) return ROUTE_PROCESSOR_4_CREATION_CODE;
+        if (key == keccak256(bytes(GENERIC_POOL_ARB_ORDER_TAKER_SUITE))) {
+            return type(GenericPoolRaindexV7ArbOrderTaker).creationCode;
+        }
+        if (key == keccak256(bytes(ROUTE_PROCESSOR_ARB_ORDER_TAKER_SUITE))) {
+            return type(RouteProcessorRaindexV7ArbOrderTaker).creationCode;
+        }
+        if (key == keccak256(bytes(GENERIC_POOL_FLASH_BORROWER_SUITE))) {
+            return type(GenericPoolRaindexV7FlashBorrower).creationCode;
+        }
+        revert(string.concat("no source for suite: ", suite));
+    }
+
+    function externalDeployments() internal pure returns (ExternalDeployment[] memory) {
+        ExternalDeployment[] memory externals = new ExternalDeployment[](1);
+        externals[0] = ExternalDeployment({
+            deployedAddress: TOFU_DECIMALS_ADDRESS, codeHash: keccak256(TOFU_DECIMALS_RUNTIME_CODE)
+        });
+        return externals;
     }
 
     /// The TOFU decimals reader, which `RaindexV7` and every arb read token
@@ -119,7 +162,7 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     }
 
     /// This repo's rolling `RaindexV7` candidate. Each candidate is a named
-    /// function rather than an index into `candidateSuites`, because
+    /// function rather than an index into `declaration().candidates`, because
     /// `script/Build.sol` emits snapshots from these candidates specifically,
     /// and because six full creation codes built in one frame do not fit the
     /// legacy codegen's stack.
@@ -127,15 +170,16 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     function raindexCandidate() internal pure returns (DeployCandidate memory) {
         return DeployCandidate({
             snapshot: DeploySuite({
-                suite: "raindex",
+                suite: RAINDEX_SUITE,
                 creationCode: RAINDEX_CREATION_CODE_CANDIDATE,
                 storedDeployedAddress: LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS,
                 storedBytecodeHash: LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH,
                 storedRuntimeCode: RAINDEX_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/raindex/RaindexV7.sol:RaindexV7",
                 dependencies: raindexDependencies(),
-                mechanism: DeployMechanism.Zoltu,
-                mechanismData: ""
+                mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
+                networks: new string[](0),
+                describedByMeta: ""
             }),
             unanchorableReason: ""
         });
@@ -146,15 +190,16 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     function subParserCandidate() internal pure returns (DeployCandidate memory) {
         return DeployCandidate({
             snapshot: DeploySuite({
-                suite: "subparser",
+                suite: SUB_PARSER_SUITE,
                 creationCode: SUB_PARSER_CREATION_CODE_CANDIDATE,
                 storedDeployedAddress: LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS,
                 storedBytecodeHash: LibRaindexDeploy.SUB_PARSER_DEPLOYED_CODEHASH,
                 storedRuntimeCode: SUB_PARSER_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/parser/RaindexV7SubParser.sol:RaindexV7SubParser",
                 dependencies: new DeployDependency[](0),
-                mechanism: DeployMechanism.Zoltu,
-                mechanismData: ""
+                mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
+                networks: new string[](0),
+                describedByMeta: ""
             }),
             unanchorableReason: ""
         });
@@ -168,15 +213,16 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     function routeProcessorCandidate() internal pure returns (DeployCandidate memory) {
         return DeployCandidate({
             snapshot: DeploySuite({
-                suite: "route-processor",
+                suite: ROUTE_PROCESSOR_SUITE,
                 creationCode: ROUTE_PROCESSOR_CREATION_CODE_CANDIDATE,
                 storedDeployedAddress: LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS,
                 storedBytecodeHash: LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_CODEHASH,
                 storedRuntimeCode: ROUTE_PROCESSOR_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/lib/deploy/LibRouteProcessor4CreationCode.sol:RouteProcessor4",
                 dependencies: new DeployDependency[](0),
-                mechanism: DeployMechanism.Zoltu,
-                mechanismData: ""
+                mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
+                networks: new string[](0),
+                describedByMeta: ""
             }),
             unanchorableReason: "A vendored third-party deployment, pinned as its creation code; no local source compiles to it."
         });
@@ -187,15 +233,16 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     function genericPoolArbOrderTakerCandidate() internal pure returns (DeployCandidate memory) {
         return DeployCandidate({
             snapshot: DeploySuite({
-                suite: "arb-generic-pool-order-taker",
+                suite: GENERIC_POOL_ARB_ORDER_TAKER_SUITE,
                 creationCode: GENERIC_POOL_ARB_OT_CREATION_CODE_CANDIDATE,
                 storedDeployedAddress: LibRaindexDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_ADDRESS,
                 storedBytecodeHash: LibRaindexDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_CODEHASH,
                 storedRuntimeCode: GENERIC_POOL_ARB_OT_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol:GenericPoolRaindexV7ArbOrderTaker",
                 dependencies: arbDependencies(),
-                mechanism: DeployMechanism.Zoltu,
-                mechanismData: ""
+                mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
+                networks: new string[](0),
+                describedByMeta: ""
             }),
             unanchorableReason: ""
         });
@@ -206,15 +253,16 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     function routeProcessorArbOrderTakerCandidate() internal pure returns (DeployCandidate memory) {
         return DeployCandidate({
             snapshot: DeploySuite({
-                suite: "arb-route-processor-order-taker",
+                suite: ROUTE_PROCESSOR_ARB_ORDER_TAKER_SUITE,
                 creationCode: RP_ARB_OT_CREATION_CODE_CANDIDATE,
                 storedDeployedAddress: LibRaindexDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_ADDRESS,
                 storedBytecodeHash: LibRaindexDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_CODEHASH,
                 storedRuntimeCode: RP_ARB_OT_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/arb/RouteProcessorRaindexV7ArbOrderTaker.sol:RouteProcessorRaindexV7ArbOrderTaker",
                 dependencies: routeProcessorArbDependencies(),
-                mechanism: DeployMechanism.Zoltu,
-                mechanismData: ""
+                mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
+                networks: new string[](0),
+                describedByMeta: ""
             }),
             unanchorableReason: ""
         });
@@ -225,15 +273,16 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     function genericPoolFlashBorrowerCandidate() internal pure returns (DeployCandidate memory) {
         return DeployCandidate({
             snapshot: DeploySuite({
-                suite: "arb-generic-pool-flash-borrower",
+                suite: GENERIC_POOL_FLASH_BORROWER_SUITE,
                 creationCode: GENERIC_POOL_FB_CREATION_CODE_CANDIDATE,
                 storedDeployedAddress: LibRaindexDeploy.GENERIC_POOL_FLASH_BORROWER_DEPLOYED_ADDRESS,
                 storedBytecodeHash: LibRaindexDeploy.GENERIC_POOL_FLASH_BORROWER_DEPLOYED_CODEHASH,
                 storedRuntimeCode: GENERIC_POOL_FB_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/arb/GenericPoolRaindexV7FlashBorrower.sol:GenericPoolRaindexV7FlashBorrower",
                 dependencies: arbDependencies(),
-                mechanism: DeployMechanism.Zoltu,
-                mechanismData: ""
+                mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
+                networks: new string[](0),
+                describedByMeta: ""
             }),
             unanchorableReason: ""
         });
