@@ -104,7 +104,7 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
 
     /// The roster the releases after `LAST_RAINDEX_V6_RELEASE` and up to
     /// `LAST_RELEASE_BEFORE_ZEROG` were cut and deployed for. Frozen: those
-    /// releases are not deployed to 0G.
+    /// releases are not required on 0G.
     /// @return The network names.
     function networksBeforeZerog() internal pure returns (string[] memory) {
         string[] memory networks = new string[](9);
@@ -120,13 +120,13 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
         return networks;
     }
 
-    /// Sets each release that `isNotOnZerog` to `networksBeforeZerog()`,
+    /// Sets each release that `releasedBeforeZerog` to `networksBeforeZerog()`,
     /// leaving every other release to the declaration's networks.
     /// @param released The releases, mutated.
     /// @return `released`.
     function narrowReleasedNetworks(DeploySuite[] memory released) internal pure returns (DeploySuite[] memory) {
         for (uint256 i = 0; i < released.length; i++) {
-            if (isNotOnZerog(released[i].suite)) {
+            if (releasedBeforeZerog(released[i].suite)) {
                 released[i].networks = networksBeforeZerog();
             }
         }
@@ -138,7 +138,7 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     /// A key with no tag is not.
     /// @param suite The suite key.
     /// @return True if the release is not required on `zerog`.
-    function isNotOnZerog(string memory suite) internal pure returns (bool) {
+    function releasedBeforeZerog(string memory suite) internal pure returns (bool) {
         bytes memory key = bytes(suite);
         uint256 start = key.length;
         for (uint256 i = 0; i < key.length; i++) {

@@ -4,6 +4,7 @@ pragma solidity =0.8.25;
 
 import {RainDeployVerifyDeclaration} from "rain-deploy-0.1.37/src/abstract/RainDeployVerifyDeclaration.sol";
 import {DeployDeclaration, DeploySuite} from "rain-deploy-0.1.37/src/abstract/RainDeploySuitesBase.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.37/src/lib/LibRainDeploy.sol";
 import {RaindexDeploySuites, NoSourceForSuite} from "../../src/abstract/RaindexDeploySuites.sol";
 
 contract RaindexDeployDeclarationTest is RaindexDeploySuites, RainDeployVerifyDeclaration {
@@ -39,7 +40,7 @@ contract RaindexDeployDeclarationTest is RaindexDeploySuites, RainDeployVerifyDe
         uint256 narrowed = 0;
         for (uint256 i = 0; i < d.released.length; i++) {
             DeploySuite memory suite = d.released[i];
-            if (isNotOnZerog(suite.suite)) {
+            if (releasedBeforeZerog(suite.suite)) {
                 narrowed++;
                 assertEq(suite.networks, networksBeforeZerog(), suite.suite);
             } else {
@@ -50,15 +51,31 @@ contract RaindexDeployDeclarationTest is RaindexDeploySuites, RainDeployVerifyDe
         assertEq(narrowed, 12);
     }
 
-    function testIsNotOnZerog() external pure {
-        assertFalse(isNotOnZerog("raindex"));
-        assertFalse(isNotOnZerog("raindex@0_1_14"));
-        assertFalse(isNotOnZerog("arb-generic-pool-flash-borrower@0_1_15"));
-        assertTrue(isNotOnZerog("raindex@0_1_16"));
-        assertTrue(isNotOnZerog("subparser@0_1_17"));
-        assertFalse(isNotOnZerog("raindex@0_1_18"));
-        assertFalse(isNotOnZerog("raindex@0_1_100"));
-        assertFalse(isNotOnZerog("raindex@0_2_0"));
-        assertFalse(isNotOnZerog("raindex@0_0_99"));
+    /// The roster before `zerog` is the supported roster without it.
+    function testNetworksBeforeZerogAreTheSupportedNetworksWithoutZerog() external pure {
+        string[] memory before = networksBeforeZerog();
+        string[] memory supported = LibRainDeploy.supportedNetworks();
+        uint256 kept = 0;
+        for (uint256 i = 0; i < supported.length; i++) {
+            if (keccak256(bytes(supported[i])) == keccak256("zerog")) {
+                continue;
+            }
+            assertLt(kept, before.length, supported[i]);
+            assertEq(before[kept], supported[i]);
+            kept++;
+        }
+        assertEq(kept, before.length);
+    }
+
+    function testReleasedBeforeZerog() external pure {
+        assertFalse(releasedBeforeZerog("raindex"));
+        assertFalse(releasedBeforeZerog("raindex@0_1_14"));
+        assertFalse(releasedBeforeZerog("arb-generic-pool-flash-borrower@0_1_15"));
+        assertTrue(releasedBeforeZerog("raindex@0_1_16"));
+        assertTrue(releasedBeforeZerog("subparser@0_1_17"));
+        assertFalse(releasedBeforeZerog("raindex@0_1_18"));
+        assertFalse(releasedBeforeZerog("raindex@0_1_100"));
+        assertFalse(releasedBeforeZerog("raindex@0_2_0"));
+        assertFalse(releasedBeforeZerog("raindex@0_0_99"));
     }
 }
