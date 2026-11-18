@@ -29,8 +29,9 @@ string constant DEPLOYMENTS_JSON = "deployments/raindex.json";
 /// @notice Generates the deploy pins for every contract this repo deploys.
 ///
 /// `run()` (what CI regenerates against) rewrites the rolling
-/// `src/generated/candidate/` snapshots, the sub-parser's non-deploy codegen
-/// the released-suites libs and `deployments/raindex.json`. `cutRelease()` freezes the candidates into
+/// `src/generated/candidate/` snapshots, the sub-parser's non-deploy codegen,
+/// the released-suites libs and `deployments/raindex.json`. `cutRelease()`
+/// freezes the candidates into
 /// `src/generated/<tag>/` first. Frozen snapshots are append-only historical
 /// records, never regenerated here.
 ///
