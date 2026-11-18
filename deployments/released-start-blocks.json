@@ -1,0 +1,92 @@
+[
+  {
+    "deployedAddress": "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20",
+    "network": "arbitrum",
+    "startBlock": 473899359
+  },
+  {
+    "deployedAddress": "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20",
+    "network": "base",
+    "startBlock": 47387582
+  },
+  {
+    "deployedAddress": "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20",
+    "network": "base_sepolia",
+    "startBlock": 42898113
+  },
+  {
+    "deployedAddress": "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20",
+    "network": "bsc",
+    "startBlock": 121104750
+  },
+  {
+    "deployedAddress": "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20",
+    "network": "ethereum",
+    "startBlock": 25818088
+  },
+  {
+    "deployedAddress": "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20",
+    "network": "flare",
+    "startBlock": 63011168
+  },
+  {
+    "deployedAddress": "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20",
+    "network": "hyperevm",
+    "startBlock": 44049434
+  },
+  {
+    "deployedAddress": "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20",
+    "network": "polygon",
+    "startBlock": 88573024
+  },
+  {
+    "deployedAddress": "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20",
+    "network": "robinhood",
+    "startBlock": 59557818
+  },
+  {
+    "deployedAddress": "0x91b95120D085Aa99C05167f3767eB63460c1dCaC",
+    "network": "arbitrum",
+    "startBlock": 518606700
+  },
+  {
+    "deployedAddress": "0x91b95120D085Aa99C05167f3767eB63460c1dCaC",
+    "network": "base",
+    "startBlock": 53137846
+  },
+  {
+    "deployedAddress": "0x91b95120D085Aa99C05167f3767eB63460c1dCaC",
+    "network": "base_sepolia",
+    "startBlock": 50715851
+  },
+  {
+    "deployedAddress": "0x91b95120D085Aa99C05167f3767eB63460c1dCaC",
+    "network": "bsc",
+    "startBlock": 130002682
+  },
+  {
+    "deployedAddress": "0x91b95120D085Aa99C05167f3767eB63460c1dCaC",
+    "network": "ethereum",
+    "startBlock": 26280798
+  },
+  {
+    "deployedAddress": "0x91b95120D085Aa99C05167f3767eB63460c1dCaC",
+    "network": "flare",
+    "startBlock": 73060354
+  },
+  {
+    "deployedAddress": "0x91b95120D085Aa99C05167f3767eB63460c1dCaC",
+    "network": "hyperevm",
+    "startBlock": 49621826
+  },
+  {
+    "deployedAddress": "0x91b95120D085Aa99C05167f3767eB63460c1dCaC",
+    "network": "polygon",
+    "startBlock": 96239809
+  },
+  {
+    "deployedAddress": "0x91b95120D085Aa99C05167f3767eB63460c1dCaC",
+    "network": "robinhood",
+    "startBlock": 98870822
+  }
+]

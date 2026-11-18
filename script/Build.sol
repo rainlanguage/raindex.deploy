@@ -18,7 +18,8 @@ import {
     ROUTE_PROCESSOR_ARB_ORDER_TAKER_SUITE,
     GENERIC_POOL_FLASH_BORROWER_SUITE
 } from "../src/abstract/RaindexDeploySuites.sol";
-import {LibRaindexDeployments, RaindexDeployment} from "../src/lib/LibRaindexDeployments.sol";
+import {RaindexDeployment} from "../src/lib/LibRaindexLegacyDeployments.sol";
+import {LibRaindexDeploymentsRecord} from "./lib/LibRaindexDeploymentsRecord.sol";
 import {RaindexV7SubParser} from "../src/concrete/parser/RaindexV7SubParser.sol";
 import {LibRaindexSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "../src/lib/LibRaindexSubParser.sol";
 
@@ -175,12 +176,12 @@ contract Build is BuildScript, RaindexDeploySuites {
         );
     }
 
-    /// The committed, machine-readable form of [`LibRaindexDeployments`], so
-    /// consumers (the tokens subgraph, the org dashboard) never parse Solidity.
-    /// One row per line, in the library's order, so a new deployment is a
-    /// one-line diff.
+    /// The committed, machine-readable form of every raindex deployment
+    /// (`LibRaindexDeploymentsRecord.deployments`), so consumers (the tokens
+    /// subgraph, the org dashboard) never parse Solidity. One row per line, so a
+    /// new deployment is a one-line diff.
     function buildDeploymentsJson() internal {
-        RaindexDeployment[] memory records = LibRaindexDeployments.deployments();
+        RaindexDeployment[] memory records = LibRaindexDeploymentsRecord.deployments(vm);
         string memory rows = "";
         for (uint256 i = 0; i < records.length; i++) {
             rows = string.concat(
