@@ -30,4 +30,35 @@ contract RaindexDeployDeclarationTest is RaindexDeploySuites, RainDeployVerifyDe
         vm.expectRevert(abi.encodeWithSelector(NoSourceForSuite.selector, suite));
         this.externalSourceCreationCode(suite);
     }
+
+    /// The `RaindexV6` releases are required on every declared network; the
+    /// releases after them and before `zerog` joined only on the roster they
+    /// were deployed for.
+    function testReleasedNetworksAroundZerog() external pure {
+        DeployDeclaration memory d = declaration();
+        uint256 narrowed = 0;
+        for (uint256 i = 0; i < d.released.length; i++) {
+            DeploySuite memory suite = d.released[i];
+            if (isNotOnZerog(suite.suite)) {
+                narrowed++;
+                assertEq(suite.networks, networksBeforeZerog(), suite.suite);
+            } else {
+                assertEq(suite.networks, d.networks, suite.suite);
+            }
+        }
+        // Six contracts each in 0_1_16 and 0_1_17.
+        assertEq(narrowed, 12);
+    }
+
+    function testIsNotOnZerog() external pure {
+        assertFalse(isNotOnZerog("raindex"));
+        assertFalse(isNotOnZerog("raindex@0_1_14"));
+        assertFalse(isNotOnZerog("arb-generic-pool-flash-borrower@0_1_15"));
+        assertTrue(isNotOnZerog("raindex@0_1_16"));
+        assertTrue(isNotOnZerog("subparser@0_1_17"));
+        assertFalse(isNotOnZerog("raindex@0_1_18"));
+        assertFalse(isNotOnZerog("raindex@0_1_100"));
+        assertFalse(isNotOnZerog("raindex@0_2_0"));
+        assertFalse(isNotOnZerog("raindex@0_0_99"));
+    }
 }
