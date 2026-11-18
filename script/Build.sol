@@ -22,7 +22,7 @@ import {LibRaindexDeployments, RaindexDeployment} from "../src/lib/LibRaindexDep
 import {RaindexV7SubParser} from "../src/concrete/parser/RaindexV7SubParser.sol";
 import {LibRaindexSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "../src/lib/LibRaindexSubParser.sol";
 
-/// Where `Build.buildDeploymentsJson` writes the deployment record.
+// Where `Build.buildDeploymentsJson` writes the deployment record.
 string constant DEPLOYMENTS_JSON = "deployments/raindex.json";
 
 /// @title Build
