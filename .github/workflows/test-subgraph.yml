@@ -4,3 +4,8 @@ jobs:
   subgraph-test:
     uses: rainlanguage/rainix/.github/workflows/rainix-subgraph-test.yaml@main
     secrets: inherit
+  tokens-subgraph-test:
+    uses: rainlanguage/rainix/.github/workflows/rainix-subgraph-test.yaml@main
+    with:
+      subgraph-dir: tokens-subgraph
+    secrets: inherit
