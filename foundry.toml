@@ -63,6 +63,8 @@ fs_permissions = [
   { access = "read", path = "foundry.toml" },
   { access = "read", path = "./.env.example" },
   { access = "read-write", path = "./.staged-config" },
+  # `script/Build.sol` writes the deployment record consumers read.
+  { access = "read-write", path = "./deployments" },
   { access = "read", path = "./script/build.sh" },
   { access = "read", path = ".github/workflows/manual-sol-artifacts.yaml" },
 ]
