@@ -22,12 +22,15 @@ import {LibRaindexDeployments, RaindexDeployment} from "../src/lib/LibRaindexDep
 import {RaindexV7SubParser} from "../src/concrete/parser/RaindexV7SubParser.sol";
 import {LibRaindexSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "../src/lib/LibRaindexSubParser.sol";
 
+/// Where `Build.buildDeploymentsJson` writes the deployment record.
+string constant DEPLOYMENTS_JSON = "deployments/raindex.json";
+
 /// @title Build
 /// @notice Generates the deploy pins for every contract this repo deploys.
 ///
 /// `run()` (what CI regenerates against) rewrites the rolling
 /// `src/generated/candidate/` snapshots, the sub-parser's non-deploy codegen
-/// and the released-suites libs. `cutRelease()` freezes the candidates into
+/// the released-suites libs and `deployments/raindex.json`. `cutRelease()` freezes the candidates into
 /// `src/generated/<tag>/` first. Frozen snapshots are append-only historical
 /// records, never regenerated here.
 ///
@@ -37,9 +40,6 @@ import {LibRaindexSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "../src/lib/Lib
 /// There are no generated alias libs: `src/lib/deploy/LibRaindexDeploy.sol` is
 /// hand-written over the candidate snapshots because its constant names are
 /// consumed across this repo and its crates.
-/// Where [`Build.buildDeploymentsJson`] writes the deployment record.
-string constant DEPLOYMENTS_JSON = "deployments/raindex.json";
-
 contract Build is BuildScript, RaindexDeploySuites {
     /// @inheritdoc BuildScript
     function generatedContracts(DeployDeclaration memory d)
