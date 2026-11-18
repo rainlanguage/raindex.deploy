@@ -38,6 +38,7 @@ path = [
   "services.nix",
   "ai_commands/**/",
   "subgraph/**/",
+  "tokens-subgraph/**/",
   "crates/**/",
   "meta/**/",
   "test-resources/**/",

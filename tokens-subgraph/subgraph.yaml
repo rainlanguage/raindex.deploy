@@ -1,0 +1,29 @@
+# Codegen and test manifest only: one data source carrying both deposit
+# handlers, so `graph codegen` emits the shared event types once. The
+# deployable manifests are manifests/<network>.yaml (gen-manifests.sh).
+specVersion: "0.0.4"
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: RaindexDeposits
+    network: mainnet
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: RaindexDeposits
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ./abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ./src/tokens.ts

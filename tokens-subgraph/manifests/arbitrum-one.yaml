@@ -1,0 +1,584 @@
+specVersion: "0.0.4"
+schema:
+  file: ../schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Raindex_0xee873E21F8a6A256cb9f53BE491E569eA6cdd63E
+    network: arbitrum-one
+    source:
+      address: "0xee873E21F8a6A256cb9f53BE491E569eA6cdd63E"
+      abi: RaindexDeposits
+      startBlock: 190719437
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x90CAF23eA7E507BB722647B0674e50D8d6468234
+    network: arbitrum-one
+    source:
+      address: "0x90CAF23eA7E507BB722647B0674e50D8d6468234"
+      abi: RaindexDeposits
+      startBlock: 190892465
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x550878091b2B1506069F61ae59e3A5484Bca9166
+    network: arbitrum-one
+    source:
+      address: "0x550878091b2B1506069F61ae59e3A5484Bca9166"
+      abi: RaindexDeposits
+      startBlock: 256576979
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x59401C9302E79Eb8AC6aea659B8B3ae475715e86
+    network: arbitrum-one
+    source:
+      address: "0x59401C9302E79Eb8AC6aea659B8B3ae475715e86"
+      abi: RaindexDeposits
+      startBlock: 343433995
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB
+    network: arbitrum-one
+    source:
+      address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB"
+      abi: RaindexDeposits
+      startBlock: 352866209
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xF6FdCB30FD027C73cBacD54E22f02987E3116eBc
+    network: arbitrum-one
+    source:
+      address: "0xF6FdCB30FD027C73cBacD54E22f02987E3116eBc"
+      abi: RaindexDeposits
+      startBlock: 353562229
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x783b82f0fBF6743882072AE2393B108F5938898B
+    network: arbitrum-one
+    source:
+      address: "0x783b82f0fBF6743882072AE2393B108F5938898B"
+      abi: RaindexDeposits
+      startBlock: 367977688
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xbC176C5884CA778b91729C0092245905Df28Cd8f
+    network: arbitrum-one
+    source:
+      address: "0xbC176C5884CA778b91729C0092245905Df28Cd8f"
+      abi: RaindexDeposits
+      startBlock: 368726460
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xE3989Ea7486c0F418C764e6c511e86f6E8830FAb
+    network: arbitrum-one
+    source:
+      address: "0xE3989Ea7486c0F418C764e6c511e86f6E8830FAb"
+      abi: RaindexDeposits
+      startBlock: 369669314
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x85e440C297f267332c34A88E0d085162a96475D2
+    network: arbitrum-one
+    source:
+      address: "0x85e440C297f267332c34A88E0d085162a96475D2"
+      abi: RaindexDeposits
+      startBlock: 369790804
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x93E7298a2c7d05C151ba4572140b8b52e06792bD
+    network: arbitrum-one
+    source:
+      address: "0x93E7298a2c7d05C151ba4572140b8b52e06792bD"
+      abi: RaindexDeposits
+      startBlock: 376964692
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x8a3C8E610d827093F7437E0C45EFa648563c0dDA
+    network: arbitrum-one
+    source:
+      address: "0x8a3C8E610d827093F7437E0C45EFa648563c0dDA"
+      abi: RaindexDeposits
+      startBlock: 379008108
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xb7F3547682caA58dd7a356E10c522E50bf48157E
+    network: arbitrum-one
+    source:
+      address: "0xb7F3547682caA58dd7a356E10c522E50bf48157E"
+      abi: RaindexDeposits
+      startBlock: 379698268
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x8dF8075e4077dAbf1e95F49059E4C1eEA33094ab
+    network: arbitrum-one
+    source:
+      address: "0x8dF8075e4077dAbf1e95F49059E4C1eEA33094ab"
+      abi: RaindexDeposits
+      startBlock: 380203894
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x7242ce1ffe34297921c54cD7f9343c411E1E7759
+    network: arbitrum-one
+    source:
+      address: "0x7242ce1ffe34297921c54cD7f9343c411E1E7759"
+      abi: RaindexDeposits
+      startBlock: 441612693
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xa560e58C77B8A841f80B4741Ad08E9260Edcab9F
+    network: arbitrum-one
+    source:
+      address: "0xa560e58C77B8A841f80B4741Ad08E9260Edcab9F"
+      abi: RaindexDeposits
+      startBlock: 467988520
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x83507d7E14556A1822E6959982BebA6024245FA8
+    network: arbitrum-one
+    source:
+      address: "0x83507d7E14556A1822E6959982BebA6024245FA8"
+      abi: RaindexDeposits
+      startBlock: 469250595
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x3Ee54EbB1734DA14852C06A3Be1CdEebA796B0a3
+    network: arbitrum-one
+    source:
+      address: "0x3Ee54EbB1734DA14852C06A3Be1CdEebA796B0a3"
+      abi: RaindexDeposits
+      startBlock: 469346937
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xE8421069D1F56cC1207E6Ec21341BcFD044B8cd5
+    network: arbitrum-one
+    source:
+      address: "0xE8421069D1F56cC1207E6Ec21341BcFD044B8cd5"
+      abi: RaindexDeposits
+      startBlock: 469367388
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xb05D73E6BCc26AEB5b67Ff68C6E9C6151073e3cE
+    network: arbitrum-one
+    source:
+      address: "0xb05D73E6BCc26AEB5b67Ff68C6E9C6151073e3cE"
+      abi: RaindexDeposits
+      startBlock: 469385437
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x4F4527919DA654C1718Ca6Ef194F6547226685f6
+    network: arbitrum-one
+    source:
+      address: "0x4F4527919DA654C1718Ca6Ef194F6547226685f6"
+      abi: RaindexDeposits
+      startBlock: 469964122
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xE0203890383Ca9C0c263f42a51C4C95211Cee6F9
+    network: arbitrum-one
+    source:
+      address: "0xE0203890383Ca9C0c263f42a51C4C95211Cee6F9"
+      abi: RaindexDeposits
+      startBlock: 471755491
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x025e93Be5c1780240C11E34B3387266754017D20
+    network: arbitrum-one
+    source:
+      address: "0x025e93Be5c1780240C11E34B3387266754017D20"
+      abi: RaindexDeposits
+      startBlock: 471992531
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x13b8f830e347a51778652C86cf3419b3E1Ab1205
+    network: arbitrum-one
+    source:
+      address: "0x13b8f830e347a51778652C86cf3419b3E1Ab1205"
+      abi: RaindexDeposits
+      startBlock: 472046415
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x86594ac4319230870C6E587f4ACa48FAb575619e
+    network: arbitrum-one
+    source:
+      address: "0x86594ac4319230870C6E587f4ACa48FAb575619e"
+      abi: RaindexDeposits
+      startBlock: 473030678
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x7992F7A3044258c9a200835970D5bFf275Efe5e7
+    network: arbitrum-one
+    source:
+      address: "0x7992F7A3044258c9a200835970D5bFf275Efe5e7"
+      abi: RaindexDeposits
+      startBlock: 473863630
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x1115EBC9C82F074454F6AC28f123B0684A453aF7
+    network: arbitrum-one
+    source:
+      address: "0x1115EBC9C82F074454F6AC28f123B0684A453aF7"
+      abi: RaindexDeposits
+      startBlock: 473877912
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20
+    network: arbitrum-one
+    source:
+      address: "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20"
+      abi: RaindexDeposits
+      startBlock: 473899359
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x91b95120D085Aa99C05167f3767eB63460c1dCaC
+    network: arbitrum-one
+    source:
+      address: "0x91b95120D085Aa99C05167f3767eB63460c1dCaC"
+      abi: RaindexDeposits
+      startBlock: 518606700
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
