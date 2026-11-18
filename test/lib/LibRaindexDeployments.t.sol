@@ -8,6 +8,7 @@ import {LibRainDeploy} from "rain-deploy-0.1.33/src/lib/LibRainDeploy.sol";
 import {LibRaindexDeployments, RaindexDeployment} from "../../src/lib/LibRaindexDeployments.sol";
 import {LibRaindexV6Released} from "../../src/lib/LibRaindexV6Released.sol";
 import {LibRaindexV7Released} from "../../src/lib/LibRaindexV7Released.sol";
+import {DEPLOYED_ADDRESS as RAINDEX_V7_ADDRESS} from "../../src/generated/0_1_17/RaindexV7.sol";
 
 contract LibRaindexDeploymentsTest is Test {
     function networkOrder(string memory a, string memory b) internal pure returns (int256) {
@@ -83,6 +84,16 @@ contract LibRaindexDeploymentsTest is Test {
         }
         RaindexDeployment memory none;
         return none;
+    }
+
+    /// The V7 rows take their first blocks from `LibRaindexV7StartBlock`, which
+    /// describes the NEWEST released RaindexV7. Those rows are for
+    /// `RAINDEX_V7_ADDRESS` (0_1_17), so the two must be the same address: a
+    /// release that moves RaindexV7 fails here, and the 0_1_17 rows then need
+    /// their own blocks before the constants move on.
+    function testV7StartBlocksDescribeTheRecordedV7() external pure {
+        DeploySuite[] memory v7 = LibRaindexV7Released.releasedSuites();
+        assertEq(v7[v7.length - 1].storedDeployedAddress, RAINDEX_V7_ADDRESS);
     }
 
     /// Every released raindex is recorded, at its version, on every network

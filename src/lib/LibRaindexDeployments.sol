@@ -3,6 +3,9 @@
 pragma solidity ^0.8.25;
 
 import {LibRainDeploy} from "rain-deploy-0.1.33/src/lib/LibRainDeploy.sol";
+import {DEPLOYED_ADDRESS as RAINDEX_V6_ADDRESS} from "../generated/0_1_15/RaindexV6.sol";
+import {DEPLOYED_ADDRESS as RAINDEX_V7_ADDRESS} from "../generated/0_1_17/RaindexV7.sol";
+import {LibRaindexV7StartBlock} from "./deploy/LibRaindexV7StartBlock.sol";
 
 /// One raindex deployment on one network.
 struct RaindexDeployment {
@@ -191,15 +194,15 @@ library LibRaindexDeployments {
         });
         records[27] = RaindexDeployment({
             network: LibRainDeploy.ARBITRUM_ONE,
-            deployedAddress: address(0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20),
+            deployedAddress: RAINDEX_V6_ADDRESS,
             interfaceVersion: 6,
             blockNumber: 473899359
         });
         records[28] = RaindexDeployment({
             network: LibRainDeploy.ARBITRUM_ONE,
-            deployedAddress: address(0x91b95120D085Aa99C05167f3767eB63460c1dCaC),
+            deployedAddress: RAINDEX_V7_ADDRESS,
             interfaceVersion: 7,
-            blockNumber: 518606700
+            blockNumber: LibRaindexV7StartBlock.RAINDEX_START_BLOCK_ARBITRUM
         });
         records[29] = RaindexDeployment({
             network: LibRainDeploy.BASE,
@@ -418,16 +421,13 @@ library LibRaindexDeployments {
             blockNumber: 47384882
         });
         records[65] = RaindexDeployment({
-            network: LibRainDeploy.BASE,
-            deployedAddress: address(0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20),
-            interfaceVersion: 6,
-            blockNumber: 47387582
+            network: LibRainDeploy.BASE, deployedAddress: RAINDEX_V6_ADDRESS, interfaceVersion: 6, blockNumber: 47387582
         });
         records[66] = RaindexDeployment({
             network: LibRainDeploy.BASE,
-            deployedAddress: address(0x91b95120D085Aa99C05167f3767eB63460c1dCaC),
+            deployedAddress: RAINDEX_V7_ADDRESS,
             interfaceVersion: 7,
-            blockNumber: 53137846
+            blockNumber: LibRaindexV7StartBlock.RAINDEX_START_BLOCK_BASE
         });
         records[67] = RaindexDeployment({
             network: LibRainDeploy.BASE_SEPOLIA,
@@ -509,13 +509,13 @@ library LibRaindexDeployments {
         });
         records[80] = RaindexDeployment({
             network: LibRainDeploy.BASE_SEPOLIA,
-            deployedAddress: address(0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20),
+            deployedAddress: RAINDEX_V6_ADDRESS,
             interfaceVersion: 6,
             blockNumber: 42898113
         });
         records[81] = RaindexDeployment({
             network: LibRainDeploy.BASE_SEPOLIA,
-            deployedAddress: address(0x91b95120D085Aa99C05167f3767eB63460c1dCaC),
+            deployedAddress: RAINDEX_V7_ADDRESS,
             interfaceVersion: 7,
             blockNumber: 50715851
         });
@@ -538,16 +538,10 @@ library LibRaindexDeployments {
             blockNumber: 42711830
         });
         records[85] = RaindexDeployment({
-            network: LibRainDeploy.BSC,
-            deployedAddress: address(0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20),
-            interfaceVersion: 6,
-            blockNumber: 121104750
+            network: LibRainDeploy.BSC, deployedAddress: RAINDEX_V6_ADDRESS, interfaceVersion: 6, blockNumber: 121104750
         });
         records[86] = RaindexDeployment({
-            network: LibRainDeploy.BSC,
-            deployedAddress: address(0x91b95120D085Aa99C05167f3767eB63460c1dCaC),
-            interfaceVersion: 7,
-            blockNumber: 130002682
+            network: LibRainDeploy.BSC, deployedAddress: RAINDEX_V7_ADDRESS, interfaceVersion: 7, blockNumber: 130002682
         });
         records[87] = RaindexDeployment({
             network: LibRainDeploy.ETHEREUM,
@@ -563,13 +557,13 @@ library LibRaindexDeployments {
         });
         records[89] = RaindexDeployment({
             network: LibRainDeploy.ETHEREUM,
-            deployedAddress: address(0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20),
+            deployedAddress: RAINDEX_V6_ADDRESS,
             interfaceVersion: 6,
             blockNumber: 25818088
         });
         records[90] = RaindexDeployment({
             network: LibRainDeploy.ETHEREUM,
-            deployedAddress: address(0x91b95120D085Aa99C05167f3767eB63460c1dCaC),
+            deployedAddress: RAINDEX_V7_ADDRESS,
             interfaceVersion: 7,
             blockNumber: 26280798
         });
@@ -737,25 +731,25 @@ library LibRaindexDeployments {
         });
         records[118] = RaindexDeployment({
             network: LibRainDeploy.FLARE,
-            deployedAddress: address(0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20),
+            deployedAddress: RAINDEX_V6_ADDRESS,
             interfaceVersion: 6,
             blockNumber: 63011168
         });
         records[119] = RaindexDeployment({
             network: LibRainDeploy.FLARE,
-            deployedAddress: address(0x91b95120D085Aa99C05167f3767eB63460c1dCaC),
+            deployedAddress: RAINDEX_V7_ADDRESS,
             interfaceVersion: 7,
-            blockNumber: 73060354
+            blockNumber: LibRaindexV7StartBlock.RAINDEX_START_BLOCK_FLARE
         });
         records[120] = RaindexDeployment({
             network: LibRainDeploy.HYPEREVM,
-            deployedAddress: address(0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20),
+            deployedAddress: RAINDEX_V6_ADDRESS,
             interfaceVersion: 6,
             blockNumber: 44049434
         });
         records[121] = RaindexDeployment({
             network: LibRainDeploy.HYPEREVM,
-            deployedAddress: address(0x91b95120D085Aa99C05167f3767eB63460c1dCaC),
+            deployedAddress: RAINDEX_V7_ADDRESS,
             interfaceVersion: 7,
             blockNumber: 49621826
         });
@@ -947,25 +941,25 @@ library LibRaindexDeployments {
         });
         records[153] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
-            deployedAddress: address(0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20),
+            deployedAddress: RAINDEX_V6_ADDRESS,
             interfaceVersion: 6,
             blockNumber: 88573024
         });
         records[154] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
-            deployedAddress: address(0x91b95120D085Aa99C05167f3767eB63460c1dCaC),
+            deployedAddress: RAINDEX_V7_ADDRESS,
             interfaceVersion: 7,
-            blockNumber: 96239809
+            blockNumber: LibRaindexV7StartBlock.RAINDEX_START_BLOCK_POLYGON
         });
         records[155] = RaindexDeployment({
             network: LibRainDeploy.ROBINHOOD,
-            deployedAddress: address(0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20),
+            deployedAddress: RAINDEX_V6_ADDRESS,
             interfaceVersion: 6,
             blockNumber: 59557818
         });
         records[156] = RaindexDeployment({
             network: LibRainDeploy.ROBINHOOD,
-            deployedAddress: address(0x91b95120D085Aa99C05167f3767eB63460c1dCaC),
+            deployedAddress: RAINDEX_V7_ADDRESS,
             interfaceVersion: 7,
             blockNumber: 98870822
         });
