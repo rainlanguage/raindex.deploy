@@ -18,10 +18,10 @@ import {
     EvaluableV4,
     TaskV3,
     TakeOrdersConfigV6
-} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
-import {IInterpreterV4} from "rainlang-0.2.39/src/interface/IInterpreterV4.sol";
-import {IInterpreterStoreV3} from "rainlang-0.2.39/src/interface/IInterpreterStoreV3.sol";
-import {TEST_INTERPRETER_ADDRESS} from "rainlang-0.2.39/test/lib/deploy/LibTestInterpreterDeploy.sol";
+} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
+import {IInterpreterV4} from "rainlang-0.2.40/src/interface/IInterpreterV4.sol";
+import {IInterpreterStoreV3} from "rainlang-0.2.40/src/interface/IInterpreterStoreV3.sol";
+import {TEST_INTERPRETER_ADDRESS} from "rainlang-0.2.40/test/lib/deploy/LibTestInterpreterDeploy.sol";
 import {Float, LibDecimalFloat} from "rain-math-float-0.3.13/src/lib/LibDecimalFloat.sol";
 
 contract GenericPoolRaindexV7ArbOrderTakerReentrantCallbackTest is RaindexV7ExternalRealTest {

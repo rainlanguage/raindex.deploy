@@ -4,8 +4,8 @@ pragma solidity =0.8.25;
 
 import {Test} from "forge-std-1.17.0/src/Test.sol";
 import {IERC165} from "@openzeppelin-contracts-5.7.0/utils/introspection/IERC165.sol";
-import {IRaindexV7ArbOrderTaker} from "raindex-interface-0.1.16/src/interface/IRaindexV7ArbOrderTaker.sol";
-import {IRaindexV7OrderTaker} from "raindex-interface-0.1.16/src/interface/IRaindexV7OrderTaker.sol";
+import {IRaindexV7ArbOrderTaker} from "raindex-interface-0.1.17/src/interface/IRaindexV7ArbOrderTaker.sol";
+import {IRaindexV7OrderTaker} from "raindex-interface-0.1.17/src/interface/IRaindexV7OrderTaker.sol";
 import {ChildRaindexV7ArbOrderTaker} from "../util/concrete/ChildRaindexV7ArbOrderTaker.sol";
 
 contract RaindexV7ArbOrderTakerIERC165Test is Test {

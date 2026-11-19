@@ -15,7 +15,7 @@ import {
     ClearConfigV2,
     SignedContextV2,
     TaskV3
-} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
+} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 import {Float, LibDecimalFloat} from "rain-math-float-0.3.13/src/lib/LibDecimalFloat.sol";
 import {NegativeBounty} from "../../../src/error/ErrRaindexV7.sol";
 

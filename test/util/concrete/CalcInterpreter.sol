@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {StackItem} from "rainlang-0.2.39/src/interface/IInterpreterV4.sol";
+import {StackItem} from "rainlang-0.2.40/src/interface/IInterpreterV4.sol";
 import {Float} from "rain-math-float-0.3.13/src/lib/LibDecimalFloat.sol";
-import {EvalV4} from "rainlang-0.2.39/src/interface/IInterpreterV4.sol";
+import {EvalV4} from "rainlang-0.2.40/src/interface/IInterpreterV4.sol";
 
 /// A constructable interpreter mock that returns [ratio, max] for the calculate
 /// entrypoint and an empty stack for handle IO.

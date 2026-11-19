@@ -8,9 +8,9 @@ import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin-contracts-5.7.0/utils/ReentrancyGuard.sol";
 import {
     ON_FLASH_LOAN_CALLBACK_SUCCESS
-} from "raindex-interface-0.1.16/src/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IRaindexV7, TakeOrdersConfigV6, TaskV3} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
-import {IERC3156FlashBorrower} from "raindex-interface-0.1.16/src/interface/ierc3156/IERC3156FlashBorrower.sol";
+} from "raindex-interface-0.1.17/src/interface/ierc3156/IERC3156FlashBorrower.sol";
+import {IRaindexV7, TakeOrdersConfigV6, TaskV3} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
+import {IERC3156FlashBorrower} from "raindex-interface-0.1.17/src/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {RaindexV7ArbCommon, BadRaindex} from "./RaindexV7ArbCommon.sol";
 import {LibRaindexArb} from "../lib/LibRaindexArb.sol";
 import {LibRaindexDeploy} from "../lib/deploy/LibRaindexDeploy.sol";

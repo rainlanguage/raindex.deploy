@@ -17,8 +17,8 @@ import {
     SignedContextV2,
     TaskV3,
     IInterpreterV4
-} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
-import {IInterpreterStoreV3} from "rainlang-0.2.39/src/interface/IInterpreterStoreV3.sol";
+} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
+import {IInterpreterStoreV3} from "rainlang-0.2.40/src/interface/IInterpreterStoreV3.sol";
 import {LibDecimalFloat} from "rain-math-float-0.3.13/src/lib/LibDecimalFloat.sol";
 
 /// @dev Discriminates that `arb5` passes the INPUT token's OWN decimals and the

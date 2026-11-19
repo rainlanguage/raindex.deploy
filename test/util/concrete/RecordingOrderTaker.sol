@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {TakeOrdersConfigV6, IRaindexV7} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
-import {IRaindexV7OrderTaker} from "raindex-interface-0.1.16/src/interface/IRaindexV7OrderTaker.sol";
+import {TakeOrdersConfigV6, IRaindexV7} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
+import {IRaindexV7OrderTaker} from "raindex-interface-0.1.17/src/interface/IRaindexV7OrderTaker.sol";
 import {Float} from "rain-math-float-0.3.13/src/lib/LibDecimalFloat.sol";
 
 /// Records whether `onTakeOrders2` was invoked, so a test can assert the

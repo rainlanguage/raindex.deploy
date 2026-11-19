@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {StackItem} from "rainlang-0.2.39/src/interface/IInterpreterV4.sol";
-import {EvalV4} from "rainlang-0.2.39/src/interface/IInterpreterV4.sol";
+import {StackItem} from "rainlang-0.2.40/src/interface/IInterpreterV4.sol";
+import {EvalV4} from "rainlang-0.2.40/src/interface/IInterpreterV4.sol";
 
 contract MockInterpreter {
     StackItem[] internal sStack;
