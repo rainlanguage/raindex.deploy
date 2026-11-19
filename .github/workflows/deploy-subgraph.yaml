@@ -6,10 +6,6 @@ jobs:
     uses: rainlanguage/rainix/.github/workflows/rainix-subgraph-deploy.yaml@main
     with:
       subgraph-name: raindex
-      # Public query base for this Ormi account. subgraph-deploy skips a version that already answers here.
-      ormi-query-base: https://subgraph.api.ormilabs.com/api/public/9f4fc2fa-4a15-44f7-a7c1-66fdaa518a71
-      # The Goldsky project CI_GOLDSKY_TOKEN deploys to, for networks Ormi does not index.
-      goldsky-query-base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg
     secrets: inherit
   # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
   status:
