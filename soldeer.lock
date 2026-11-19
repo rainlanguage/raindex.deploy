@@ -20,18 +20,18 @@ checksum = "948f51e922eb87998b28a0b83936215a7dbcabac8754efb32cc54a7c76d1d34d"
 integrity = "1c9ab753452f2e8c93a1487413391eb3147d17f02223e63f98791673147bfcb6"
 
 [[dependencies]]
+name = "rain-extrospection"
+version = "0.1.31"
+url = "https://soldeer-revisions.s3.amazonaws.com/rain-extrospection/0_1_31_18-11-2026_20:54:33_rain.zip"
+checksum = "6f1c533ac442ba8d6182dae2a5454bbb2edb2e5af197187b101ddaa7594ddec9"
+integrity = "4461fd2a06e375ef893fdf8d61df431a0cb69bd6c7a2d8ab51c42c2a7480d9c0"
+
+[[dependencies]]
 name = "rain-intorastring"
 version = "0.1.5"
 url = "https://soldeer-revisions.s3.amazonaws.com/rain-intorastring/0_1_5_18-11-2026_18:59:17_rain.zip"
 checksum = "88142790d681d824015ff88c4414b16027975b7c8aef3230fd8701b360f3330d"
 integrity = "cde0233ecd88f7cc2a1df05a40c6a8b4b123ce8894dbacbf5e8d3afba2666873"
-
-[[dependencies]]
-name = "rain-lib-hash"
-version = "0.1.27"
-url = "https://soldeer-revisions.s3.amazonaws.com/rain-lib-hash/0_1_27_16-09-2026_11:52:52_rain.lib.zip"
-checksum = "7a25602d78180e82ac330d1f1b44609589e8efa42d7a3553f926445dbda64256"
-integrity = "ba9fc2ff053bf801fc1b05e5b192fe5b8ade545c408f33874f473bfc39d2d3f0"
 
 [[dependencies]]
 name = "rain-lib-memkv"
