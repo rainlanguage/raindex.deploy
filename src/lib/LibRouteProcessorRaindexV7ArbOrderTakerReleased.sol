@@ -23,6 +23,14 @@ import {
     DEPENDENCIES as RouteProcessorRaindexV7ArbOrderTaker_0_1_17_DEPENDENCIES
 } from "../generated/0_1_17/RouteProcessorRaindexV7ArbOrderTaker.sol";
 
+import {
+    DEPLOYED_ADDRESS as RouteProcessorRaindexV7ArbOrderTaker_0_1_18_DEPLOYED_ADDRESS,
+    BYTECODE_HASH as RouteProcessorRaindexV7ArbOrderTaker_0_1_18_BYTECODE_HASH,
+    CREATION_CODE as RouteProcessorRaindexV7ArbOrderTaker_0_1_18_CREATION_CODE,
+    RUNTIME_CODE as RouteProcessorRaindexV7ArbOrderTaker_0_1_18_RUNTIME_CODE,
+    DEPENDENCIES as RouteProcessorRaindexV7ArbOrderTaker_0_1_18_DEPENDENCIES
+} from "../generated/0_1_18/RouteProcessorRaindexV7ArbOrderTaker.sol";
+
 /// @title LibRouteProcessorRaindexV7ArbOrderTakerReleased
 /// @notice Every frozen release of `RouteProcessorRaindexV7ArbOrderTaker`: one entry per file in
 /// the append-only `src/generated/<tag>/` record, in tag order.
@@ -43,7 +51,7 @@ library LibRouteProcessorRaindexV7ArbOrderTakerReleased {
     /// Every frozen release, in tag order.
     /// @return The released suites.
     function releasedSuites() internal pure returns (DeploySuite[] memory) {
-        DeploySuite[] memory suites = new DeploySuite[](2);
+        DeploySuite[] memory suites = new DeploySuite[](3);
         suites[0] = DeploySuite({
             suite: "arb-route-processor-order-taker@0_1_16",
             creationCode: RouteProcessorRaindexV7ArbOrderTaker_0_1_16_CREATION_CODE,
@@ -64,6 +72,18 @@ library LibRouteProcessorRaindexV7ArbOrderTakerReleased {
             storedRuntimeCode: RouteProcessorRaindexV7ArbOrderTaker_0_1_17_RUNTIME_CODE,
             artifactPath: "src/concrete/arb/RouteProcessorRaindexV7ArbOrderTaker.sol:RouteProcessorRaindexV7ArbOrderTaker",
             dependencies: abi.decode(RouteProcessorRaindexV7ArbOrderTaker_0_1_17_DEPENDENCIES, (DeployDependency[])),
+            mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
+            networks: new string[](0),
+            describedByMeta: ""
+        });
+        suites[2] = DeploySuite({
+            suite: "arb-route-processor-order-taker@0_1_18",
+            creationCode: RouteProcessorRaindexV7ArbOrderTaker_0_1_18_CREATION_CODE,
+            storedDeployedAddress: RouteProcessorRaindexV7ArbOrderTaker_0_1_18_DEPLOYED_ADDRESS,
+            storedBytecodeHash: RouteProcessorRaindexV7ArbOrderTaker_0_1_18_BYTECODE_HASH,
+            storedRuntimeCode: RouteProcessorRaindexV7ArbOrderTaker_0_1_18_RUNTIME_CODE,
+            artifactPath: "src/concrete/arb/RouteProcessorRaindexV7ArbOrderTaker.sol:RouteProcessorRaindexV7ArbOrderTaker",
+            dependencies: abi.decode(RouteProcessorRaindexV7ArbOrderTaker_0_1_18_DEPENDENCIES, (DeployDependency[])),
             mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
             networks: new string[](0),
             describedByMeta: ""
