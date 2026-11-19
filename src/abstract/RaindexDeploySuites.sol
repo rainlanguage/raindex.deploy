@@ -12,7 +12,9 @@ import {
 } from "rain-deploy-0.1.38/src/abstract/RainDeploySuitesBase.sol";
 import {LibRainDeploy} from "rain-deploy-0.1.38/src/lib/LibRainDeploy.sol";
 import {LibRainDeployDeclaration} from "rain-deploy-0.1.38/src/lib/LibRainDeployDeclaration.sol";
+import {LibRainDeploySnapshot, UnreleasableVersion} from "rain-deploy-0.1.38/src/lib/LibRainDeploySnapshot.sol";
 import {LibRainDeployZoltuMechanism} from "rain-deploy-0.1.38/src/lib/LibRainDeployZoltuMechanism.sol";
+import {StdConstants} from "forge-std-1.17.0/src/StdConstants.sol";
 import {Vm} from "forge-std-1.17.0/src/Vm.sol";
 import {RaindexV7SubParser} from "../concrete/parser/RaindexV7SubParser.sol";
 import {GenericPoolRaindexV7ArbOrderTaker} from "../concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol";
@@ -77,6 +79,9 @@ string constant RAINDEX_ARTIFACT_PATH = "src/concrete/raindex/RaindexV7.sol:Rain
 /// the product.
 abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     /// @inheritdoc RainDeploySuitesBase
+    /// @dev The releases pass through `narrowReleasedNetworks` first, so only
+    /// the audited `RaindexV6` releases and the releases cut after `zerog`
+    /// joined are required on `zerog`.
     function declaration() internal pure override returns (DeployDeclaration memory) {
         DeployDeclaration memory declared;
         LibRainDeployDeclaration.extend(declared);
@@ -95,16 +100,21 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
         return declared;
     }
 
-    /// The newest release cut before `zerog` joined the roster.
-    string constant LAST_RELEASE_BEFORE_ZEROG = "0_1_17";
-
-    /// The newest `RaindexV6` release. Releases up to it hold the `RaindexV6`
-    /// address consumers pin, so they are required on `zerog` too.
+    /// The newest `RaindexV6` release. `0_1_14` and `0_1_15` freeze the audited
+    /// `RaindexV6` set consumers pin, so they keep the declaration's networks
+    /// and are required on `zerog` too.
     string constant LAST_RAINDEX_V6_RELEASE = "0_1_15";
 
+    /// The newest release cut before `zerog` joined the roster. The releases
+    /// after `LAST_RAINDEX_V6_RELEASE` and up to it are `RaindexV7` builds 0G
+    /// never ran, so they are required only on `networksBeforeZerog()`. A
+    /// release cut after it is required on `zerog`, so before that cut every
+    /// suite it freezes MUST be live on `zerog`, unchanged ones included.
+    string constant LAST_RELEASE_BEFORE_ZEROG = "0_1_18";
+
     /// The roster the releases after `LAST_RAINDEX_V6_RELEASE` and up to
-    /// `LAST_RELEASE_BEFORE_ZEROG` were cut and deployed for. Frozen: those
-    /// releases are not required on 0G.
+    /// `LAST_RELEASE_BEFORE_ZEROG` were cut and deployed for. Frozen: a network
+    /// added to the catalogue later does not join it.
     /// @return The network names.
     function networksBeforeZerog() internal pure returns (string[] memory) {
         string[] memory networks = new string[](9);
@@ -120,69 +130,41 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
         return networks;
     }
 
-    /// Sets each release that `releasedBeforeZerog` to `networksBeforeZerog()`,
-    /// leaving every other release to the declaration's networks.
+    /// Sets the networks of each release `notRequiredOnZerog` selects to
+    /// `networksBeforeZerog()`, and leaves every other release to the
+    /// declaration's networks.
     /// @param released The releases, mutated.
     /// @return `released`.
     function narrowReleasedNetworks(DeploySuite[] memory released) internal pure returns (DeploySuite[] memory) {
         for (uint256 i = 0; i < released.length; i++) {
-            if (releasedBeforeZerog(released[i].suite)) {
+            if (notRequiredOnZerog(released[i].suite)) {
                 released[i].networks = networksBeforeZerog();
             }
         }
         return released;
     }
 
-    /// Whether a suite key's `<major>_<minor>_<patch>` tag is after
-    /// `LAST_RAINDEX_V6_RELEASE` and at or before `LAST_RELEASE_BEFORE_ZEROG`.
-    /// A key with no tag is not.
+    /// Whether a suite key's tag is after `LAST_RAINDEX_V6_RELEASE` and at or
+    /// before `LAST_RELEASE_BEFORE_ZEROG`, ordered by
+    /// `LibRainDeploySnapshot.tagPrecedes`. A key with no tag is not, and a tag
+    /// that is not `LibRainDeploySnapshot.isTag` is refused.
     /// @param suite The suite key.
     /// @return True if the release is not required on `zerog`.
-    function releasedBeforeZerog(string memory suite) internal pure returns (bool) {
+    function notRequiredOnZerog(string memory suite) internal pure returns (bool) {
         bytes memory key = bytes(suite);
-        uint256 start = key.length;
-        for (uint256 i = 0; i < key.length; i++) {
-            if (key[i] == "@") {
-                start = i + 1;
-                break;
-            }
-        }
-        if (start == key.length) {
+        uint256 start = bytes(suiteKeyName(suite)).length + 1;
+        if (start > key.length) {
             return false;
         }
         bytes memory tag = new bytes(key.length - start);
         for (uint256 i = 0; i < tag.length; i++) {
             tag[i] = key[start + i];
         }
-        uint256[3] memory version = tagVersion(tag);
-        return compareVersions(version, tagVersion(bytes(LAST_RAINDEX_V6_RELEASE))) > 0
-            && compareVersions(version, tagVersion(bytes(LAST_RELEASE_BEFORE_ZEROG))) <= 0;
-    }
-
-    /// @param version A version.
-    /// @param other Another version.
-    /// @return -1, 0 or 1 as `version` is before, equal to or after `other`.
-    function compareVersions(uint256[3] memory version, uint256[3] memory other) internal pure returns (int256) {
-        for (uint256 i = 0; i < 3; i++) {
-            if (version[i] != other[i]) {
-                return version[i] < other[i] ? int256(-1) : int256(1);
-            }
+        if (!LibRainDeploySnapshot.isTag(string(tag))) {
+            revert UnreleasableVersion(string(tag));
         }
-        return 0;
-    }
-
-    /// The three numbers of a `<major>_<minor>_<patch>` tag.
-    /// @param tag The tag, e.g. `0_1_17`.
-    /// @return version The major, minor and patch numbers.
-    function tagVersion(bytes memory tag) internal pure returns (uint256[3] memory version) {
-        uint256 component = 0;
-        for (uint256 i = 0; i < tag.length; i++) {
-            if (tag[i] == "_") {
-                component++;
-            } else {
-                version[component] = version[component] * 10 + (uint8(tag[i]) - 0x30);
-            }
-        }
+        return LibRainDeploySnapshot.tagPrecedes(StdConstants.VM, LAST_RAINDEX_V6_RELEASE, string(tag))
+            && !LibRainDeploySnapshot.tagPrecedes(StdConstants.VM, LAST_RELEASE_BEFORE_ZEROG, string(tag));
     }
 
     function sourceCreationCode(string memory suite) internal view returns (bytes memory) {
