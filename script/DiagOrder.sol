@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Script} from "forge-std-1.16.1/src/Script.sol";
+import {Script} from "forge-std-1.17.0/src/Script.sol";
 
 contract DiagOrder is Script {
     function run() external {

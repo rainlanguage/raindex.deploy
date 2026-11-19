@@ -74,7 +74,7 @@ entire chain from genesis.
 
 - The command reports a per-raindex summary once all jobs finish; non-zero
   failures prevent manifest emission.
-- Supported chains are limited to those exposed by HyperRPC. Providing an
-  unsupported `chain-id` in the settings YAML will fail early.
+- HyperRPC endpoints use Envio's numeric chain-ID alias, so configured networks
+  do not require a matching hostname entry in the CLI.
 - Upload the generated `.sql.gz` files to the location represented by
   `--release-base-url` before distributing `manifest.yaml`.

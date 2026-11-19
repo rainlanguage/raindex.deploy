@@ -57,9 +57,9 @@ Generated Solidity Bindings (Alloy `sol!`)
 - Practical result of the `sol!(… rpc)` attribute:
   - For `IRaindexV5` and `IERC20`, you can construct an instance bound to a
     provider and call methods with strong typing, for example:
-    `let ob = IRaindexV5Instance::new(address, provider.clone()); ob.quote2(config).await?`.
+    `let ob = IRaindexV5Instance::new(address, provider.clone()); ob.quote3(config).await?`.
   - For all bindings, you can still directly use generated call structs, e.g.,
-    `IRaindexV5::removeOrder3Call { ... }.abi_encode()` or
+    `IRaindexV5::removeOrder4Call { ... }.abi_encode()` or
     `Raindex::multicallCall { ... }`.
 
 - Derives and defaults:
@@ -118,17 +118,17 @@ WASM and JS Interop
 
 - Exposed interfaces (hand‑written TS definitions):
   - `IOV2`: `{ token: string; vaultId: string; }`
-  - `QuoteV2`:
-    `{ order: OrderV4; inputIOIndex: string; outputIOIndex: string; signedContext: SignedContextV1[]; }`
+  - `QuoteV3`:
+    `{ order: OrderV4; inputIOIndex: string; outputIOIndex: string; signedContext: SignedContextV2[]; }`
   - `OrderV4`:
     `{ owner: string; evaluable: EvaluableV4; validInputs: IOV2[]; validOutputs: IOV2[]; nonce: string; }`
   - `EvaluableV4`: `{ interpreter: string; store: string; bytecode: string; }`
-  - `SignedContextV1`:
-    `{ signer: string; context: string[]; signature: string; }`
-  - `TakeOrderConfigV4`:
-    `{ order: OrderV4; inputIOIndex: string; outputIOIndex: string; signedContext: SignedContextV1[]; }`
-  - `TakeOrdersConfigV5`:
-    `{ minimumIO: string; maximumIO: string; maximumIORatio: string; IOIsInput: string; orders: TakeOrderConfigV4[]; data: string; }`
+  - `SignedContextV2`:
+    `{ signer: string; domainSeparator: string; context: string[]; signature: string; }`
+  - `TakeOrderConfigV5`:
+    `{ order: OrderV4; inputIOIndex: string; outputIOIndex: string; signedContext: SignedContextV2[]; }`
+  - `TakeOrdersConfigV6`:
+    `{ minimumIO: string; maximumIO: string; maximumIORatio: string; IOIsInput: string; orders: TakeOrderConfigV5[]; data: string; }`
 
 - Why many fields are `string` in TS
   - Large numeric values (e.g., `U256`) are represented as strings to avoid
@@ -157,11 +157,11 @@ How This Crate Is Used Elsewhere
 
 - Quote engine (`crates/quote`):
   - Imports `IRaindexV5::IRaindexV5Instance` and `mk_read_provider`.
-  - Binds the instance to a provider and calls `quote2` for many orders via
+  - Binds the instance to a provider and calls `quote3` for many orders via
     Alloy’s multicall helper.
 - Common utilities (`crates/common`):
   - Uses ABI‑generated call structs (e.g., `deposit3Call`, `withdraw3Call`,
-    `removeOrder3Call`, `IERC20::approveCall`) to build calldata for
+    `removeOrder4Call`, `IERC20::approveCall`) to build calldata for
     transactions.
 - JS API (`crates/js_api`):
   - Builds order builder calldata for approvals/deposits/add‑order and uses call
@@ -209,12 +209,12 @@ Examples
     `let provider = mk_read_provider(&rpcs)?;`
   - Bind to a raindex:
     `let ob = IRaindexV5Instance::new(raindex_addr, provider.clone());`
-  - Call a view: `let quote = ob.quote2(config).await?;`
+  - Call a view: `let quote = ob.quote3(config).await?;`
 
 - Building calldata without an instance:
-  - `use raindex_bindings::IRaindexV5::removeOrder3Call;`
+  - `use raindex_bindings::IRaindexV5::removeOrder4Call;`
   - Construct the struct and encode:
-    `let bytes = removeOrder3Call { order, tasks }.abi_encode();`
+    `let bytes = removeOrder4Call { order, tasks }.abi_encode();`
 
 Limitations and Notes
 

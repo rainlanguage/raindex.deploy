@@ -1,54 +1,6 @@
-# Publish only the Solidity source (src/) to Soldeer. raindex is a large
-# multi-language repo; without this the push zips the whole tree (crates/,
-# packages/, subgraph/, lib/, target/, node_modules/, audit/ ...) and fails.
-# Same syntax as .gitignore.
-
-# Tooling / repo files
-.DS_Store
-.cargo
-.coderabbit.yaml
-.devcontainer.json
-.env
-.env.example
-.envrc
-.gas-snapshot
-.git
-.github
-.gitignore
-.gitmodules
-.pre-commit-config.yaml
-.prettierignore
-.soldeerignore
-.vscode
-AGENTS.md
-CLAUDE.md
-Cargo.lock
-Cargo.toml
-package.json
-package-lock.json
-slither.config.json
-
-# Non-Solidity / non-source trees and build output
-/ai_commands
-/audit
-/broadcast
-/cache
-/crates
-/dependencies
-/deployments
-/flake.lock
-/flake.nix
-/foundry.toml
-/lib
-/meta
-/node_modules
-/out
-/packages
-/remappings.txt
-/REUSE.toml
-/script
-/soldeer.lock
-/subgraph
-/target
-/test
-/test-resources
+# Allowlist: a new path ships only when re-included here.
+/*
+!/src
+!/README.md
+!/LICENSE
+!/LICENSES

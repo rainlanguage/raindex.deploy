@@ -335,6 +335,8 @@ mod tests {
 
     fn default_sg_trade_event() -> SgTradeEvent {
         SgTradeEvent {
+            id: SgBytes("0xevent_id_default".to_string()),
+            __typename: "TakeOrder".to_string(),
             transaction: default_sg_transaction(),
             sender: SgBytes("0xsender_address_default".to_string()),
         }

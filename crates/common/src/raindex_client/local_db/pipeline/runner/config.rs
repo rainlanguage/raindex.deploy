@@ -60,10 +60,25 @@ impl NetworkRunnerConfig {
         })
     }
 
+    /// Builds this network's targets with a per-cycle block cap of
+    /// [`MAX_CHUNKS_PER_CLIENT_CYCLE`] fetch chunks, so a client whose cycles
+    /// keep failing re-reads a bounded range instead of everything since its
+    /// last persisted block.
     pub fn build_targets(&self) -> Result<Vec<RunnerTarget>, LocalDbError> {
-        build_runner_targets(&self.settings.raindexes, &self.settings.syncs)
+        let mut targets = build_runner_targets(&self.settings.raindexes, &self.settings.syncs)?;
+        for target in &mut targets {
+            let chunk_size = target.inputs.cfg.fetch.chunk_size();
+            target.inputs.cfg.max_blocks_per_cycle =
+                Some(chunk_size.saturating_mul(MAX_CHUNKS_PER_CLIENT_CYCLE));
+        }
+        Ok(targets)
     }
 }
+
+/// Most fetch chunks (`batch-size` blocks each) one client sync cycle covers.
+/// A bootstrapped client is normally a few chunks behind, so this only bites
+/// when a client falls far behind or keeps failing.
+pub const MAX_CHUNKS_PER_CLIENT_CYCLE: u64 = 100;
 
 #[cfg(test)]
 mod tests {
@@ -176,6 +191,21 @@ raindexes:
         let targets = config.build_targets().expect("targets ok");
         assert_eq!(targets.len(), 2);
         assert!(targets.iter().all(|t| t.network_key == "network-a"));
+    }
+
+    #[test]
+    fn build_targets_caps_blocks_per_cycle_from_batch_size() {
+        let global = parse_runner_settings(&sample_settings_yaml()).expect("valid yaml");
+        let config =
+            NetworkRunnerConfig::from_global_settings(&global, "network-a").expect("config ok");
+
+        for target in config.build_targets().expect("targets ok") {
+            let chunk_size = target.inputs.cfg.fetch.chunk_size();
+            assert_eq!(
+                target.inputs.cfg.max_blocks_per_cycle,
+                Some(chunk_size * MAX_CHUNKS_PER_CLIENT_CYCLE)
+            );
+        }
     }
 
     #[test]

@@ -3,7 +3,7 @@ import { get, writable, type Writable } from "svelte/store";
 import { beforeEach, expect, test, describe, type Mock } from "vitest";
 import DropdownActiveNetworks from "../lib/components/dropdown/DropdownActiveNetworks.svelte";
 import { useRaindexClient } from "$lib/hooks/useRaindexClient";
-import type { NetworkCfg } from "@rainlanguage/raindex";
+import type { NetworkCfg, NetworkSyncStatus } from "@rainlanguage/raindex";
 
 vi.mock("$lib/hooks/useRaindexClient", () => ({
   useRaindexClient: vi.fn(),
@@ -76,5 +76,28 @@ describe("DropdownActiveNetworks", () => {
     await waitFor(() => {
       expect(get(selectedChainIdsStore)).toEqual([1, 2, 14]);
     });
+  });
+
+  test("uses registry names and identifies subgraph-only networks", async () => {
+    (useRaindexClient as Mock).mockReturnValue({
+      getUniqueChainIds: () => ({ error: undefined, value: [4663] }),
+      getAllNetworks: () => ({
+        error: undefined,
+        value: new Map([
+          ["robinhood", { key: "robinhood", chainId: 4663 } as NetworkCfg],
+        ]),
+      }),
+    });
+
+    render(DropdownActiveNetworks, {
+      props: {
+        selectedChainIds: selectedChainIdsStore,
+        localDbStatuses: new Map<number, NetworkSyncStatus>(),
+      },
+    });
+
+    await fireEvent.click(screen.getByTestId("dropdown-checkbox-button"));
+
+    expect(screen.getByText("Robinhood · Subgraph")).toBeInTheDocument();
   });
 });

@@ -1,4 +1,10 @@
 name: Manual sol artifacts
+# The on-chain deploy, run by hand. Deliberately `workflow_dispatch` only:
+# broadcasting is key custody and real money, and nothing about a merge, a tag
+# or a schedule should be able to trigger it.
+#
+# Order is: dispatch this once per suite, confirm `RaindexDeployChainTest`
+# passes on every supported network, then push the `sol-v*` tag.
 on:
   workflow_dispatch:
     inputs:
@@ -13,9 +19,64 @@ on:
           - arb-generic-pool-order-taker
           - arb-route-processor-order-taker
           - arb-generic-pool-flash-borrower
+          # Frozen releases: what a newly supported network needs, so the
+          # addresses every consumer pins land there (the bare keys above
+          # deploy current source, which has moved since these were cut).
+          - raindex@0_1_14
+          - raindex@0_1_15
+          - raindex@0_1_16
+          - raindex@0_1_17
+          - subparser@0_1_14
+          - subparser@0_1_15
+          - subparser@0_1_16
+          - subparser@0_1_17
+          - route-processor@0_1_14
+          - route-processor@0_1_15
+          - route-processor@0_1_16
+          - route-processor@0_1_17
+          - arb-generic-pool-order-taker@0_1_14
+          - arb-generic-pool-order-taker@0_1_15
+          - arb-generic-pool-order-taker@0_1_16
+          - arb-generic-pool-order-taker@0_1_17
+          - arb-route-processor-order-taker@0_1_14
+          - arb-route-processor-order-taker@0_1_15
+          - arb-route-processor-order-taker@0_1_16
+          - arb-route-processor-order-taker@0_1_17
+          - arb-generic-pool-flash-borrower@0_1_14
+          - arb-generic-pool-flash-borrower@0_1_15
+          - arb-generic-pool-flash-borrower@0_1_16
+          - arb-generic-pool-flash-borrower@0_1_17
+      script:
+        description: >-
+          Forge script target to run. The default deploys the selected suite; script/DescribeSubParser.sol:DescribeSubParser emits the sub-parser's described-by meta on the network named by `network` (suite is ignored there).
+        required: false
+        type: string
+        default: script/Deploy.sol:Deploy
+      network:
+        description: >-
+          Passed through as DEPLOYMENT_NETWORK. Required by DescribeSubParser; the default deploy script ignores it and broadcasts to its own network set.
+        required: false
+        type: string
+        default: ''
+      legacy:
+        description: >-
+          Send type-0 (legacy) transactions. Needed for HyperEVM, whose RPC rejects the fee-history ranges EIP-1559 estimation asks for; one dispatch of the default script broadcasts to every supported network including HyperEVM, so this applies to the whole run. Type-0 works everywhere, so it is safe to set for a run that has to reach HyperEVM.
+        required: false
+        type: boolean
+        default: false
+      verify:
+        description: >-
+          Verify on the block explorer after broadcasting. Turn it off when the verification retry loop would outlast the deploy; `Manual sol verify` repairs verification later without re-broadcasting.
+        required: false
+        type: boolean
+        default: true
 jobs:
   deploy:
     uses: rainlanguage/rainix/.github/workflows/rainix-manual-sol-artifacts.yaml@main
     with:
       suite: ${{ inputs.suite }}
+      script: ${{ inputs.script }}
+      network: ${{ inputs.network }}
+      legacy: ${{ inputs.legacy }}
+      verify: ${{ inputs.verify }}
     secrets: inherit

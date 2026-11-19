@@ -92,14 +92,7 @@ impl RpcClient {
     }
 
     pub fn build_hyper_url(chain_id: u32, api_token: &str) -> Result<Url, RpcClientError> {
-        let base = match chain_id {
-            137 => "https://polygon.rpc.hypersync.xyz",
-            8453 => "https://base.rpc.hypersync.xyz",
-            42161 => "https://arbitrum.rpc.hypersync.xyz",
-            _ => return Err(RpcClientError::UnsupportedChainId { chain_id }),
-        };
-
-        let url = format!("{}/{}", base, api_token);
+        let url = format!("https://{chain_id}.rpc.hypersync.xyz/{api_token}");
         Ok(Url::parse(&url)?)
     }
 
@@ -306,28 +299,14 @@ mod tests {
     }
 
     #[test]
-    fn test_build_hyper_url_polygon_chain_id() {
-        let url = RpcClient::build_hyper_url(137, "test_token");
-        assert!(url.is_ok());
-        let url = url.unwrap().to_string();
-        assert!(url.contains("polygon.rpc.hypersync.xyz"));
-        assert!(url.contains("test_token"));
-    }
-
-    #[test]
-    fn test_build_hyper_url_supported_chain_id() {
-        let url = RpcClient::build_hyper_url(8453, "test_token");
-        assert!(url.is_ok());
-        assert!(url.unwrap().to_string().contains("test_token"));
-    }
-
-    #[test]
-    fn test_build_hyper_url_unsupported_chain_id() {
-        let url = RpcClient::build_hyper_url(9999, "test_token");
-        assert!(matches!(
-            url.unwrap_err(),
-            RpcClientError::UnsupportedChainId { chain_id: 9999 }
-        ));
+    fn test_build_hyper_url_uses_numeric_chain_id_alias() {
+        for chain_id in [1, 999, 8453, 9999] {
+            let url = RpcClient::build_hyper_url(chain_id, "test_token").unwrap();
+            assert_eq!(
+                url.as_str(),
+                format!("https://{chain_id}.rpc.hypersync.xyz/test_token")
+            );
+        }
     }
 
     #[tokio::test]

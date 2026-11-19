@@ -1,91 +1,91 @@
 {
-	"name": "@rainlanguage/ui-components",
-	"version": "0.0.1-alpha.237",
-	"description": "A component library for building Svelte applications to be used with Raindex.",
-	"license": "LicenseRef-DCL-1.0",
-	"author": "Rain Open Source Software Ltd",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/rainlanguage/raindex.git"
-	},
-	"main": "dist/index.js",
-	"module": "dist/index.js",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.js",
-			"svelte": "./dist/index.js"
-		},
-		"./services": {
-			"types": "./dist/services/index.d.ts",
-			"import": "./dist/services/index.js",
-			"require": "./dist/services/index.js",
-			"svelte": "./dist/services/index.js"
-		}
-	},
-	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build && npm run package",
-		"preview": "vite preview",
-		"package": "svelte-kit sync && svelte-package && publint",
-		"build:watch": "vite build --watch & svelte-package --watch",
-		"prepublishOnly": "npm run package",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"format": "prettier --write src",
-		"lint": "prettier --list-different src && eslint src",
-		"lint-check": "eslint src",
-		"test:unit": "vitest",
-		"test": "npm run test:unit -- --run",
-		"format-check": "prettier --list-different src",
-		"svelte-lint-format-check": "npm run lint && npm run check"
-	},
-	"files": [
-		"dist",
-		"!dist/**/*.test.*",
-		"!dist/**/*.spec.*"
-	],
-	"sideEffects": [
-		"**/*.css"
-	],
-	"svelte": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"type": "module",
-	"dependencies": {
-		"@codemirror/lang-yaml": "6.1.1",
-		"@fontsource/dm-sans": "5.1.0",
-		"@imask/svelte": "7.6.1",
-		"@observablehq/plot": "0.6.16",
-		"@rainlanguage/raindex": "0.0.1-alpha.238",
-		"@reown/appkit": "1.6.4",
-		"@reown/appkit-adapter-wagmi": "1.6.4",
-		"@sentry/sveltekit": "7.120.0",
-		"@square/svelte-store": "1.0.18",
-		"@sveltejs/kit": "2.8.1",
-		"@tanstack/svelte-query": "5.59.20",
-		"@tanstack/svelte-virtual": "^3.13.12",
-		"@wagmi/core": "2.16.3",
-		"@walletconnect/ethereum-provider": "2.17.2",
-		"@walletconnect/modal": "2.7.0",
-		"@web3modal/ethers5": "4.2.3",
-		"camelcase-keys": "9.1.3",
-		"codemirror-rainlang": "3.0.13",
-		"dayjs": "1.11.13",
-		"ethers": "5.7.2",
-		"flowbite": "2.5.2",
-		"flowbite-svelte": "0.44.24",
-		"flowbite-svelte-icons": "0.4.5",
-		"fuse.js": "7.0.0",
-		"lightweight-charts": "4.2.1",
-		"lodash": "4.17.21",
-		"svelte": "4.2.19",
-		"svelte-codemirror-editor": "1.4.1",
-		"svelte-markdown": "0.4.1",
-		"tailwind-merge": "2.5.4",
-		"thememirror": "2.0.1",
-		"uuid": "9.0.1",
-		"viem": "2.24.3",
-		"wagmi": "2.14.7"
-	}
+  "name": "@rainlanguage/ui-components",
+  "version": "0.0.1-alpha.259",
+  "description": "A component library for building Svelte applications to be used with Raindex.",
+  "license": "LicenseRef-DCL-1.0",
+  "author": "Rain Open Source Software Ltd",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rainlanguage/raindex.deploy.git"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "svelte": "./dist/index.js"
+    },
+    "./services": {
+      "types": "./dist/services/index.d.ts",
+      "import": "./dist/services/index.js",
+      "require": "./dist/services/index.js",
+      "svelte": "./dist/services/index.js"
+    }
+  },
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build && npm run package",
+    "preview": "vite preview",
+    "package": "svelte-kit sync && svelte-package && publint",
+    "build:watch": "vite build --watch & svelte-package --watch",
+    "prepublishOnly": "npm run package",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "format": "prettier --write src",
+    "lint": "prettier --list-different src && eslint src",
+    "lint-check": "eslint src",
+    "test:unit": "vitest",
+    "test": "npm run test:unit -- --run",
+    "format-check": "prettier --list-different src",
+    "svelte-lint-format-check": "npm run lint && npm run check"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "svelte": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "dependencies": {
+    "@codemirror/lang-yaml": "6.1.1",
+    "@fontsource/dm-sans": "5.1.0",
+    "@imask/svelte": "7.6.1",
+    "@observablehq/plot": "0.6.16",
+    "@rainlanguage/raindex": "0.0.1-alpha.256",
+    "@reown/appkit": "1.6.4",
+    "@reown/appkit-adapter-wagmi": "1.6.4",
+    "@sentry/sveltekit": "7.120.0",
+    "@square/svelte-store": "1.0.18",
+    "@sveltejs/kit": "2.8.1",
+    "@tanstack/svelte-query": "5.59.20",
+    "@tanstack/svelte-virtual": "^3.13.12",
+    "@wagmi/core": "2.16.3",
+    "@walletconnect/ethereum-provider": "2.17.2",
+    "@walletconnect/modal": "2.7.0",
+    "@web3modal/ethers5": "4.2.3",
+    "camelcase-keys": "9.1.3",
+    "codemirror-rainlang": "3.0.13",
+    "dayjs": "1.11.13",
+    "ethers": "5.7.2",
+    "flowbite": "2.5.2",
+    "flowbite-svelte": "0.44.24",
+    "flowbite-svelte-icons": "0.4.5",
+    "fuse.js": "7.0.0",
+    "lightweight-charts": "4.2.1",
+    "lodash": "4.17.21",
+    "svelte": "4.2.19",
+    "svelte-codemirror-editor": "1.4.1",
+    "svelte-markdown": "0.4.1",
+    "tailwind-merge": "2.5.4",
+    "thememirror": "2.0.1",
+    "uuid": "9.0.1",
+    "viem": "2.24.3",
+    "wagmi": "2.14.7"
+  }
 }

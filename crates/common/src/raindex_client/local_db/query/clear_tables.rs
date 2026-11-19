@@ -38,7 +38,7 @@ mod wasm_tests {
     use wasm_bindgen_test::*;
     use wasm_bindgen_utils::prelude::{serde_wasm_bindgen, JsValue};
     use wasm_bindgen_utils::result::WasmEncodedResult;
-    use web_sys::js_sys::{Array, Function, Object, Reflect};
+    use web_sys::js_sys::{Array, Function, Reflect};
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_transaction_then_vacuum() {
@@ -64,19 +64,9 @@ mod wasm_tests {
             .unwrap()
         }) as Box<dyn FnMut(String, JsValue) -> JsValue>);
 
-        let local_db = Object::new();
-        Reflect::set(
-            &local_db,
-            &JsValue::from_str("query"),
-            query.as_ref().unchecked_ref(),
-        )
-        .unwrap();
-        Reflect::set(
-            &local_db,
-            &JsValue::from_str("wipeAndRecreate"),
-            &Function::new_no_args("return { value: undefined, error: null };"),
-        )
-        .unwrap();
+        let local_db = crate::raindex_client::tests::local_db_object_from_query_callback(
+            query.as_ref().unchecked_ref::<Function>().clone(),
+        );
         Reflect::set(
             &local_db,
             &JsValue::from_str("transaction"),

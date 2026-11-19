@@ -1,37 +1,6 @@
 {
   "abi": [
     {
-      "type": "constructor",
-      "inputs": [],
-      "stateMutability": "nonpayable"
-    },
-    {
-      "type": "function",
-      "name": "FORMAT_DEFAULT_SCIENTIFIC_MAX",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "",
-          "type": "bytes32",
-          "internalType": "Float"
-        }
-      ],
-      "stateMutability": "view"
-    },
-    {
-      "type": "function",
-      "name": "FORMAT_DEFAULT_SCIENTIFIC_MIN",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "",
-          "type": "bytes32",
-          "internalType": "Float"
-        }
-      ],
-      "stateMutability": "view"
-    },
-    {
       "type": "function",
       "name": "abs",
       "inputs": [
@@ -70,6 +39,40 @@
           "name": "",
           "type": "bytes32",
           "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "agree",
+      "inputs": [
+        {
+          "name": "absolute",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "proportional",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "lowest",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "highest",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
         }
       ],
       "stateMutability": "pure"
@@ -186,54 +189,6 @@
           "name": "scientific",
           "type": "bool",
           "internalType": "bool"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "",
-          "type": "string",
-          "internalType": "string"
-        }
-      ],
-      "stateMutability": "pure"
-    },
-    {
-      "type": "function",
-      "name": "format",
-      "inputs": [
-        {
-          "name": "a",
-          "type": "bytes32",
-          "internalType": "Float"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "",
-          "type": "string",
-          "internalType": "string"
-        }
-      ],
-      "stateMutability": "pure"
-    },
-    {
-      "type": "function",
-      "name": "format",
-      "inputs": [
-        {
-          "name": "a",
-          "type": "bytes32",
-          "internalType": "Float"
-        },
-        {
-          "name": "scientificMin",
-          "type": "bytes32",
-          "internalType": "Float"
-        },
-        {
-          "name": "scientificMax",
-          "type": "bytes32",
-          "internalType": "Float"
         }
       ],
       "outputs": [
@@ -439,7 +394,7 @@
           "internalType": "Float"
         }
       ],
-      "stateMutability": "view"
+      "stateMutability": "pure"
     },
     {
       "type": "function",
@@ -678,7 +633,7 @@
           "internalType": "Float"
         }
       ],
-      "stateMutability": "view"
+      "stateMutability": "pure"
     },
     {
       "type": "function",
@@ -697,7 +652,7 @@
           "internalType": "Float"
         }
       ],
-      "stateMutability": "view"
+      "stateMutability": "pure"
     },
     {
       "type": "function",
@@ -716,7 +671,7 @@
           "internalType": "Float"
         }
       ],
-      "stateMutability": "view"
+      "stateMutability": "pure"
     },
     {
       "type": "function",
@@ -810,17 +765,44 @@
     },
     {
       "type": "error",
-      "name": "CoefficientOverflow",
+      "name": "AbsCoefficientOverflow",
       "inputs": [
         {
           "name": "signedCoefficient",
           "type": "int256",
           "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "AgreeNoPositiveTolerance",
+      "inputs": [
+        {
+          "name": "absolute",
+          "type": "bytes32",
+          "internalType": "Float"
         },
         {
-          "name": "exponent",
-          "type": "int256",
-          "internalType": "int256"
+          "name": "proportional",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "AgreeToleranceNegative",
+      "inputs": [
+        {
+          "name": "absolute",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "proportional",
+          "type": "bytes32",
+          "internalType": "Float"
         }
       ]
     },
@@ -837,6 +819,17 @@
           "name": "exponent",
           "type": "int256",
           "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "Exp10FixedOutOfRange",
+      "inputs": [
+        {
+          "name": "x",
+          "type": "uint256",
+          "internalType": "uint256"
         }
       ]
     },
@@ -911,29 +904,51 @@
     },
     {
       "type": "error",
-      "name": "Log10Zero",
-      "inputs": []
+      "name": "Log10RatioOutOfRange",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "b",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
     },
     {
       "type": "error",
-      "name": "LogTablesNotDeployed",
+      "name": "Log10RatioRelativeSumTooSmall",
       "inputs": [
         {
-          "name": "tablesAddress",
-          "type": "address",
-          "internalType": "address"
+          "name": "a",
+          "type": "uint256",
+          "internalType": "uint256"
         },
         {
-          "name": "expectedCodehash",
-          "type": "bytes32",
-          "internalType": "bytes32"
-        },
-        {
-          "name": "actualCodehash",
-          "type": "bytes32",
-          "internalType": "bytes32"
+          "name": "b",
+          "type": "uint256",
+          "internalType": "uint256"
         }
       ]
+    },
+    {
+      "type": "error",
+      "name": "Log10ReduceOutOfRange",
+      "inputs": [
+        {
+          "name": "x",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "Log10Zero",
+      "inputs": []
     },
     {
       "type": "error",
@@ -954,22 +969,6 @@
     {
       "type": "error",
       "name": "LossyConversionToFloat",
-      "inputs": [
-        {
-          "name": "signedCoefficient",
-          "type": "int256",
-          "internalType": "int256"
-        },
-        {
-          "name": "exponent",
-          "type": "int256",
-          "internalType": "int256"
-        }
-      ]
-    },
-    {
-      "type": "error",
-      "name": "MaximizeOverflow",
       "inputs": [
         {
           "name": "signedCoefficient",
@@ -1022,6 +1021,17 @@
     },
     {
       "type": "error",
+      "name": "ParseDecimalNoSignificantDigits",
+      "inputs": [
+        {
+          "name": "start",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
       "name": "PowNegativeBase",
       "inputs": [
         {
@@ -1038,17 +1048,43 @@
     },
     {
       "type": "error",
-      "name": "ScientificMinNotLessThanMax",
+      "name": "SqrtOutOfRange",
       "inputs": [
         {
-          "name": "scientificMin",
-          "type": "bytes32",
-          "internalType": "Float"
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
         },
         {
-          "name": "scientificMax",
-          "type": "bytes32",
-          "internalType": "Float"
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "UnabsExponentOverflow",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "b",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "signedCoefficientAbs",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
         }
       ]
     },

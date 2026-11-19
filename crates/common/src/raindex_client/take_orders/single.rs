@@ -9,7 +9,7 @@ use crate::take_orders::{
 use alloy::primitives::Address;
 use rain_math_float::Float;
 use raindex_bindings::provider::mk_read_provider;
-use raindex_bindings::IRaindexV6::OrderV4;
+use raindex_bindings::IRaindexV7::OrderV4;
 use std::ops::{Div, Mul};
 #[cfg(target_family = "wasm")]
 use std::str::FromStr;
@@ -74,7 +74,7 @@ pub fn build_candidate_from_quote(
         // attached (oracle entries first, then any injector-contributed
         // entries). Dropping it here was a regression: gated orders whose
         // `calculate-io` asserted on signed context during quoting would
-        // then be executed without the same context at `takeOrders4` time.
+        // then be executed without the same context at `takeOrders5` time.
         signed_context: quote.signed_context.clone(),
     }))
 }
@@ -646,7 +646,7 @@ mod tests {
     /// Regression: a quote whose `signed_context` is populated (as produced
     /// by the injector-aware quote pipeline) must propagate that context into
     /// the candidate verbatim. Dropping it here previously caused gated
-    /// single-takes to execute `takeOrders4` without the context that
+    /// single-takes to execute `takeOrders5` without the context that
     /// `calculate-io` saw at quote time.
     #[test]
     fn test_build_candidate_inherits_signed_context_from_quote() {
@@ -654,7 +654,7 @@ mod tests {
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_RAINDEX_ADDRESS};
         use alloy::primitives::{b256, Address, Bytes, FixedBytes, U256};
         use httpmock::MockServer;
-        use raindex_bindings::IRaindexV6::SignedContextV1;
+        use raindex_bindings::IRaindexV7::SignedContextV2;
         use raindex_subgraph_client::utils::float::F1;
         use serde_json::json;
         use std::str::FromStr;
@@ -662,13 +662,15 @@ mod tests {
         let max_output = Float::parse("100".to_string()).unwrap();
         let ratio = Float::parse("1".to_string()).unwrap();
 
-        let oracle_entry = SignedContextV1 {
+        let oracle_entry = SignedContextV2 {
             signer: Address::from([0xAAu8; 20]),
+            domainSeparator: alloy::primitives::B256::repeat_byte(0xd5),
             context: vec![FixedBytes::<32>::from(U256::from(1u64).to_be_bytes::<32>())],
             signature: Bytes::from(vec![0x01]),
         };
-        let injected_entry = SignedContextV1 {
+        let injected_entry = SignedContextV2 {
             signer: Address::from([0xBBu8; 20]),
+            domainSeparator: alloy::primitives::B256::repeat_byte(0xd5),
             context: vec![FixedBytes::<32>::from(U256::from(2u64).to_be_bytes::<32>())],
             signature: Bytes::from(vec![0x02]),
         };

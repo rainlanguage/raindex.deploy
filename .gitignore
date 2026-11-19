@@ -14,6 +14,7 @@ packages/raindex/cjs.d.ts
 packages/raindex/esm.js
 packages/raindex/esm.d.ts
 .direnv/
+.raindex/
 
 # Audit proposed fixes
 .fixes/
@@ -28,3 +29,5 @@ dependencies/
 
 # Local pre-commit hook config
 .pre-commit-config.yaml
+
+.staged-config

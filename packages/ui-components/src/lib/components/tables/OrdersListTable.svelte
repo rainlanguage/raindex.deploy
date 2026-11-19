@@ -3,9 +3,15 @@
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
-	import { RaindexOrder, type RaindexCfg, type Address } from '@rainlanguage/raindex';
+	import {
+		RaindexOrder,
+		type RaindexCfg,
+		type Address,
+		type NetworkSyncStatus
+	} from '@rainlanguage/raindex';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
+	import { useLocalTime } from '../../storesGeneric/useLocalTime';
 	import ListViewRaindexFilters from '../ListViewRaindexFilters.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import VaultCard from '../VaultCard.svelte';
@@ -39,6 +45,9 @@
 	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let activeRaindexAddresses: AppStoresInterface['activeRaindexAddresses'];
 	export let ownerFilter: AppStoresInterface['ownerFilter'];
+	export let emptyMessage = 'No Orders Found';
+	export let refreshVersion = 0;
+	export let localDbStatuses: Map<number, NetworkSyncStatus> | undefined = undefined;
 
 	const { matchesAccount, account } = useAccount();
 	const raindexClient = useRaindexClient();
@@ -62,6 +71,7 @@
 		) ?? [];
 
 	$: raindexesMap = raindexClient.getAllRaindexes()?.value ?? new Map<string, RaindexCfg>();
+	$: configuredNetworks = Array.from(raindexesMap.values(), (cfg) => cfg.network);
 	$: availableRaindexAddresses = (() => {
 		const addrs: string[] = [];
 		raindexesMap.forEach((cfg: RaindexCfg) => {
@@ -113,6 +123,12 @@
 		enabled: true
 	});
 
+	let appliedRefreshVersion = refreshVersion;
+	$: if (refreshVersion > appliedRefreshVersion) {
+		appliedRefreshVersion = refreshVersion;
+		$query.refetch();
+	}
+
 	type OrdersListResult = { orders: RaindexOrder[]; totalCount: number };
 	const AppTable = TanstackAppTable<RaindexOrder, OrdersListResult>;
 </script>
@@ -129,12 +145,13 @@
 	{activeRaindexAddresses}
 	{selectedRaindexAddresses}
 	{ownerFilter}
+	{localDbStatuses}
 />
 
 <AppTable
 	{query}
 	queryKey={QKEY_ORDERS}
-	emptyMessage="No Orders Found"
+	{emptyMessage}
 	dataSelector={(page) => page.orders}
 	on:clickRow={(e) => {
 		goto(`/orders/${e.detail.item.chainId}-${e.detail.item.raindex}-${e.detail.item.orderHash}`);
@@ -190,7 +207,10 @@
 		<TableBodyCell data-testid="orderListRowOrderInfo" tdClass="px-4 py-2">
 			<div class="flex flex-col gap-1">
 				<div class="flex items-center gap-2">
-					<span class="text-sm font-medium">{getNetworkName(Number(item.chainId))}</span>
+					<span class="text-sm font-medium"
+						>{getNetworkName(Number(item.chainId), configuredNetworks) ??
+							`Chain ${item.chainId}`}</span
+					>
 					{#if item.active}
 						<Badge color="green">Active</Badge>
 					{:else}
@@ -198,7 +218,7 @@
 					{/if}
 				</div>
 				<span class="text-xs text-gray-500 dark:text-gray-400">
-					Added: {formatTimestampSecondsAsLocal(item.timestampAdded)}
+					Added: {formatTimestampSecondsAsLocal(item.timestampAdded, $useLocalTime)}
 				</span>
 			</div>
 		</TableBodyCell>

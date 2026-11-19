@@ -7,6 +7,7 @@
 	import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
 	import CardProperty from '../CardProperty.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
+	import { useLocalTime } from '../../storesGeneric/useLocalTime';
 	import ButtonVaultLink from '../ButtonVaultLink.svelte';
 	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
@@ -198,7 +199,7 @@
 			<CardProperty>
 				<svelte:fragment slot="key">Created</svelte:fragment>
 				<svelte:fragment slot="value">
-					{formatTimestampSecondsAsLocal(data.timestampAdded)}
+					{formatTimestampSecondsAsLocal(data.timestampAdded, $useLocalTime)}
 				</svelte:fragment>
 			</CardProperty>
 

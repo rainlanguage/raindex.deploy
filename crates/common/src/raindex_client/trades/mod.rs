@@ -33,6 +33,9 @@ use wasm_bindgen_utils::prelude::js_sys::BigInt;
 #[wasm_bindgen]
 pub struct RaindexTrade {
     id: Bytes,
+    trade_event_id: Bytes,
+    trade_event_kind: String,
+    block_number: U256,
     chain_id: u32,
     raindex: Address,
     order_hash: B256,
@@ -43,6 +46,51 @@ pub struct RaindexTrade {
     timestamp: U256,
     io_ratio: Float,
     formatted_io_ratio: String,
+    #[serde(skip)]
+    source_log_index: Option<u64>,
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl RaindexTrade {
+    pub(crate) fn raw_id(&self) -> &Bytes {
+        &self.id
+    }
+
+    pub(crate) fn raw_raindex(&self) -> Address {
+        self.raindex
+    }
+
+    pub(crate) fn raw_trade_event_id(&self) -> &Bytes {
+        &self.trade_event_id
+    }
+
+    pub(crate) fn raw_trade_event_kind(&self) -> &str {
+        &self.trade_event_kind
+    }
+
+    pub(crate) fn raw_block_number(&self) -> U256 {
+        self.block_number
+    }
+
+    pub(crate) fn raw_order_hash(&self) -> B256 {
+        self.order_hash
+    }
+
+    pub(crate) fn raw_timestamp(&self) -> U256 {
+        self.timestamp
+    }
+
+    pub(crate) fn raw_source_log_index(&self) -> Option<u64> {
+        self.source_log_index
+    }
+
+    pub(crate) fn raw_input_change(&self) -> &RaindexVaultBalanceChange {
+        &self.input_vault_balance_change
+    }
+
+    pub(crate) fn raw_output_change(&self) -> &RaindexVaultBalanceChange {
+        &self.output_vault_balance_change
+    }
 }
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
@@ -303,6 +351,9 @@ impl RaindexTrade {
     }
 
     pub fn try_from_sg_trade(chain_id: u32, trade: SgTrade) -> Result<Self, RaindexError> {
+        let trade_event_id = Bytes::from_str(&trade.trade_event.id.0)?;
+        let trade_event_kind = trade.trade_event.__typename.clone();
+        let block_number = U256::from_str(&trade.trade_event.transaction.block_number.0)?;
         let input_vault_balance_change =
             RaindexVaultBalanceChange::try_from_sg_trade_balance_change(
                 chain_id,
@@ -321,6 +372,9 @@ impl RaindexTrade {
 
         Ok(RaindexTrade {
             id: Bytes::from_str(&trade.id.0)?,
+            trade_event_id,
+            trade_event_kind,
+            block_number,
             chain_id,
             raindex: Address::from_str(&trade.raindex.id.0)?,
             order_hash: B256::from_str(&trade.order.order_hash.0)?,
@@ -331,11 +385,17 @@ impl RaindexTrade {
             timestamp: U256::from_str(&trade.timestamp.0)?,
             io_ratio,
             formatted_io_ratio,
+            source_log_index: None,
         })
     }
 
     pub(crate) fn try_from_local_db_trade(trade: LocalDbOrderTrade) -> Result<Self, RaindexError> {
         let chain_id = trade.chain_id;
+        let trade_event_id = Bytes::from_str(&format!(
+            "0x{}{:016x}",
+            format!("{:#x}", trade.transaction_hash).trim_start_matches("0x"),
+            trade.log_index
+        ))?;
         let transaction = RaindexTransaction::from_local_parts(
             trade.transaction_hash,
             trade.transaction_sender,
@@ -386,6 +446,9 @@ impl RaindexTrade {
 
         Ok(RaindexTrade {
             id: Bytes::from_str(&trade.trade_id)?,
+            trade_event_id,
+            trade_event_kind: trade.trade_kind,
+            block_number: U256::from(trade.block_number),
             chain_id,
             raindex: trade.raindex,
             order_hash: trade.order_hash,
@@ -396,6 +459,7 @@ impl RaindexTrade {
             timestamp: U256::from(trade.block_timestamp),
             io_ratio,
             formatted_io_ratio,
+            source_log_index: Some(trade.log_index),
         })
     }
 }
@@ -900,6 +964,8 @@ mod test_helpers {
         serde_json::json!({
             "id": "0x0123",
             "tradeEvent": {
+                "id": "0x0000000000000000000000000000000000000000000000000000000000000001",
+                "__typename": "TakeOrder",
                 "transaction": {
                     "id": "0x0000000000000000000000000000000000000000000000000000000000000abc",
                     "from": "0x0000000000000000000000000000000000000000",
@@ -1234,6 +1300,8 @@ mod test_helpers {
             json!(              {
               "id": "0x0123",
               "tradeEvent": {
+                "id": "0x0000000000000000000000000000000000000000000000000000000000000001",
+                "__typename": "TakeOrder",
                 "transaction": {
                   "id": "0x0000000000000000000000000000000000000000000000000000000000000123",
                   "from": "0x0000000000000000000000000000000000000000",
@@ -1325,6 +1393,8 @@ mod test_helpers {
               {
                 "id": "0x0234",
                 "tradeEvent": {
+                  "id": "0x0000000000000000000000000000000000000000000000000000000000000002",
+                  "__typename": "TakeOrder",
                   "transaction": {
                     "id": "0x0000000000000000000000000000000000000000000000000000000000000234",
                     "from": "0x0000000000000000000000000000000000000001",

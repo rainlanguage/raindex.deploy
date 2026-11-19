@@ -6,21 +6,30 @@ jobs:
     env:
       COMMIT_SHA: ${{ github.sha }}
     steps:
-      - uses: rainlanguage/rainix/.github/actions/checkout@main
+      - uses: actions/checkout@v4
       - name: Free disk space
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        uses: jlumbroso/free-disk-space@v1.3.1
         with:
           # Keep chromium — wasm-pack test --headless --chrome needs it.
           large-packages: false
-      # Shared nix + cachix preamble (nix-quick-install, Cachix,
-      # cache-nix-action). The third-party action SHAs are pinned once in the
-      # rainix composite. checkout: false because free-disk-space runs between
-      # the checkout above and nix-quick-install.
-      - uses: rainlanguage/rainix/.github/actions/nix-cachix-setup@main
+      - uses: nixbuild/nix-quick-install-action@v30
         with:
-          checkout: false
-          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - uses: rainlanguage/rainix/.github/actions/rust-cache@main
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+      - uses: cachix/cachix-action@v15
+        continue-on-error: true
+        with:
+          name: rainlanguage
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: false
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          gc-max-store-size-linux: 8G
+      - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: rust-${{ github.workflow }}
       - run: |

@@ -62,8 +62,7 @@ mod tests {
     use raindex_common::local_db::fetch::FetchConfig;
     use raindex_common::local_db::pipeline::engine::SyncInputs;
     use raindex_common::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
-    use raindex_common::local_db::{LocalDbError, RaindexIdentifier};
-    use raindex_common::rpc_client::RpcClientError;
+    use raindex_common::local_db::RaindexIdentifier;
     use url::Url;
 
     fn sample_target(chain_id: u32) -> RunnerTarget {
@@ -83,8 +82,10 @@ mod tests {
                     fetch,
                     finality: FinalityConfig { depth: 12 },
                     window_overrides: WindowOverrides::default(),
+                    max_blocks_per_cycle: None,
                 },
                 dump_str: None,
+                defer_analyze: false,
                 block_number_threshold: 10000,
                 manifest_end_block: 1,
             },
@@ -92,7 +93,7 @@ mod tests {
     }
 
     #[test]
-    fn build_engine_configures_hyperrpc_for_supported_chain() {
+    fn build_engine_configures_hyperrpc_numeric_chain_alias() {
         let env = default_environment("super-secret-token".to_string(), DebugStatus::Disabled);
         let target = sample_target(42161);
         let engine = env.build_engine(&target).expect("engine available");
@@ -103,21 +104,22 @@ mod tests {
             "expected HyperRPC client for chain 42161: {events_debug}"
         );
         assert!(
-            events_debug.contains("https://arbitrum.rpc.hypersync.xyz"),
+            events_debug.contains("https://42161.rpc.hypersync.xyz/***"),
             "expected HyperRPC base URL in debug repr: {events_debug}"
+        );
+        assert!(
+            !events_debug.contains("super-secret-token"),
+            "expected HyperRPC API token to be redacted: {events_debug}"
         );
     }
 
     #[test]
-    fn build_engine_rejects_unsupported_chain() {
+    fn build_engine_accepts_previously_unlisted_chain() {
         let env = default_environment("token".to_string(), DebugStatus::Disabled);
         let target = sample_target(1);
-        match env.build_engine(&target) {
-            Err(LocalDbError::Rpc(RpcClientError::UnsupportedChainId { chain_id })) => {
-                assert_eq!(chain_id, 1);
-            }
-            Err(other) => panic!("unexpected error variant: {other:?}"),
-            Ok(_) => panic!("expected unsupported chain to fail"),
-        }
+        let engine = env.build_engine(&target).expect("engine available");
+
+        let events_debug = format!("{:?}", engine.events);
+        assert!(events_debug.contains("https://1.rpc.hypersync.xyz/***"));
     }
 }

@@ -9,6 +9,6 @@ pub async fn fetch_orders_count<E: LocalDbQueryExecutor + ?Sized>(
     args: FetchOrdersArgs,
 ) -> Result<u32, LocalDbQueryError> {
     let stmt = build_fetch_orders_count_stmt(&args)?;
-    let rows: Vec<LocalDbOrdersCountRow> = exec.query_json(&stmt).await?;
+    let rows: Vec<LocalDbOrdersCountRow> = exec.query_json_retryable(&stmt).await?;
     Ok(extract_orders_count(&rows))
 }

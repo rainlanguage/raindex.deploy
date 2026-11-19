@@ -8,7 +8,7 @@ use alloy::sol_types::SolCall;
 use serde::{Deserialize, Serialize};
 
 use rain_math_float::Float;
-use raindex_bindings::IRaindexV6::withdraw4Call;
+use raindex_bindings::IRaindexV7::withdraw5Call;
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct WithdrawArgs {
@@ -17,9 +17,9 @@ pub struct WithdrawArgs {
     pub target_amount: Float,
 }
 
-impl From<WithdrawArgs> for withdraw4Call {
+impl From<WithdrawArgs> for withdraw5Call {
     fn from(val: WithdrawArgs) -> Self {
-        withdraw4Call {
+        withdraw5Call {
             token: val.token,
             vaultId: val.vault_id,
             targetAmount: val.target_amount.get_inner(),
@@ -37,7 +37,7 @@ impl WithdrawArgs {
     ) -> Result<(), WritableTransactionExecuteError> {
         let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
-        let withdraw_call: withdraw4Call = self.clone().into();
+        let withdraw_call: withdraw5Call = self.clone().into();
         let tx_request = transaction_args
             .try_into_transaction_request(withdraw_call, transaction_args.raindex_address)?;
 
@@ -47,7 +47,7 @@ impl WithdrawArgs {
     }
 
     pub async fn get_withdraw_calldata(&self) -> Result<Vec<u8>, WritableTransactionExecuteError> {
-        let withdraw_call: withdraw4Call = self.clone().into();
+        let withdraw_call: withdraw5Call = self.clone().into();
         Ok(withdraw_call.abi_encode())
     }
 }

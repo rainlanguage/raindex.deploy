@@ -1,12 +1,17 @@
+use super::super::bootstrap::{has_persisted_targets, provision_missing_targets};
 use super::super::config::NetworkRunnerConfig;
 use super::super::environment::default_environment;
-use super::super::leadership::DefaultLeadership;
+use super::super::leadership::{DefaultLeadership, LeadershipGuard};
 use super::super::ClientRunner;
 use crate::local_db::pipeline::adapters::bootstrap::BootstrapPipeline;
 use crate::local_db::pipeline::adapters::{
     apply::DefaultApplyPipeline, events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
     window::DefaultWindowPipeline,
 };
+use crate::local_db::pipeline::runner::environment::{
+    default_dump_downloader, default_manifest_fetcher,
+};
+use crate::local_db::pipeline::runner::utils::configured_sync_networks;
 use crate::local_db::pipeline::runner::utils::ParsedRunnerSettings;
 use crate::local_db::pipeline::runner::RunOutcome;
 use crate::local_db::pipeline::SyncPhase;
@@ -20,6 +25,7 @@ use crate::raindex_client::local_db::{
     LocalDb, LocalDbSyncStatusStore, NetworkSyncStatus, RaindexSyncStatus, SchedulerState,
     SyncReadiness,
 };
+use futures::future::{select, Either};
 use gloo_timers::future::TimeoutFuture;
 use js_sys::Function;
 use raindex_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
@@ -103,14 +109,7 @@ pub(crate) fn start(
     status_store: LocalDbSyncStatusStore,
     schema_initialized: bool,
 ) -> Result<SchedulerHandle, LocalDbError> {
-    let mut networks_map: HashMap<String, NetworkCfg> = HashMap::new();
-    for raindex_cfg in settings.raindexes.values() {
-        networks_map
-            .entry(raindex_cfg.network.key.clone())
-            .or_insert_with(|| (*raindex_cfg.network).clone());
-    }
-    let mut networks: Vec<NetworkCfg> = networks_map.into_values().collect();
-    networks.sort_by(|a, b| a.key.cmp(&b.key));
+    let networks = configured_sync_networks(&settings);
 
     if networks.is_empty() {
         return Err(LocalDbError::CustomError(
@@ -152,7 +151,7 @@ pub(crate) fn start(
             }
         }
 
-        for network in &networks_for_spawn {
+        let spawn_network = |network: &NetworkCfg, ownership: Option<LeadershipGuard>| {
             let config =
                 match NetworkRunnerConfig::from_global_settings(&settings_clone, &network.key) {
                     Ok(config) => config,
@@ -162,7 +161,7 @@ pub(crate) fn start(
                             callback.as_deref(),
                             NetworkSyncStatus::failure(network.chain_id, err.to_readable_msg()),
                         );
-                        continue;
+                        return;
                     }
                 };
 
@@ -170,14 +169,14 @@ pub(crate) fn start(
             let environment = default_environment(status_store.clone());
 
             let runner = match ClientRunner::from_config(config.clone(), environment, leadership) {
-                Ok(r) => r,
+                Ok(r) => r.with_initial_leadership(ownership),
                 Err(err) => {
                     emit_network_status(
                         &status_store,
                         callback.as_deref(),
                         NetworkSyncStatus::failure(network.chain_id, err.to_readable_msg()),
                     );
-                    continue;
+                    return;
                 }
             };
 
@@ -195,7 +194,7 @@ pub(crate) fn start(
                             ),
                         ),
                     );
-                    continue;
+                    return;
                 }
             };
 
@@ -208,6 +207,88 @@ pub(crate) fn start(
                 sync_readiness.clone(),
                 status_store.clone(),
             );
+        };
+        let populated = match has_persisted_targets(&db_clone).await {
+            Ok(populated) => populated,
+            Err(error) => {
+                tracing::warn!(%error, "Database preflight failed; using network provisioning");
+                true
+            }
+        };
+        if stop_flag_init.get() {
+            return;
+        }
+        if populated {
+            for network in &networks_for_spawn {
+                spawn_network(network, None);
+            }
+            return;
+        }
+
+        // Retain guards even on provisioning failure, and hand them directly to
+        // the runners. Dropping/reacquiring Web Locks has an asynchronous gap.
+        let mut network_ownership = HashMap::new();
+        let provisioning = async {
+            let _ownership = loop {
+                if let Some(guard) = super::super::leadership::acquire_bootstrap().await? {
+                    break guard;
+                }
+                TimeoutFuture::new(250).await;
+            };
+            // Another coordinator may have populated the DB while we waited.
+            if has_persisted_targets(&db_clone).await? {
+                return Ok(());
+            }
+            // The shared lock serializes coordinators; network locks exclude
+            // fallback/RPC leaders from writing the same target in another tab.
+            let mut cohort_settings = settings_clone.clone();
+            cohort_settings.syncs.clear();
+            for network in &networks_for_spawn {
+                if let Some(guard) =
+                    super::super::leadership::acquire_network_bootstrap(&network.key).await?
+                {
+                    if let Some(sync) = settings_clone.syncs.get(&network.key) {
+                        cohort_settings
+                            .syncs
+                            .insert(network.key.clone(), sync.clone());
+                        network_ownership.insert(network.key.clone(), guard);
+                    }
+                }
+            }
+            // A single runner already defers indexes on a fresh DB. Keep its
+            // ownership, but avoid cohort downloads and their timeout caps.
+            if cohort_settings.syncs.len() < 2 {
+                return Ok(());
+            }
+            provision_missing_targets(
+                &db_clone,
+                &cohort_settings,
+                &default_manifest_fetcher(),
+                &default_dump_downloader(),
+                |id, phase| {
+                    emit_raindex_sync_statuses(
+                        &status_store,
+                        callback.as_deref(),
+                        std::slice::from_ref(id),
+                        phase,
+                    );
+                },
+            )
+            .await
+        };
+        match provision_until_stopped(provisioning, &stop_flag_init).await {
+            Some(Err(error)) => {
+                tracing::warn!(%error, "Coordinated bootstrap failed; using network provisioning");
+            }
+            Some(Ok(())) => {}
+            None => return,
+        }
+        if stop_flag_init.get() {
+            return;
+        }
+
+        for network in &networks_for_spawn {
+            spawn_network(network, network_ownership.remove(&network.key));
         }
     });
 
@@ -215,6 +296,25 @@ pub(crate) fn start(
         stop_flag,
         networks,
     })
+}
+
+/// Drop pending ownership/download/import work when the scheduler is stopped.
+async fn provision_until_stopped<F>(
+    provisioning: F,
+    stop_flag: &Cell<bool>,
+) -> Option<Result<(), LocalDbError>>
+where
+    F: Future<Output = Result<(), LocalDbError>>,
+{
+    let stopped = async {
+        while !stop_flag.get() {
+            TimeoutFuture::new(100).await;
+        }
+    };
+    match select(Box::pin(provisioning), Box::pin(stopped)).await {
+        Either::Left((result, _)) => Some(result),
+        Either::Right(_) => None,
+    }
 }
 
 fn spawn_network_loop<R>(
@@ -270,6 +370,7 @@ async fn run_network_loop<R>(
         SyncPhase::PreparingLocalDatabase,
     );
 
+    let mut backoff = super::CycleBackoff::default();
     loop {
         if stop_flag.get() {
             break;
@@ -295,13 +396,15 @@ async fn run_network_loop<R>(
             );
         });
 
-        match runner.run_once(&db, on_phase).await {
+        let result = runner.run_once(&db, on_phase).await;
+        let cycle = super::CycleResult::of(&result);
+        match result {
             Ok(outcome) => match outcome {
                 RunOutcome::Report(report) => {
                     was_leader_last_cycle = true;
                     set_scheduler_state(SchedulerState::Leader);
 
-                    if report.failures.is_empty() {
+                    if report.failures.is_empty() && cycle == super::CycleResult::CaughtUp {
                         sync_readiness.mark_ready(chain_id);
                         status_store.record_chain_ready(chain_id);
                         emit_raindex_active_statuses(
@@ -314,6 +417,12 @@ async fn run_network_loop<R>(
                             &status_store,
                             callback.as_deref(),
                             NetworkSyncStatus::active(chain_id, SchedulerState::Leader),
+                        );
+                    } else if report.failures.is_empty() {
+                        emit_network_status(
+                            &status_store,
+                            callback.as_deref(),
+                            NetworkSyncStatus::syncing(chain_id),
                         );
                     } else {
                         let first = &report.failures[0];
@@ -363,11 +472,14 @@ async fn run_network_loop<R>(
             }
         }
 
-        if stop_flag.get() {
-            break;
+        // Sleep in short steps so a stop during a long backoff releases the
+        // runner (and its network Web Lock) promptly.
+        let mut remaining = backoff.next_delay_ms(u64::from(interval_ms), cycle);
+        while remaining > 0 && !stop_flag.get() {
+            let step = remaining.min(super::STOP_POLL_MS);
+            TimeoutFuture::new(step as u32).await;
+            remaining -= step;
         }
-
-        TimeoutFuture::new(interval_ms).await;
     }
 }
 
@@ -474,21 +586,10 @@ mod wasm_tests {
     }
 
     fn noop_local_db() -> LocalDb {
-        let local_db = js_sys::Object::new();
-        js_sys::Reflect::set(&local_db, &JsValue::from_str("query"), &noop_callback()).unwrap();
-        js_sys::Reflect::set(
-            &local_db,
-            &JsValue::from_str("wipeAndRecreate"),
-            &Function::new_no_args("return Promise.resolve({ value: undefined, error: null });"),
+        LocalDb::from_js_local_db(
+            crate::raindex_client::tests::local_db_object_from_query_callback(noop_callback()),
         )
-        .unwrap();
-        js_sys::Reflect::set(
-            &local_db,
-            &JsValue::from_str("transaction"),
-            &Function::new_no_args("return Promise.resolve({ value: '', error: null });"),
-        )
-        .unwrap();
-        LocalDb::from_js_local_db(local_db.into()).unwrap()
+        .unwrap()
     }
 
     impl SchedulerHandle {
@@ -572,6 +673,115 @@ mod wasm_tests {
     async fn start_returns_error_for_invalid_yaml() {
         let result = parse_runner_settings("not yaml");
         assert!(result.is_err());
+    }
+
+    #[wasm_bindgen_test]
+    async fn startup_stop_drops_pending_provisioning_future() {
+        struct PendingWork(Rc<Cell<bool>>);
+        impl Drop for PendingWork {
+            fn drop(&mut self) {
+                self.0.set(true);
+            }
+        }
+        let stop = Rc::new(Cell::new(false));
+        let dropped = Rc::new(Cell::new(false));
+        let work = PendingWork(Rc::clone(&dropped));
+        let provisioning = async move {
+            let _work = work;
+            futures::future::pending::<Result<(), LocalDbError>>().await
+        };
+        let signal = Rc::clone(&stop);
+        spawn_local(async move {
+            TimeoutFuture::new(5).await;
+            signal.set(true);
+        });
+        assert!(provision_until_stopped(provisioning, &stop).await.is_none());
+        assert!(dropped.get());
+    }
+
+    #[wasm_bindgen_test]
+    async fn startup_failure_returns_provisioning_error() {
+        let result = provision_until_stopped(
+            async { Err(LocalDbError::CustomError("offline".to_string())) },
+            &Cell::new(false),
+        )
+        .await;
+        assert!(matches!(result, Some(Err(_))));
+    }
+
+    #[wasm_bindgen_test]
+    async fn startup_stop_cancels_an_open_import_session() {
+        use crate::local_db::query::LocalDbQueryExecutor;
+        use std::sync::Arc;
+
+        let object = Function::new_no_args(
+            r#"return {
+                appended: false, cancels: 0,
+                query() { return {value:'[]'}; },
+                transaction() {}, wipeAndRecreate() {},
+                beginSqlDumpImport() { return {value:'pending-session'}; },
+                appendSqlDumpChunk() {
+                    this.appended = true;
+                    return new Promise(resolve => { this.resolveAppend = resolve; });
+                },
+                finishSqlDumpImport() { throw new Error('must not commit'); },
+                cancelSqlDumpImport(id) {
+                    if (id !== 'pending-session') throw new Error('wrong session');
+                    this.cancels++; return {value:''};
+                }
+            };"#,
+        )
+        .call0(&JsValue::UNDEFINED)
+        .unwrap();
+        let db = LocalDb::from_js_local_db(object.clone()).unwrap();
+        let stop = Rc::new(Cell::new(false));
+        let signal = Rc::clone(&stop);
+        let seen = object.clone();
+        spawn_local(async move {
+            while !js_sys::Reflect::get(&seen, &"appended".into())
+                .unwrap()
+                .as_bool()
+                .unwrap()
+            {
+                TimeoutFuture::new(1).await;
+            }
+            signal.set(true);
+        });
+        let import = async {
+            db.execute_sql_dumps(vec![Arc::new("BEGIN; SELECT 1; COMMIT;".to_string())])
+                .await
+                .map_err(LocalDbError::DumpImportFailed)
+        };
+        assert!(provision_until_stopped(import, &stop).await.is_none());
+        assert_eq!(
+            js_sys::Reflect::get(&object, &"cancels".into())
+                .unwrap()
+                .as_f64(),
+            Some(0.0)
+        );
+        // The SDK rejects rollback while an append is still in flight.
+        let resolve = js_sys::Reflect::get(&object, &"resolveAppend".into())
+            .unwrap()
+            .dyn_into::<Function>()
+            .unwrap();
+        let result = Function::new_no_args("return {value:''};")
+            .call0(&JsValue::UNDEFINED)
+            .unwrap();
+        resolve.call1(&JsValue::UNDEFINED, &result).unwrap();
+        TimeoutFuture::new(10).await;
+        assert_eq!(
+            js_sys::Reflect::get(&object, &"cancels".into())
+                .unwrap()
+                .as_f64(),
+            Some(1.0)
+        );
+        // Cancellation cleanup releases the serialization gate for later reads.
+        assert_eq!(
+            db.query_text(&crate::local_db::query::SqlStatement::new("SELECT 1"))
+                .await
+                .unwrap(),
+            "[]"
+        );
     }
 
     #[wasm_bindgen_test]
@@ -871,7 +1081,23 @@ mod wasm_tests {
     fn scheduler_handle_networks_returns_correct_network_configs() {
         use crate::raindex_client::tests::get_local_db_test_yaml;
 
-        let yaml = get_local_db_test_yaml();
+        let yaml = format!(
+            r#"{}
+local-db-remotes:
+    remote: https://remote.example/manifest
+local-db-sync:
+    arbitrum:
+        batch-size: 10
+        max-concurrent-batches: 2
+        retry-attempts: 1
+        retry-delay-ms: 1
+        rate-limit-delay-ms: 1
+        finality-depth: 12
+        bootstrap-block-threshold: 100
+        sync-interval-ms: 5000
+"#,
+            get_local_db_test_yaml()
+        );
         let settings = parse_runner_settings(&yaml).expect("should parse valid yaml");
         let handle = start(
             settings,

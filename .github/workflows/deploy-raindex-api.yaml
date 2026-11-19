@@ -1,0 +1,89 @@
+name: Deploy Raindex API
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Deployment scope
+        required: true
+        default: service
+        type: choice
+        options:
+          - service
+          - all
+          - system
+concurrency:
+  group: deploy-raindex-api-production
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      RAINDEX_API_HOSTNAME: ${{ vars.RAINDEX_API_HOSTNAME }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: nixbuild/nix-quick-install-action@v30
+        with:
+          nix_conf: |
+            accept-flake-config = true
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      - uses: cachix/cachix-action@v15
+        continue-on-error: true
+        with:
+          name: rainlanguage
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: false
+      - uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          gc-max-store-size-linux: 8G
+      - name: Validate deployment definitions
+        run: |
+          nix flake check --no-build --impure
+          nix build .#raindex-api --no-link
+          nix shell .#opentofu -c tofu -chdir=infra init -backend=false
+          nix shell .#opentofu -c tofu -chdir=infra validate
+      - name: Configure authenticated SSH
+        env:
+          SSH_KEY: ${{ secrets.RAINDEX_API_SSH_KEY }}
+        run: |
+          test -n "$SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          host_ip=$(nix run .#resolveIp -- -i ~/.ssh/id_ed25519)
+          host_key=$(nix eval --raw --file keys.nix keys.host)
+          test "$host_key" != "ssh-ed25519 REPLACE_AFTER_BOOTSTRAP"
+          printf '%s %s\n' "$host_ip" "$host_key" > ~/.ssh/known_hosts
+      - name: Deploy
+        env:
+          SCOPE: ${{ inputs.scope }}
+        run: |
+          case "$SCOPE" in
+            service) nix run .#deployService -- -i ~/.ssh/id_ed25519 rest-api ;;
+            system) nix run .#deployNixos -- -i ~/.ssh/id_ed25519 ;;
+            all) nix run .#deployAll -- -i ~/.ssh/id_ed25519 ;;
+            *) echo "Unsupported deployment scope: $SCOPE" >&2; exit 1 ;;
+          esac
+      - name: Verify deployment
+        run: |
+          api_hostname="${RAINDEX_API_HOSTNAME:-api.raindex.finance}"
+          health_url="https://$api_hostname/health/detailed"
+          for _ in $(seq 1 60); do
+            if curl --fail --silent --show-error --max-time 5 "$health_url" \
+              | jq --exit-status '.status == "ok"' >/dev/null; then
+              exit 0
+            fi
+            sleep 5
+          done
+
+          host_ip=$(nix run .#resolveIp -- -i ~/.ssh/id_ed25519)
+          ssh -i ~/.ssh/id_ed25519 "root@$host_ip" \
+            'systemctl status rest-api.service --no-pager || true; journalctl -u rest-api.service -n 200 --no-pager || true'
+          exit 1

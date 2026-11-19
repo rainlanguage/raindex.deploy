@@ -90,52 +90,6 @@ export class DecimalFloat extends ethereum.SmartContract {
     return new DecimalFloat("DecimalFloat", address);
   }
 
-  FORMAT_DEFAULT_SCIENTIFIC_MAX(): Bytes {
-    let result = super.call(
-      "FORMAT_DEFAULT_SCIENTIFIC_MAX",
-      "FORMAT_DEFAULT_SCIENTIFIC_MAX():(bytes32)",
-      [],
-    );
-
-    return result[0].toBytes();
-  }
-
-  try_FORMAT_DEFAULT_SCIENTIFIC_MAX(): ethereum.CallResult<Bytes> {
-    let result = super.tryCall(
-      "FORMAT_DEFAULT_SCIENTIFIC_MAX",
-      "FORMAT_DEFAULT_SCIENTIFIC_MAX():(bytes32)",
-      [],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBytes());
-  }
-
-  FORMAT_DEFAULT_SCIENTIFIC_MIN(): Bytes {
-    let result = super.call(
-      "FORMAT_DEFAULT_SCIENTIFIC_MIN",
-      "FORMAT_DEFAULT_SCIENTIFIC_MIN():(bytes32)",
-      [],
-    );
-
-    return result[0].toBytes();
-  }
-
-  try_FORMAT_DEFAULT_SCIENTIFIC_MIN(): ethereum.CallResult<Bytes> {
-    let result = super.tryCall(
-      "FORMAT_DEFAULT_SCIENTIFIC_MIN",
-      "FORMAT_DEFAULT_SCIENTIFIC_MIN():(bytes32)",
-      [],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBytes());
-  }
-
   abs(a: Bytes): Bytes {
     let result = super.call("abs", "abs(bytes32):(bytes32)", [
       ethereum.Value.fromFixedBytes(a),
@@ -174,6 +128,49 @@ export class DecimalFloat extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBytes());
+  }
+
+  agree(
+    absolute: Bytes,
+    proportional: Bytes,
+    lowest: Bytes,
+    highest: Bytes,
+  ): boolean {
+    let result = super.call(
+      "agree",
+      "agree(bytes32,bytes32,bytes32,bytes32):(bool)",
+      [
+        ethereum.Value.fromFixedBytes(absolute),
+        ethereum.Value.fromFixedBytes(proportional),
+        ethereum.Value.fromFixedBytes(lowest),
+        ethereum.Value.fromFixedBytes(highest),
+      ],
+    );
+
+    return result[0].toBoolean();
+  }
+
+  try_agree(
+    absolute: Bytes,
+    proportional: Bytes,
+    lowest: Bytes,
+    highest: Bytes,
+  ): ethereum.CallResult<boolean> {
+    let result = super.tryCall(
+      "agree",
+      "agree(bytes32,bytes32,bytes32,bytes32):(bool)",
+      [
+        ethereum.Value.fromFixedBytes(absolute),
+        ethereum.Value.fromFixedBytes(proportional),
+        ethereum.Value.fromFixedBytes(lowest),
+        ethereum.Value.fromFixedBytes(highest),
+      ],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBoolean());
   }
 
   ceil(a: Bytes): Bytes {
@@ -285,60 +282,6 @@ export class DecimalFloat extends ethereum.SmartContract {
       ethereum.Value.fromFixedBytes(a),
       ethereum.Value.fromBoolean(scientific),
     ]);
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toString());
-  }
-
-  format1(a: Bytes): string {
-    let result = super.call("format", "format(bytes32):(string)", [
-      ethereum.Value.fromFixedBytes(a),
-    ]);
-
-    return result[0].toString();
-  }
-
-  try_format1(a: Bytes): ethereum.CallResult<string> {
-    let result = super.tryCall("format", "format(bytes32):(string)", [
-      ethereum.Value.fromFixedBytes(a),
-    ]);
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toString());
-  }
-
-  format2(a: Bytes, scientificMin: Bytes, scientificMax: Bytes): string {
-    let result = super.call(
-      "format",
-      "format(bytes32,bytes32,bytes32):(string)",
-      [
-        ethereum.Value.fromFixedBytes(a),
-        ethereum.Value.fromFixedBytes(scientificMin),
-        ethereum.Value.fromFixedBytes(scientificMax),
-      ],
-    );
-
-    return result[0].toString();
-  }
-
-  try_format2(
-    a: Bytes,
-    scientificMin: Bytes,
-    scientificMax: Bytes,
-  ): ethereum.CallResult<string> {
-    let result = super.tryCall(
-      "format",
-      "format(bytes32,bytes32,bytes32):(string)",
-      [
-        ethereum.Value.fromFixedBytes(a),
-        ethereum.Value.fromFixedBytes(scientificMin),
-        ethereum.Value.fromFixedBytes(scientificMax),
-      ],
-    );
     if (result.reverted) {
       return new ethereum.CallResult();
     }
@@ -966,31 +909,5 @@ export class DecimalFloat extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBytes());
-  }
-}
-
-export class ConstructorCall extends ethereum.Call {
-  get inputs(): ConstructorCall__Inputs {
-    return new ConstructorCall__Inputs(this);
-  }
-
-  get outputs(): ConstructorCall__Outputs {
-    return new ConstructorCall__Outputs(this);
-  }
-}
-
-export class ConstructorCall__Inputs {
-  _call: ConstructorCall;
-
-  constructor(call: ConstructorCall) {
-    this._call = call;
-  }
-}
-
-export class ConstructorCall__Outputs {
-  _call: ConstructorCall;
-
-  constructor(call: ConstructorCall) {
-    this._call = call;
   }
 }

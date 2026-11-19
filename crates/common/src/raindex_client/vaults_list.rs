@@ -268,7 +268,7 @@ mod tests {
         use crate::raindex_client::{tests::get_test_yaml, RaindexClient};
         use alloy::{primitives::U256, sol_types::SolCall};
         use httpmock::MockServer;
-        use raindex_bindings::IRaindexV6::withdraw4Call;
+        use raindex_bindings::IRaindexV7::withdraw5Call;
         use serde_json::{json, Value};
 
         fn get_vault1_json() -> Value {
@@ -415,7 +415,7 @@ mod tests {
                 RaindexVaultsList::new(get_vaults_for(get_vault1_json(), vault).await);
 
             let calldata = vaults_list.get_withdraw_calldata().await.unwrap();
-            let decoded = withdraw4Call::abi_decode(&calldata).unwrap();
+            let decoded = withdraw5Call::abi_decode(&calldata).unwrap();
 
             assert_eq!(
                 decoded.targetAmount,

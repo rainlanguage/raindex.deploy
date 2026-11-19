@@ -3,10 +3,11 @@ on:
   push:
     branches:
       - main
+concurrency:
+  group: npm-package-release
+  cancel-in-progress: false
 jobs:
   release:
-    # skip this job if the commit was created by this workflow (prevents infinite loop)
-    if: ${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'NPM Package Release') }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -15,47 +16,52 @@ jobs:
       DEPLOYMENT_KEY: ${{ secrets.PRIVATE_KEY }}
       CI_FORK_SEPOLIA_BLOCK_NUMBER: ${{ vars.CI_FORK_SEPOLIA_BLOCK_NUMBER }}
       CI_FORK_SEPOLIA_DEPLOYER_ADDRESS: ${{ vars.CI_FORK_SEPOLIA_DEPLOYER_ADDRESS }}
-      CI_DEPLOY_SEPOLIA_RPC_URL: ${{ secrets.CI_DEPLOY_SEPOLIA_RPC_URL || vars.CI_DEPLOY_SEPOLIA_RPC_URL }}
       CI_SEPOLIA_METABOARD_URL: ${{ vars.CI_SEPOLIA_METABOARD_URL }}
-      CI_DEPLOY_ARBITRUM_RPC_URL: ${{ secrets.CI_DEPLOY_ARBITRUM_RPC_URL }}
-      CI_DEPLOY_BASE_RPC_URL: ${{ secrets.CI_DEPLOY_BASE_RPC_URL }}
-      CI_DEPLOY_BASE_SEPOLIA_RPC_URL: ${{ secrets.CI_DEPLOY_BASE_SEPOLIA_RPC_URL }}
-      CI_DEPLOY_POLYGON_RPC_URL: ${{ secrets.CI_DEPLOY_POLYGON_RPC_URL }}
-      CI_DEPLOY_FLARE_RPC_URL: ${{ secrets.CI_DEPLOY_FLARE_RPC_URL }}
       RPC_URL_ETHEREUM_FORK: ${{ secrets.RPC_URL_ETHEREUM_FORK }}
       COMMIT_SHA: ${{ github.sha }}
-    outputs:
-      version: ${{ env.NEW_VERSION }}
     steps:
       # checkout with SSH key to allow pushing version bump commits back to repo
-      - uses: rainlanguage/rainix/.github/actions/checkout@main
+      - uses: actions/checkout@v4
         with:
-          ssh-key: ${{ secrets.PUBLISH_PRIVATE_KEY }}
+          ssh-key: ${{ secrets.AUTOPUBLISH_SSH_DEPLOY_KEY }}
       # WASM builds require significant disk space; free up space to prevent build failures
       - name: Free disk space
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        uses: jlumbroso/free-disk-space@v1.3.1
         with:
           swap-storage: false
-      # Shared nix + cachix preamble (nix-quick-install, Cachix,
-      # cache-nix-action). The third-party action SHAs are pinned once in the
-      # rainix composite. checkout: false because the ssh-key checkout above and
-      # free-disk-space both run before nix-quick-install.
-      - uses: rainlanguage/rainix/.github/actions/nix-cachix-setup@main
+      # install nix for building WASM artifacts and running tests
+      - uses: nixbuild/nix-quick-install-action@v30
         with:
-          checkout: false
-          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - uses: rainlanguage/rainix/.github/actions/rust-cache@main
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+      # pull rainix derivations from shared Cachix; push new ones if the
+      # token is set. continue-on-error so a token miss / Cachix outage
+      # degrades gracefully.
+      - uses: cachix/cachix-action@v15
+        continue-on-error: true
+        with:
+          name: rainlanguage
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: false
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          gc-max-store-size-linux: 8G
+      - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: rust-${{ github.workflow }}
       - name: Cache npm
-        uses: rainlanguage/rainix/.github/actions/cache@main
+        uses: actions/cache@v4
         with:
           path: ~/.npm
           key: npm-${{ runner.os }}-${{ github.workflow }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: npm-${{ runner.os }}-
       # setup node with npm registry for OIDC-based publishing (no NPM_TOKEN needed)
       - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@v4
         with:
           node-version: "24.x"
           registry-url: "https://registry.npmjs.org"
@@ -145,65 +151,207 @@ jobs:
         run: |
           git config --global user.email "${{ secrets.CI_GIT_EMAIL }}"
           git config --global user.name "${{ secrets.CI_GIT_USER }}"
-      # get hash of latest published pkgs from npm and concat them
-      - name: Get Old Hash
+      # A release must only publish the current main head. Newer pushes queue a
+      # fresh run through the workflow-level concurrency group.
+      - name: Check release head
         run: |
-          DEX_PKG_OLD_HASH=$(npm view @rainlanguage/raindex@latest dist.shasum 2>/dev/null || echo "none")
-          UC_PKG_OLD_HASH=$(npm view @rainlanguage/ui-components@latest dist.shasum 2>/dev/null || echo "none")
-          OLD_HASH=$DEX_PKG_OLD_HASH-$UC_PKG_OLD_HASH
-          echo "OLD_HASH=$OLD_HASH" >> $GITHUB_ENV
-          echo "old hash: $OLD_HASH"
-      # calc hash of current workspace pkgs by packing them and concat them
-      - name: Get New Hash
-        run: |
-          DEX_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/raindex | xargs shasum | cut -c1-40)
-          UC_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/ui-components | xargs shasum | cut -c1-40)
-          NEW_HASH=$DEX_PKG_NEW_HASH-$UC_PKG_NEW_HASH
-          echo "NEW_HASH=$NEW_HASH" >> $GITHUB_ENV
-          echo "new hash: $NEW_HASH"
-          rm -f *.tgz
-      # from here on, we'll skip if OLD_HASH and NEW_HASH are the same (ie no publish)
-      # this means we need to skip every step by using an if statement.
-      # set npm package versions independently
-      - name: Set Version
-        if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        run: |
-          # npm version prerelease reifies the workspace, which resolves
-          # @rainlanguage/raindex against the registry. The first time the
-          # package is published it doesn't exist there yet, so that resolution
-          # 404s and the bump fails (E404). When npm view reports no published
-          # version, publish the version already committed in package.json as
-          # the initial release instead of bumping it.
-          if npm view @rainlanguage/raindex@latest version &>/dev/null; then
-            npm version prerelease --preid alpha --no-git-tag-version  -w @rainlanguage/raindex
-            echo "FIRST_PUBLISH=false" >> $GITHUB_ENV
+          git fetch origin main
+          if [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ]; then
+            echo "RELEASE_CURRENT=true" >> "$GITHUB_ENV"
           else
-            echo "@rainlanguage/raindex not yet on npm; publishing committed version as initial release"
-            echo "FIRST_PUBLISH=true" >> $GITHUB_ENV
+            echo "RELEASE_CURRENT=false" >> "$GITHUB_ENV"
+            echo "Skipping superseded commit $(git rev-parse HEAD); current main is $(git rev-parse origin/main)"
           fi
-          RAINDEX_NEW_VERSION=$(jq -r '.version' ./packages/raindex/package.json)
-          echo "RAINDEX_NEW_VERSION=$RAINDEX_NEW_VERSION" >> $GITHUB_ENV
-          jq --arg v "$RAINDEX_NEW_VERSION" '.dependencies."@rainlanguage/raindex" = $v' ./packages/ui-components/package.json > tmp.json && mv tmp.json ./packages/ui-components/package.json
-          npx prettier --write ./packages/ui-components/package.json
-          npm version prerelease --preid alpha --no-git-tag-version  -w @rainlanguage/ui-components
-          UC_NEW_VERSION=$(jq -r '.version' ./packages/ui-components/package.json)
-          echo "UC_NEW_VERSION=$UC_NEW_VERSION" >> $GITHUB_ENV
+      # Reconcile Git and npm before choosing versions. This makes the release
+      # recoverable whether a prior attempt committed first, published first,
+      # or only published one of the two packages.
+      - name: Resolve package release state
+        if: ${{ env.RELEASE_CURRENT == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          highest_published_version() {
+            local package_name="$1"
+            local versions
+
+            if ! versions=$(npm view "$package_name" versions --json 2>/dev/null); then
+              return 1
+            fi
+
+            printf '%s' "$versions" | node -e '
+              const fs = require("fs");
+              const semver = require("semver");
+              const versions = JSON.parse(fs.readFileSync(0, "utf8"));
+              const highest = semver.maxSatisfying(
+                Array.isArray(versions) ? versions : [versions],
+                "*",
+                { includePrerelease: true },
+              );
+              if (!highest) process.exit(1);
+              process.stdout.write(highest);
+            '
+          }
+
+          higher_version() {
+            local repository_version="$1"
+            local registry_version="$2"
+
+            if [ -z "$registry_version" ]; then
+              echo "$repository_version"
+              return
+            fi
+
+            node -e '
+              const semver = require("semver");
+              process.stdout.write(
+                semver.gte(process.argv[1], process.argv[2])
+                  ? process.argv[1]
+                  : process.argv[2],
+              );
+            ' "$repository_version" "$registry_version"
+          }
+
+          package_hash() {
+            local workspace="$1"
+            local tarball
+            tarball=$(npm pack --silent -w "$workspace")
+            shasum "$tarball" | cut -c1-40
+            rm -f "$tarball"
+          }
+
+          select_unpublished_prerelease() {
+            local workspace="$1"
+            local package_name="$2"
+            local manifest="$3"
+            local candidate
+
+            while true; do
+              npm version prerelease --preid alpha --no-git-tag-version -w "$workspace" >/dev/null
+              candidate=$(jq -r '.version' "$manifest")
+              if ! npm view "$package_name@$candidate" version >/dev/null 2>&1; then
+                return
+              fi
+              echo "$package_name@$candidate already exists; trying the next prerelease"
+            done
+          }
+
+          RAINDEX_REPOSITORY_VERSION=$(jq -r '.version' packages/raindex/package.json)
+          RAINDEX_HIGHEST_PUBLISHED_VERSION=$(highest_published_version @rainlanguage/raindex || true)
+          if [ -n "$RAINDEX_HIGHEST_PUBLISHED_VERSION" ]; then
+            RAINDEX_FIRST_PUBLISH=false
+          else
+            RAINDEX_FIRST_PUBLISH=true
+          fi
+          RAINDEX_BASELINE_VERSION=$(higher_version "$RAINDEX_REPOSITORY_VERSION" "$RAINDEX_HIGHEST_PUBLISHED_VERSION")
+          npm version "$RAINDEX_BASELINE_VERSION" --allow-same-version --no-git-tag-version -w @rainlanguage/raindex
+          RAINDEX_LOCAL_HASH=$(package_hash @rainlanguage/raindex)
+          RAINDEX_PUBLISHED_HASH=$(npm view "@rainlanguage/raindex@$RAINDEX_BASELINE_VERSION" dist.shasum 2>/dev/null || true)
+
+          if [ -z "$RAINDEX_PUBLISHED_HASH" ]; then
+            RAINDEX_PUBLISH=true
+          elif [ "$RAINDEX_LOCAL_HASH" = "$RAINDEX_PUBLISHED_HASH" ]; then
+            RAINDEX_PUBLISH=false
+          else
+            select_unpublished_prerelease @rainlanguage/raindex @rainlanguage/raindex packages/raindex/package.json
+            RAINDEX_PUBLISH=true
+          fi
+          RAINDEX_NEW_VERSION=$(jq -r '.version' packages/raindex/package.json)
+
+          UC_REPOSITORY_VERSION=$(jq -r '.version' packages/ui-components/package.json)
+          UC_HIGHEST_PUBLISHED_VERSION=$(highest_published_version @rainlanguage/ui-components || true)
+          UC_BASELINE_VERSION=$(higher_version "$UC_REPOSITORY_VERSION" "$UC_HIGHEST_PUBLISHED_VERSION")
+          npm version "$UC_BASELINE_VERSION" --allow-same-version --no-git-tag-version -w @rainlanguage/ui-components
+          jq --arg version "$RAINDEX_NEW_VERSION" '.dependencies."@rainlanguage/raindex" = $version' packages/ui-components/package.json > tmp.json
+          mv tmp.json packages/ui-components/package.json
+          npx prettier --write packages/ui-components/package.json
+          UC_LOCAL_HASH=$(package_hash @rainlanguage/ui-components)
+          UC_PUBLISHED_HASH=$(npm view "@rainlanguage/ui-components@$UC_BASELINE_VERSION" dist.shasum 2>/dev/null || true)
+
+          if [ -z "$UC_PUBLISHED_HASH" ]; then
+            UC_PUBLISH=true
+          elif [ "$UC_LOCAL_HASH" = "$UC_PUBLISHED_HASH" ]; then
+            UC_PUBLISH=false
+          else
+            select_unpublished_prerelease @rainlanguage/ui-components @rainlanguage/ui-components packages/ui-components/package.json
+            UC_PUBLISH=true
+          fi
+          UC_NEW_VERSION=$(jq -r '.version' packages/ui-components/package.json)
+
           jq --indent 4 --arg rd "$RAINDEX_NEW_VERSION" --arg uc "$UC_NEW_VERSION" '
             .packages."packages/raindex".version = $rd |
             .packages."packages/ui-components".version = $uc |
             .packages."packages/ui-components".dependencies."@rainlanguage/raindex" = $rd
-          ' ./package-lock.json > tmp.json && mv tmp.json ./package-lock.json
+          ' package-lock.json > tmp.json
+          mv tmp.json package-lock.json
+
+          if git diff --quiet -- packages/raindex/package.json packages/ui-components/package.json package-lock.json; then
+            VERSION_COMMIT_REQUIRED=false
+          else
+            VERSION_COMMIT_REQUIRED=true
+          fi
+
+          RELEASE_TAG="npm-raindex-v$RAINDEX_NEW_VERSION-uc-v$UC_NEW_VERSION"
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            RELEASE_TAG_EXISTS=true
+          else
+            RELEASE_TAG_EXISTS=false
+          fi
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            GITHUB_RELEASE_EXISTS=true
+          else
+            GITHUB_RELEASE_EXISTS=false
+          fi
+
+          if [ "$RAINDEX_PUBLISH" = true ] || [ "$UC_PUBLISH" = true ] || [ "$VERSION_COMMIT_REQUIRED" = true ] || [ "$RELEASE_TAG_EXISTS" = false ] || [ "$GITHUB_RELEASE_EXISTS" = false ]; then
+            RELEASE_REQUIRED=true
+          else
+            RELEASE_REQUIRED=false
+          fi
+
+          {
+            echo "RAINDEX_NEW_VERSION=$RAINDEX_NEW_VERSION"
+            echo "UC_NEW_VERSION=$UC_NEW_VERSION"
+            echo "RAINDEX_PUBLISH=$RAINDEX_PUBLISH"
+            echo "RAINDEX_FIRST_PUBLISH=$RAINDEX_FIRST_PUBLISH"
+            echo "UC_PUBLISH=$UC_PUBLISH"
+            echo "VERSION_COMMIT_REQUIRED=$VERSION_COMMIT_REQUIRED"
+            echo "RELEASE_TAG=$RELEASE_TAG"
+            echo "RELEASE_TAG_EXISTS=$RELEASE_TAG_EXISTS"
+            echo "GITHUB_RELEASE_EXISTS=$GITHUB_RELEASE_EXISTS"
+            echo "RELEASE_REQUIRED=$RELEASE_REQUIRED"
+          } >> "$GITHUB_ENV"
+
+          echo "raindex: $RAINDEX_NEW_VERSION (publish: $RAINDEX_PUBLISH)"
+          echo "ui-components: $UC_NEW_VERSION (publish: $UC_PUBLISH)"
+          echo "release required: $RELEASE_REQUIRED"
+      # Persist version reservations before publishing. If main moves, this
+      # fails safely before npm is changed and the newer queued run takes over.
+      - name: Commit package versions
+        if: ${{ env.RELEASE_REQUIRED == 'true' && env.VERSION_COMMIT_REQUIRED == 'true' }}
+        env:
+          RAINDEX_NEW_VERSION: ${{ env.RAINDEX_NEW_VERSION }}
+          UC_NEW_VERSION: ${{ env.UC_NEW_VERSION }}
+        run: |
+          git add packages/raindex/package.json packages/ui-components/package.json package-lock.json
+          git commit -m "NPM Package Release raindex v$RAINDEX_NEW_VERSION ui-components v$UC_NEW_VERSION"
+          git push origin HEAD:main
       # Create raindex npm package tarball
       - name: Create raindex NPM Package Tarball
-        if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        run: echo "RAINDEX_NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/raindex)" >> $GITHUB_ENV
+        if: ${{ env.RELEASE_REQUIRED == 'true' }}
+        run: echo "RAINDEX_NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/raindex)" >> "$GITHUB_ENV"
       - name: Rename raindex NPM Package Tarball
-        if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        run: mv ${{ env.RAINDEX_NPM_PACKAGE }} raindex_npm_package_${{ env.RAINDEX_NEW_VERSION }}.tgz
-      # first publish raindex pkg to npm (uses NPM_TOKEN)
+        if: ${{ env.RELEASE_REQUIRED == 'true' }}
+        env:
+          RAINDEX_NPM_PACKAGE: ${{ env.RAINDEX_NPM_PACKAGE }}
+          RAINDEX_NEW_VERSION: ${{ env.RAINDEX_NEW_VERSION }}
+        run: mv "$RAINDEX_NPM_PACKAGE" "raindex_npm_package_$RAINDEX_NEW_VERSION.tgz"
+      # First publish uses NPM_TOKEN because trusted publishing cannot be
+      # configured until the package exists.
       - name: First Publish raindex pkg To NPM
-        if: ${{ env.OLD_HASH != env.NEW_HASH && env.FIRST_PUBLISH == 'true' }}
-        uses: JS-DevTools/npm-publish@19c28f1ef146469e409470805ea4279d47c3d35c # v3.1.1
+        if: ${{ env.RAINDEX_PUBLISH == 'true' && env.RAINDEX_FIRST_PUBLISH == 'true' }}
+        uses: JS-DevTools/npm-publish@v3
         with:
           token: ${{ secrets.NPM_TOKEN }}
           access: public
@@ -211,56 +359,61 @@ jobs:
           tag: latest
       # publish raindex pkg to npm
       - name: Publish raindex pkg To NPM
-        if: ${{ env.OLD_HASH != env.NEW_HASH && env.FIRST_PUBLISH == 'false' }}
+        if: ${{ env.RAINDEX_PUBLISH == 'true' && env.RAINDEX_FIRST_PUBLISH == 'false' }}
+        env:
+          RAINDEX_NEW_VERSION: ${{ env.RAINDEX_NEW_VERSION }}
         run: |
-          npm publish raindex_npm_package_${{ env.RAINDEX_NEW_VERSION }}.tgz \
+          npm publish "raindex_npm_package_$RAINDEX_NEW_VERSION.tgz" \
             --access public \
             --tag latest \
             --verbose
       # Create npm package tarball for ui-components
       - name: Create ui-components NPM Package Tarball
-        if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        run: echo "UC_NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/ui-components)" >> $GITHUB_ENV
+        if: ${{ env.RELEASE_REQUIRED == 'true' }}
+        run: echo "UC_NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/ui-components)" >> "$GITHUB_ENV"
       - name: Rename ui-components NPM Package Tarball
-        if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        run: mv ${{ env.UC_NPM_PACKAGE }} ui_components_npm_package_${{ env.UC_NEW_VERSION }}.tgz
+        if: ${{ env.RELEASE_REQUIRED == 'true' }}
+        env:
+          UC_NPM_PACKAGE: ${{ env.UC_NPM_PACKAGE }}
+          UC_NEW_VERSION: ${{ env.UC_NEW_VERSION }}
+        run: mv "$UC_NPM_PACKAGE" "ui_components_npm_package_$UC_NEW_VERSION.tgz"
       # publish ui-components to npm
       - name: Publish ui-components To NPM
-        if: ${{ env.OLD_HASH != env.NEW_HASH }}
+        if: ${{ env.UC_PUBLISH == 'true' }}
+        env:
+          UC_NEW_VERSION: ${{ env.UC_NEW_VERSION }}
         run: |
-          npm publish ui_components_npm_package_${{ env.UC_NEW_VERSION }}.tgz \
+          npm publish "ui_components_npm_package_$UC_NEW_VERSION.tgz" \
             --access public \
             --tag latest \
             --verbose
-      # Commit changes and tag
-      - name: Commit And Tag
-        if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        run: |
-          git add "packages/raindex/package.json"
-          git add "packages/ui-components/package.json"
-          git add "package-lock.json"
-          git commit -m "NPM Package Release raindex v${{ env.RAINDEX_NEW_VERSION }} ui-components v${{ env.UC_NEW_VERSION }}"
-          git tag "npm-raindex-v${{ env.RAINDEX_NEW_VERSION }}-uc-v${{ env.UC_NEW_VERSION }}"
-      # Push the commit to remote
-      - name: Push Changes To Remote
-        if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        run: |
-          git push origin
-          git push -u origin "npm-raindex-v${{ env.RAINDEX_NEW_VERSION }}-uc-v${{ env.UC_NEW_VERSION }}"
+      # Tags are created only after both required publishes succeed. Existing
+      # tags are retained when recovering a missing GitHub release.
+      - name: Push release tag
+        if: ${{ env.RELEASE_REQUIRED == 'true' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # Create gitHub release with tarballs. The softprops/action-gh-release SHA
-      # is pinned once in the rainix composite.
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+          RELEASE_TAG_EXISTS: ${{ env.RELEASE_TAG_EXISTS }}
+        run: |
+          if [ "$RELEASE_TAG_EXISTS" = false ]; then
+            git tag "$RELEASE_TAG"
+            git push origin "$RELEASE_TAG"
+          else
+            echo "Tag $RELEASE_TAG already exists"
+          fi
+      # Create gitHub release with tarballs
       - name: Create GitHub Release
-        if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        uses: rainlanguage/rainix/.github/actions/gh-release@main
+        if: ${{ env.RELEASE_REQUIRED == 'true' && env.GITHUB_RELEASE_EXISTS == 'false' }}
+        id: gh_release
+        uses: softprops/action-gh-release@v2
         with:
-          tag-name: npm-raindex-v${{ env.RAINDEX_NEW_VERSION }}-uc-v${{ env.UC_NEW_VERSION }}
+          tag_name: ${{ env.RELEASE_TAG }}
           name: NPM Package Release raindex v${{ env.RAINDEX_NEW_VERSION }} ui-components v${{ env.UC_NEW_VERSION }}
           files: |
             raindex_npm_package_${{ env.RAINDEX_NEW_VERSION }}.tgz
             ui_components_npm_package_${{ env.UC_NEW_VERSION }}.tgz
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
       - name: Forward CI Status
         if: always()

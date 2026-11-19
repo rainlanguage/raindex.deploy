@@ -40,8 +40,6 @@
     "svelte"
   ],
   "rust-analyzer.server.extraEnv": {
-    "CI_DEPLOY_POLYGON_RPC_URL": "",
-    "CI_DEPLOY_SEPOLIA_RPC_URL": "",
     "CI_SEPOLIA_METABOARD_URL": "",
     "RPC_URL_ETHEREUM_FORK": "",
     "CI_FORK_SEPOLIA_DEPLOYER_ADDRESS": "",

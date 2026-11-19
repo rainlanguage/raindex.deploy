@@ -7,8 +7,8 @@ use alloy::{
 use core::convert::TryFrom;
 use raindex_bindings::{
     IInterpreterStoreV3::Set,
-    IRaindexV6::{
-        AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV3, WithdrawV2,
+    IRaindexV7::{
+        AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV4, WithdrawV2,
     },
     Raindex::MetaV1_2,
 };
@@ -27,7 +27,7 @@ pub enum DecodeError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EventType {
     AddOrderV3,
-    TakeOrderV3,
+    TakeOrderV4,
     WithdrawV2,
     DepositV2,
     RemoveOrderV3,
@@ -43,8 +43,8 @@ impl EventType {
         if topic == AddOrderV3::SIGNATURE_HASH.as_slice() {
             return Self::AddOrderV3;
         }
-        if topic == TakeOrderV3::SIGNATURE_HASH.as_slice() {
-            return Self::TakeOrderV3;
+        if topic == TakeOrderV4::SIGNATURE_HASH.as_slice() {
+            return Self::TakeOrderV4;
         }
         if topic == WithdrawV2::SIGNATURE_HASH.as_slice() {
             return Self::WithdrawV2;
@@ -87,7 +87,7 @@ pub struct DecodedEventData<T> {
 #[serde(untagged)]
 pub enum DecodedEvent {
     AddOrderV3(Box<AddOrderV3>),
-    TakeOrderV3(Box<TakeOrderV3>),
+    TakeOrderV4(Box<TakeOrderV4>),
     WithdrawV2(Box<WithdrawV2>),
     DepositV2(Box<DepositV2>),
     RemoveOrderV3(Box<RemoveOrderV3>),
@@ -136,8 +136,8 @@ pub fn decode_events(
                 EventType::AddOrderV3 => {
                     DecodedEvent::AddOrderV3(Box::new(decode_event::<AddOrderV3>(event)?))
                 }
-                EventType::TakeOrderV3 => {
-                    DecodedEvent::TakeOrderV3(Box::new(decode_event::<TakeOrderV3>(event)?))
+                EventType::TakeOrderV4 => {
+                    DecodedEvent::TakeOrderV4(Box::new(decode_event::<TakeOrderV4>(event)?))
                 }
                 EventType::WithdrawV2 => {
                     DecodedEvent::WithdrawV2(Box::new(decode_event::<WithdrawV2>(event)?))
@@ -210,11 +210,11 @@ mod test_helpers {
     use alloy::hex;
     use alloy::primitives::{address, b256, Address, Bytes, FixedBytes, B256, U256};
     use raindex_bindings::{
-        IRaindexV6::{
+        IRaindexV7::{
             AddOrderV3, AfterClearV2, ClearConfigV2, ClearStateChangeV2, ClearV3, DepositV2,
-            RemoveOrderV3, SignedContextV1, TakeOrderConfigV4, TakeOrderV3, WithdrawV2,
+            RemoveOrderV3, SignedContextV2, TakeOrderConfigV5, TakeOrderV4, WithdrawV2,
         },
-        IRaindexV6::{EvaluableV4, OrderV4, IOV2},
+        IRaindexV7::{EvaluableV4, OrderV4, IOV2},
         Raindex::MetaV1_2,
     };
     use serde_json::Value;
@@ -336,12 +336,13 @@ mod test_helpers {
 
     fn create_take_order_v3_event_data() -> LogEntryResponse {
         let sender = Address::from([9u8; 20]);
-        let config = TakeOrderConfigV4 {
+        let config = TakeOrderConfigV5 {
             order: create_sample_order_v4(),
             inputIOIndex: U256::from(0),
             outputIOIndex: U256::from(0),
-            signedContext: vec![SignedContextV1 {
+            signedContext: vec![SignedContextV2 {
                 signer: Address::from([10u8; 20]),
+                domainSeparator: alloy::primitives::B256::repeat_byte(0xd5),
                 context: vec![U256::from(42).into(), U256::from(43).into()],
                 signature: Bytes::from(vec![0x11, 0x22, 0x33]),
             }],
@@ -349,7 +350,7 @@ mod test_helpers {
         let input = U256::from(1000);
         let output = U256::from(2000);
 
-        let event_data = TakeOrderV3 {
+        let event_data = TakeOrderV4 {
             sender,
             config,
             input: input.into(),
@@ -358,7 +359,7 @@ mod test_helpers {
 
         let encoded_data = event_data.encode_data();
         new_log_entry(
-            Bytes::from(TakeOrderV3::SIGNATURE_HASH.as_slice().to_vec()),
+            Bytes::from(TakeOrderV4::SIGNATURE_HASH.as_slice().to_vec()),
             Bytes::from(encoded_data),
             "0x123457",
             Some("0x64b8c124"),
@@ -587,10 +588,10 @@ mod test_helpers {
         assert_eq!(decoded_events.len(), 1);
 
         let decoded_event = &decoded_events[0];
-        assert_eq!(decoded_event.event_type, EventType::TakeOrderV3);
+        assert_eq!(decoded_event.event_type, EventType::TakeOrderV4);
 
-        let DecodedEvent::TakeOrderV3(take_order) = &decoded_event.decoded_data else {
-            panic!("expected TakeOrderV3 decoded data");
+        let DecodedEvent::TakeOrderV4(take_order) = &decoded_event.decoded_data else {
+            panic!("expected TakeOrderV4 decoded data");
         };
 
         let take_order = take_order.as_ref();
@@ -607,6 +608,10 @@ mod test_helpers {
         assert_eq!(signed_context.len(), 1);
         let ctx = &signed_context[0];
         assert_eq!(ctx.signer, Address::from([10u8; 20]));
+        assert_eq!(
+            ctx.domainSeparator,
+            alloy::primitives::B256::repeat_byte(0xd5)
+        );
         assert_eq!(ctx.context, vec![fixed_u256(42), fixed_u256(43)]);
         assert_eq!(ctx.signature, Bytes::from(vec![0x11, 0x22, 0x33]));
     }

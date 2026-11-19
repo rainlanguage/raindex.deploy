@@ -29,11 +29,13 @@
 	import { handleVaultsWithdrawAll } from '$lib/services/handleVaultsWithdrawAll';
 	import { handleTakeOrder } from '$lib/services/handleTakeOrder';
 	import LocalDbSyncGate from '$lib/components/LocalDbSyncGate.svelte';
+	import { readable } from 'svelte/store';
 
 	const { orderHash, chainId, raindex } = $page.params;
 	const parsedOrderHash = orderHash as Hex;
 	const parsedChainId = Number(chainId);
 	const raindexAddress = raindex as Address;
+	const detailChainIds = readable([parsedChainId]);
 
 	const { account } = useAccount();
 	const { manager } = useTransactions();
@@ -101,7 +103,7 @@
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
 
-<LocalDbSyncGate>
+<LocalDbSyncGate nonBlocking selectedChainIds={detailChainIds}>
 	<OrderDetail
 		chainId={parsedChainId}
 		{raindexAddress}

@@ -13,7 +13,7 @@ use url::Url;
 use wasm_bindgen_utils::{add_ts_content, impl_wasm_traits, prelude::*};
 
 use rain_math_float::Float;
-use raindex_bindings::IRaindexV6::{quote2Return, OrderV4, QuoteV2, SignedContextV1};
+use raindex_bindings::IRaindexV7::{quote3Return, OrderV4, QuoteV3, SignedContextV2};
 use raindex_subgraph_client::{
     types::{common::SgBytes, Id},
     utils::make_order_id,
@@ -36,8 +36,8 @@ pub struct OrderQuoteValue {
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(OrderQuoteValue);
 
-impl From<quote2Return> for OrderQuoteValue {
-    fn from(v: quote2Return) -> Self {
+impl From<quote3Return> for OrderQuoteValue {
+    fn from(v: quote3Return) -> Self {
         Self {
             max_output: Float::from_raw(v.outputMax),
             ratio: Float::from_raw(v.ioRatio),
@@ -50,7 +50,7 @@ impl From<quote2Return> for OrderQuoteValue {
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct QuoteTarget {
-    pub quote_config: QuoteV2,
+    pub quote_config: QuoteV3,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub raindex: Address,
 }
@@ -137,7 +137,7 @@ pub struct QuoteSpec {
     pub input_io_index: u8,
     #[serde(rename = "outputIOIndex")]
     pub output_io_index: u8,
-    pub signed_context: Vec<SignedContextV1>,
+    pub signed_context: Vec<SignedContextV2>,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub raindex: Address,
 }
@@ -165,7 +165,7 @@ impl QuoteSpec {
 
         Ok(QuoteTarget {
             raindex: self.raindex,
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 inputIOIndex: U256::from(self.input_io_index),
                 outputIOIndex: U256::from(self.output_io_index),
                 signedContext: self.signed_context.clone(),
@@ -238,7 +238,7 @@ impl BatchQuoteSpec {
                     .and_then(|order_detail| {
                         Some(QuoteTarget {
                             raindex: target.raindex,
-                            quote_config: QuoteV2 {
+                            quote_config: QuoteV3 {
                                 inputIOIndex: U256::from(target.input_io_index),
                                 outputIOIndex: U256::from(target.output_io_index),
                                 signedContext: target.signed_context.clone(),
@@ -316,7 +316,7 @@ mod tests {
     use alloy::sol_types::{SolCall, SolValue};
     use httpmock::{Method::POST, MockServer};
     use rain_error_decoding::AbiDecodedErrorType;
-    use raindex_bindings::IRaindexV6::{quote2Call, QuoteV2, IOV2};
+    use raindex_bindings::IRaindexV7::{quote3Call, QuoteV3, IOV2};
     use raindex_subgraph_client::RaindexSubgraphClientError;
     use serde_json::{json, Value};
 
@@ -475,7 +475,7 @@ mod tests {
     fn test_quote_target_get_order_hash() {
         let (raindex, order, _, _) = get_test_data(false);
         let quote_target = QuoteTarget {
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order,
                 ..Default::default()
             },
@@ -518,7 +518,7 @@ mod tests {
     fn test_validate_ok() {
         let (raindex, order, _, _) = get_test_data(false);
         let quote_target = QuoteTarget {
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order,
                 ..Default::default()
             },
@@ -530,7 +530,7 @@ mod tests {
     #[test]
     fn test_validate_err() {
         let quote_target = QuoteTarget {
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order: OrderV4::default(),
                 outputIOIndex: U256::from(1_u16),
                 ..Default::default()
@@ -540,7 +540,7 @@ mod tests {
         assert!(quote_target.validate().is_err());
 
         let quote_target = QuoteTarget {
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order: OrderV4::default(),
                 inputIOIndex: U256::from(1_u16),
                 ..Default::default()
@@ -576,7 +576,7 @@ mod tests {
 
         let expected = QuoteTarget {
             raindex,
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order,
                 inputIOIndex: U256::from(quote_target_specifier.input_io_index),
                 outputIOIndex: U256::from(quote_target_specifier.output_io_index),
@@ -653,7 +653,7 @@ mod tests {
 
         let expected = vec![Some(QuoteTarget {
             raindex,
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order,
                 inputIOIndex: U256::from(batch_quote_targets_specifiers.0[0].input_io_index),
                 outputIOIndex: U256::from(batch_quote_targets_specifiers.0[0].output_io_index),
@@ -724,7 +724,7 @@ mod tests {
         let two = Float::parse("2".to_string()).unwrap();
 
         // build response data
-        let inner_return: Bytes = quote2Call::abi_encode_returns(&quote2Return {
+        let inner_return: Bytes = quote3Call::abi_encode_returns(&quote3Return {
             exists: true,
             outputMax: one.get_inner(),
             ioRatio: two.get_inner(),
@@ -785,7 +785,7 @@ mod tests {
         let one = Float::parse("1".to_string()).unwrap();
         let two = Float::parse("2".to_string()).unwrap();
 
-        let inner_return: Bytes = quote2Call::abi_encode_returns(&quote2Return {
+        let inner_return: Bytes = quote3Call::abi_encode_returns(&quote3Return {
             exists: true,
             outputMax: one.get_inner(),
             ioRatio: two.get_inner(),
@@ -829,9 +829,8 @@ mod tests {
             raindex,
         };
 
-        // A malformed RPC body causes per-target `CorruptReturnData` (surfaced
-        // via the bisection path); the top-level call still returns Ok.
-        let res = quote_target_specifier
+        // A malformed RPC response remains aligned with the requested quote.
+        let result = quote_target_specifier
             .do_quote(
                 server.url("/sg").as_str(),
                 vec![server.url("/bad-rpc").to_string()],
@@ -841,7 +840,11 @@ mod tests {
             )
             .await
             .unwrap();
-        assert!(matches!(res, Err(FailedQuote::CorruptReturnData(_))));
+        assert!(matches!(
+            result,
+            Err(FailedQuote::CorruptReturnData(message))
+                if message.contains("all quote RPCs failed")
+        ));
 
         let err = quote_target_specifier
             .do_quote(
@@ -872,7 +875,7 @@ mod tests {
         let one = Float::parse("1".to_string()).unwrap();
         let two = Float::parse("2".to_string()).unwrap();
 
-        let inner_return: Bytes = quote2Call::abi_encode_returns(&quote2Return {
+        let inner_return: Bytes = quote3Call::abi_encode_returns(&quote3Return {
             exists: true,
             outputMax: one.get_inner(),
             ioRatio: two.get_inner(),
@@ -909,12 +912,9 @@ mod tests {
             QuoteSpec::default(),
         ]);
 
-        // A transport-layer RPC failure (no body for /bad-rpc) now surfaces
-        // per-target as `CorruptReturnData` (the OZ multicall path never fails
-        // at the batch level for transport/revert errors — it bubbles them
-        // into per-target results via bisection).
+        // Endpoint failures stay aligned with the quote targets that reached RPC.
         let bad_rpc_url = rpc_server.url("/bad-rpc").to_string();
-        let result = batch_quote_targets_specifiers
+        let results = batch_quote_targets_specifiers
             .do_quote(
                 rpc_server.url("/sg").as_str(),
                 vec![bad_rpc_url.clone()],
@@ -924,10 +924,14 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(result.len(), 3);
-        for r in &result {
-            assert!(r.is_err(), "expected all targets to fail: {r:?}");
-        }
+        assert_eq!(results.len(), 3);
+        assert!(matches!(
+            &results[0],
+            Err(FailedQuote::CorruptReturnData(message))
+                if message.contains("all quote RPCs failed")
+        ));
+        assert!(matches!(&results[1], Err(FailedQuote::NonExistent)));
+        assert!(matches!(&results[2], Err(FailedQuote::NonExistent)));
 
         let result = batch_quote_targets_specifiers
             .do_quote(
@@ -960,7 +964,7 @@ mod tests {
 
         let (raindex, order, _, _) = get_test_data(false);
         let quote_target = QuoteTarget {
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order,
                 ..Default::default()
             },
@@ -968,11 +972,11 @@ mod tests {
         };
 
         // OZ Multicall returns `bytes[]`; each element is the ABI-encoded
-        // return of one inner `quote2` call.
+        // return of one inner `quote3` call.
         let one = Float::parse("1".to_string()).unwrap();
         let two = Float::parse("2".to_string()).unwrap();
 
-        let inner_return: Bytes = quote2Call::abi_encode_returns(&quote2Return {
+        let inner_return: Bytes = quote3Call::abi_encode_returns(&quote3Return {
             exists: true,
             outputMax: one.get_inner(),
             ioRatio: two.get_inner(),
@@ -1011,7 +1015,7 @@ mod tests {
 
         let (raindex, order, _, _) = get_test_data(false);
         let quote_target = QuoteTarget {
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order,
                 ..Default::default()
             },
@@ -1019,7 +1023,7 @@ mod tests {
         };
 
         // Outer multicall decodes fine (one `bytes` element) but that inner
-        // bytes is not a valid `quote2Return`, so the per-target decode fails
+        // bytes is not a valid `quote3Return`, so the per-target decode fails
         // and we get `FailedQuote::CorruptReturnData` — not a top-level Error.
         let corrupt_inner: Bytes = Bytes::from_static(b"corrupt data");
         let response_data = <Vec<Bytes> as SolValue>::abi_encode(&vec![corrupt_inner]);
@@ -1055,18 +1059,18 @@ mod tests {
 
         let (raindex, order, _, _) = get_test_data(true);
         let quote_targets = BatchQuoteTarget(vec![QuoteTarget {
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order,
                 ..Default::default()
             },
             raindex,
         }]);
 
-        // OZ Multicall returns `bytes[]`; one element per inner `quote2`.
+        // OZ Multicall returns `bytes[]`; one element per inner `quote3`.
         let one = Float::parse("1".to_string()).unwrap();
         let two = Float::parse("2".to_string()).unwrap();
 
-        let inner_return: Bytes = quote2Call::abi_encode_returns(&quote2Return {
+        let inner_return: Bytes = quote3Call::abi_encode_returns(&quote3Return {
             exists: true,
             outputMax: one.get_inner(),
             ioRatio: two.get_inner(),
@@ -1110,7 +1114,7 @@ mod tests {
 
         let (raindex, order, _, _) = get_test_data(true);
         let quote_targets = BatchQuoteTarget(vec![QuoteTarget {
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order,
                 ..Default::default()
             },

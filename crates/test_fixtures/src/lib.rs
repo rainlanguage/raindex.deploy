@@ -23,12 +23,12 @@ use rain_math_float::Float;
 
 sol!(
     #![sol(all_derives = true, rpc = true)]
-    Raindex, "./abis/RaindexV6.json"
+    Raindex, "./abis/RaindexV7.json"
 );
 
 sol!(
     #![sol(all_derives = true, rpc = true)]
-    RaindexSubParser, "./abis/RaindexV6SubParser.json"
+    RaindexSubParser, "./abis/RaindexV7SubParser.json"
 );
 
 sol!(
@@ -372,7 +372,7 @@ impl LocalEvm {
 
         let tx = self
             .raindex
-            .deposit4(token, vault_id, raw_deposit_amount, vec![])
+            .deposit5(token, vault_id, raw_deposit_amount, vec![])
             .from(from)
             .into_transaction_request();
 

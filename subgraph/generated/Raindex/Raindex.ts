@@ -388,6 +388,32 @@ export class MetaV1_2__Params {
   }
 }
 
+export class OrderCalculateReverted extends ethereum.Event {
+  get params(): OrderCalculateReverted__Params {
+    return new OrderCalculateReverted__Params(this);
+  }
+}
+
+export class OrderCalculateReverted__Params {
+  _event: OrderCalculateReverted;
+
+  constructor(event: OrderCalculateReverted) {
+    this._event = event;
+  }
+
+  get sender(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get owner(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get orderHash(): Bytes {
+    return this._event.parameters[2].value.toBytes();
+  }
+}
+
 export class OrderExceedsMaxRatio extends ethereum.Event {
   get params(): OrderExceedsMaxRatio__Params {
     return new OrderExceedsMaxRatio__Params(this);
@@ -550,16 +576,16 @@ export class RemoveOrderV3OrderValidOutputsStruct extends ethereum.Tuple {
   }
 }
 
-export class TakeOrderV3 extends ethereum.Event {
-  get params(): TakeOrderV3__Params {
-    return new TakeOrderV3__Params(this);
+export class TakeOrderV4 extends ethereum.Event {
+  get params(): TakeOrderV4__Params {
+    return new TakeOrderV4__Params(this);
   }
 }
 
-export class TakeOrderV3__Params {
-  _event: TakeOrderV3;
+export class TakeOrderV4__Params {
+  _event: TakeOrderV4;
 
-  constructor(event: TakeOrderV3) {
+  constructor(event: TakeOrderV4) {
     this._event = event;
   }
 
@@ -567,8 +593,8 @@ export class TakeOrderV3__Params {
     return this._event.parameters[0].value.toAddress();
   }
 
-  get config(): TakeOrderV3ConfigStruct {
-    return changetype<TakeOrderV3ConfigStruct>(
+  get config(): TakeOrderV4ConfigStruct {
+    return changetype<TakeOrderV4ConfigStruct>(
       this._event.parameters[1].value.toTuple(),
     );
   }
@@ -582,9 +608,9 @@ export class TakeOrderV3__Params {
   }
 }
 
-export class TakeOrderV3ConfigStruct extends ethereum.Tuple {
-  get order(): TakeOrderV3ConfigOrderStruct {
-    return changetype<TakeOrderV3ConfigOrderStruct>(this[0].toTuple());
+export class TakeOrderV4ConfigStruct extends ethereum.Tuple {
+  get order(): TakeOrderV4ConfigOrderStruct {
+    return changetype<TakeOrderV4ConfigOrderStruct>(this[0].toTuple());
   }
 
   get inputIOIndex(): BigInt {
@@ -595,26 +621,26 @@ export class TakeOrderV3ConfigStruct extends ethereum.Tuple {
     return this[2].toBigInt();
   }
 
-  get signedContext(): Array<TakeOrderV3ConfigSignedContextStruct> {
-    return this[3].toTupleArray<TakeOrderV3ConfigSignedContextStruct>();
+  get signedContext(): Array<TakeOrderV4ConfigSignedContextStruct> {
+    return this[3].toTupleArray<TakeOrderV4ConfigSignedContextStruct>();
   }
 }
 
-export class TakeOrderV3ConfigOrderStruct extends ethereum.Tuple {
+export class TakeOrderV4ConfigOrderStruct extends ethereum.Tuple {
   get owner(): Address {
     return this[0].toAddress();
   }
 
-  get evaluable(): TakeOrderV3ConfigOrderEvaluableStruct {
-    return changetype<TakeOrderV3ConfigOrderEvaluableStruct>(this[1].toTuple());
+  get evaluable(): TakeOrderV4ConfigOrderEvaluableStruct {
+    return changetype<TakeOrderV4ConfigOrderEvaluableStruct>(this[1].toTuple());
   }
 
-  get validInputs(): Array<TakeOrderV3ConfigOrderValidInputsStruct> {
-    return this[2].toTupleArray<TakeOrderV3ConfigOrderValidInputsStruct>();
+  get validInputs(): Array<TakeOrderV4ConfigOrderValidInputsStruct> {
+    return this[2].toTupleArray<TakeOrderV4ConfigOrderValidInputsStruct>();
   }
 
-  get validOutputs(): Array<TakeOrderV3ConfigOrderValidOutputsStruct> {
-    return this[3].toTupleArray<TakeOrderV3ConfigOrderValidOutputsStruct>();
+  get validOutputs(): Array<TakeOrderV4ConfigOrderValidOutputsStruct> {
+    return this[3].toTupleArray<TakeOrderV4ConfigOrderValidOutputsStruct>();
   }
 
   get nonce(): Bytes {
@@ -622,7 +648,7 @@ export class TakeOrderV3ConfigOrderStruct extends ethereum.Tuple {
   }
 }
 
-export class TakeOrderV3ConfigOrderEvaluableStruct extends ethereum.Tuple {
+export class TakeOrderV4ConfigOrderEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -636,7 +662,7 @@ export class TakeOrderV3ConfigOrderEvaluableStruct extends ethereum.Tuple {
   }
 }
 
-export class TakeOrderV3ConfigOrderValidInputsStruct extends ethereum.Tuple {
+export class TakeOrderV4ConfigOrderValidInputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -646,7 +672,7 @@ export class TakeOrderV3ConfigOrderValidInputsStruct extends ethereum.Tuple {
   }
 }
 
-export class TakeOrderV3ConfigOrderValidOutputsStruct extends ethereum.Tuple {
+export class TakeOrderV4ConfigOrderValidOutputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -656,17 +682,21 @@ export class TakeOrderV3ConfigOrderValidOutputsStruct extends ethereum.Tuple {
   }
 }
 
-export class TakeOrderV3ConfigSignedContextStruct extends ethereum.Tuple {
+export class TakeOrderV4ConfigSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }
 
@@ -708,19 +738,19 @@ export class WithdrawV2__Params {
   }
 }
 
-export class Raindex__addOrder4InputOrderConfigStruct extends ethereum.Tuple {
-  get evaluable(): Raindex__addOrder4InputOrderConfigEvaluableStruct {
-    return changetype<Raindex__addOrder4InputOrderConfigEvaluableStruct>(
+export class Raindex__addOrder5InputOrderConfigStruct extends ethereum.Tuple {
+  get evaluable(): Raindex__addOrder5InputOrderConfigEvaluableStruct {
+    return changetype<Raindex__addOrder5InputOrderConfigEvaluableStruct>(
       this[0].toTuple(),
     );
   }
 
-  get validInputs(): Array<Raindex__addOrder4InputOrderConfigValidInputsStruct> {
-    return this[1].toTupleArray<Raindex__addOrder4InputOrderConfigValidInputsStruct>();
+  get validInputs(): Array<Raindex__addOrder5InputOrderConfigValidInputsStruct> {
+    return this[1].toTupleArray<Raindex__addOrder5InputOrderConfigValidInputsStruct>();
   }
 
-  get validOutputs(): Array<Raindex__addOrder4InputOrderConfigValidOutputsStruct> {
-    return this[2].toTupleArray<Raindex__addOrder4InputOrderConfigValidOutputsStruct>();
+  get validOutputs(): Array<Raindex__addOrder5InputOrderConfigValidOutputsStruct> {
+    return this[2].toTupleArray<Raindex__addOrder5InputOrderConfigValidOutputsStruct>();
   }
 
   get nonce(): Bytes {
@@ -736,7 +766,7 @@ export class Raindex__addOrder4InputOrderConfigStruct extends ethereum.Tuple {
   }
 }
 
-export class Raindex__addOrder4InputOrderConfigEvaluableStruct extends ethereum.Tuple {
+export class Raindex__addOrder5InputOrderConfigEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -750,7 +780,7 @@ export class Raindex__addOrder4InputOrderConfigEvaluableStruct extends ethereum.
   }
 }
 
-export class Raindex__addOrder4InputOrderConfigValidInputsStruct extends ethereum.Tuple {
+export class Raindex__addOrder5InputOrderConfigValidInputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -760,7 +790,7 @@ export class Raindex__addOrder4InputOrderConfigValidInputsStruct extends ethereu
   }
 }
 
-export class Raindex__addOrder4InputOrderConfigValidOutputsStruct extends ethereum.Tuple {
+export class Raindex__addOrder5InputOrderConfigValidOutputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -770,19 +800,19 @@ export class Raindex__addOrder4InputOrderConfigValidOutputsStruct extends ethere
   }
 }
 
-export class Raindex__addOrder4InputPostStruct extends ethereum.Tuple {
-  get evaluable(): Raindex__addOrder4InputPostEvaluableStruct {
-    return changetype<Raindex__addOrder4InputPostEvaluableStruct>(
+export class Raindex__addOrder5InputPostStruct extends ethereum.Tuple {
+  get evaluable(): Raindex__addOrder5InputPostEvaluableStruct {
+    return changetype<Raindex__addOrder5InputPostEvaluableStruct>(
       this[0].toTuple(),
     );
   }
 
-  get signedContext(): Array<Raindex__addOrder4InputPostSignedContextStruct> {
-    return this[1].toTupleArray<Raindex__addOrder4InputPostSignedContextStruct>();
+  get signedContext(): Array<Raindex__addOrder5InputPostSignedContextStruct> {
+    return this[1].toTupleArray<Raindex__addOrder5InputPostSignedContextStruct>();
   }
 }
 
-export class Raindex__addOrder4InputPostEvaluableStruct extends ethereum.Tuple {
+export class Raindex__addOrder5InputPostEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -796,21 +826,25 @@ export class Raindex__addOrder4InputPostEvaluableStruct extends ethereum.Tuple {
   }
 }
 
-export class Raindex__addOrder4InputPostSignedContextStruct extends ethereum.Tuple {
+export class Raindex__addOrder5InputPostSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }
 
-export class Raindex__quote2Result {
+export class Raindex__quote3Result {
   value0: boolean;
   value1: Bytes;
   value2: Bytes;
@@ -842,9 +876,9 @@ export class Raindex__quote2Result {
   }
 }
 
-export class Raindex__quote2InputQuoteConfigStruct extends ethereum.Tuple {
-  get order(): Raindex__quote2InputQuoteConfigOrderStruct {
-    return changetype<Raindex__quote2InputQuoteConfigOrderStruct>(
+export class Raindex__quote3InputQuoteConfigStruct extends ethereum.Tuple {
+  get order(): Raindex__quote3InputQuoteConfigOrderStruct {
+    return changetype<Raindex__quote3InputQuoteConfigOrderStruct>(
       this[0].toTuple(),
     );
   }
@@ -857,28 +891,28 @@ export class Raindex__quote2InputQuoteConfigStruct extends ethereum.Tuple {
     return this[2].toBigInt();
   }
 
-  get signedContext(): Array<Raindex__quote2InputQuoteConfigSignedContextStruct> {
-    return this[3].toTupleArray<Raindex__quote2InputQuoteConfigSignedContextStruct>();
+  get signedContext(): Array<Raindex__quote3InputQuoteConfigSignedContextStruct> {
+    return this[3].toTupleArray<Raindex__quote3InputQuoteConfigSignedContextStruct>();
   }
 }
 
-export class Raindex__quote2InputQuoteConfigOrderStruct extends ethereum.Tuple {
+export class Raindex__quote3InputQuoteConfigOrderStruct extends ethereum.Tuple {
   get owner(): Address {
     return this[0].toAddress();
   }
 
-  get evaluable(): Raindex__quote2InputQuoteConfigOrderEvaluableStruct {
-    return changetype<Raindex__quote2InputQuoteConfigOrderEvaluableStruct>(
+  get evaluable(): Raindex__quote3InputQuoteConfigOrderEvaluableStruct {
+    return changetype<Raindex__quote3InputQuoteConfigOrderEvaluableStruct>(
       this[1].toTuple(),
     );
   }
 
-  get validInputs(): Array<Raindex__quote2InputQuoteConfigOrderValidInputsStruct> {
-    return this[2].toTupleArray<Raindex__quote2InputQuoteConfigOrderValidInputsStruct>();
+  get validInputs(): Array<Raindex__quote3InputQuoteConfigOrderValidInputsStruct> {
+    return this[2].toTupleArray<Raindex__quote3InputQuoteConfigOrderValidInputsStruct>();
   }
 
-  get validOutputs(): Array<Raindex__quote2InputQuoteConfigOrderValidOutputsStruct> {
-    return this[3].toTupleArray<Raindex__quote2InputQuoteConfigOrderValidOutputsStruct>();
+  get validOutputs(): Array<Raindex__quote3InputQuoteConfigOrderValidOutputsStruct> {
+    return this[3].toTupleArray<Raindex__quote3InputQuoteConfigOrderValidOutputsStruct>();
   }
 
   get nonce(): Bytes {
@@ -886,7 +920,7 @@ export class Raindex__quote2InputQuoteConfigOrderStruct extends ethereum.Tuple {
   }
 }
 
-export class Raindex__quote2InputQuoteConfigOrderEvaluableStruct extends ethereum.Tuple {
+export class Raindex__quote3InputQuoteConfigOrderEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -900,7 +934,7 @@ export class Raindex__quote2InputQuoteConfigOrderEvaluableStruct extends ethereu
   }
 }
 
-export class Raindex__quote2InputQuoteConfigOrderValidInputsStruct extends ethereum.Tuple {
+export class Raindex__quote3InputQuoteConfigOrderValidInputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -910,7 +944,7 @@ export class Raindex__quote2InputQuoteConfigOrderValidInputsStruct extends ether
   }
 }
 
-export class Raindex__quote2InputQuoteConfigOrderValidOutputsStruct extends ethereum.Tuple {
+export class Raindex__quote3InputQuoteConfigOrderValidOutputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -920,37 +954,41 @@ export class Raindex__quote2InputQuoteConfigOrderValidOutputsStruct extends ethe
   }
 }
 
-export class Raindex__quote2InputQuoteConfigSignedContextStruct extends ethereum.Tuple {
+export class Raindex__quote3InputQuoteConfigSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }
 
-export class Raindex__removeOrder3InputOrderStruct extends ethereum.Tuple {
+export class Raindex__removeOrder4InputOrderStruct extends ethereum.Tuple {
   get owner(): Address {
     return this[0].toAddress();
   }
 
-  get evaluable(): Raindex__removeOrder3InputOrderEvaluableStruct {
-    return changetype<Raindex__removeOrder3InputOrderEvaluableStruct>(
+  get evaluable(): Raindex__removeOrder4InputOrderEvaluableStruct {
+    return changetype<Raindex__removeOrder4InputOrderEvaluableStruct>(
       this[1].toTuple(),
     );
   }
 
-  get validInputs(): Array<Raindex__removeOrder3InputOrderValidInputsStruct> {
-    return this[2].toTupleArray<Raindex__removeOrder3InputOrderValidInputsStruct>();
+  get validInputs(): Array<Raindex__removeOrder4InputOrderValidInputsStruct> {
+    return this[2].toTupleArray<Raindex__removeOrder4InputOrderValidInputsStruct>();
   }
 
-  get validOutputs(): Array<Raindex__removeOrder3InputOrderValidOutputsStruct> {
-    return this[3].toTupleArray<Raindex__removeOrder3InputOrderValidOutputsStruct>();
+  get validOutputs(): Array<Raindex__removeOrder4InputOrderValidOutputsStruct> {
+    return this[3].toTupleArray<Raindex__removeOrder4InputOrderValidOutputsStruct>();
   }
 
   get nonce(): Bytes {
@@ -958,7 +996,7 @@ export class Raindex__removeOrder3InputOrderStruct extends ethereum.Tuple {
   }
 }
 
-export class Raindex__removeOrder3InputOrderEvaluableStruct extends ethereum.Tuple {
+export class Raindex__removeOrder4InputOrderEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -972,7 +1010,7 @@ export class Raindex__removeOrder3InputOrderEvaluableStruct extends ethereum.Tup
   }
 }
 
-export class Raindex__removeOrder3InputOrderValidInputsStruct extends ethereum.Tuple {
+export class Raindex__removeOrder4InputOrderValidInputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -982,7 +1020,7 @@ export class Raindex__removeOrder3InputOrderValidInputsStruct extends ethereum.T
   }
 }
 
-export class Raindex__removeOrder3InputOrderValidOutputsStruct extends ethereum.Tuple {
+export class Raindex__removeOrder4InputOrderValidOutputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -992,19 +1030,19 @@ export class Raindex__removeOrder3InputOrderValidOutputsStruct extends ethereum.
   }
 }
 
-export class Raindex__removeOrder3InputPostStruct extends ethereum.Tuple {
-  get evaluable(): Raindex__removeOrder3InputPostEvaluableStruct {
-    return changetype<Raindex__removeOrder3InputPostEvaluableStruct>(
+export class Raindex__removeOrder4InputPostStruct extends ethereum.Tuple {
+  get evaluable(): Raindex__removeOrder4InputPostEvaluableStruct {
+    return changetype<Raindex__removeOrder4InputPostEvaluableStruct>(
       this[0].toTuple(),
     );
   }
 
-  get signedContext(): Array<Raindex__removeOrder3InputPostSignedContextStruct> {
-    return this[1].toTupleArray<Raindex__removeOrder3InputPostSignedContextStruct>();
+  get signedContext(): Array<Raindex__removeOrder4InputPostSignedContextStruct> {
+    return this[1].toTupleArray<Raindex__removeOrder4InputPostSignedContextStruct>();
   }
 }
 
-export class Raindex__removeOrder3InputPostEvaluableStruct extends ethereum.Tuple {
+export class Raindex__removeOrder4InputPostEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -1018,21 +1056,25 @@ export class Raindex__removeOrder3InputPostEvaluableStruct extends ethereum.Tupl
   }
 }
 
-export class Raindex__removeOrder3InputPostSignedContextStruct extends ethereum.Tuple {
+export class Raindex__removeOrder4InputPostSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }
 
-export class Raindex__takeOrders4Result {
+export class Raindex__takeOrders5Result {
   value0: Bytes;
   value1: Bytes;
 
@@ -1057,7 +1099,7 @@ export class Raindex__takeOrders4Result {
   }
 }
 
-export class Raindex__takeOrders4InputConfigStruct extends ethereum.Tuple {
+export class Raindex__takeOrders5InputConfigStruct extends ethereum.Tuple {
   get minimumIO(): Bytes {
     return this[0].toBytes();
   }
@@ -1074,8 +1116,8 @@ export class Raindex__takeOrders4InputConfigStruct extends ethereum.Tuple {
     return this[3].toBoolean();
   }
 
-  get orders(): Array<Raindex__takeOrders4InputConfigOrdersStruct> {
-    return this[4].toTupleArray<Raindex__takeOrders4InputConfigOrdersStruct>();
+  get orders(): Array<Raindex__takeOrders5InputConfigOrdersStruct> {
+    return this[4].toTupleArray<Raindex__takeOrders5InputConfigOrdersStruct>();
   }
 
   get data(): Bytes {
@@ -1083,9 +1125,9 @@ export class Raindex__takeOrders4InputConfigStruct extends ethereum.Tuple {
   }
 }
 
-export class Raindex__takeOrders4InputConfigOrdersStruct extends ethereum.Tuple {
-  get order(): Raindex__takeOrders4InputConfigOrdersOrderStruct {
-    return changetype<Raindex__takeOrders4InputConfigOrdersOrderStruct>(
+export class Raindex__takeOrders5InputConfigOrdersStruct extends ethereum.Tuple {
+  get order(): Raindex__takeOrders5InputConfigOrdersOrderStruct {
+    return changetype<Raindex__takeOrders5InputConfigOrdersOrderStruct>(
       this[0].toTuple(),
     );
   }
@@ -1098,28 +1140,28 @@ export class Raindex__takeOrders4InputConfigOrdersStruct extends ethereum.Tuple 
     return this[2].toBigInt();
   }
 
-  get signedContext(): Array<Raindex__takeOrders4InputConfigOrdersSignedContextStruct> {
-    return this[3].toTupleArray<Raindex__takeOrders4InputConfigOrdersSignedContextStruct>();
+  get signedContext(): Array<Raindex__takeOrders5InputConfigOrdersSignedContextStruct> {
+    return this[3].toTupleArray<Raindex__takeOrders5InputConfigOrdersSignedContextStruct>();
   }
 }
 
-export class Raindex__takeOrders4InputConfigOrdersOrderStruct extends ethereum.Tuple {
+export class Raindex__takeOrders5InputConfigOrdersOrderStruct extends ethereum.Tuple {
   get owner(): Address {
     return this[0].toAddress();
   }
 
-  get evaluable(): Raindex__takeOrders4InputConfigOrdersOrderEvaluableStruct {
-    return changetype<Raindex__takeOrders4InputConfigOrdersOrderEvaluableStruct>(
+  get evaluable(): Raindex__takeOrders5InputConfigOrdersOrderEvaluableStruct {
+    return changetype<Raindex__takeOrders5InputConfigOrdersOrderEvaluableStruct>(
       this[1].toTuple(),
     );
   }
 
-  get validInputs(): Array<Raindex__takeOrders4InputConfigOrdersOrderValidInputsStruct> {
-    return this[2].toTupleArray<Raindex__takeOrders4InputConfigOrdersOrderValidInputsStruct>();
+  get validInputs(): Array<Raindex__takeOrders5InputConfigOrdersOrderValidInputsStruct> {
+    return this[2].toTupleArray<Raindex__takeOrders5InputConfigOrdersOrderValidInputsStruct>();
   }
 
-  get validOutputs(): Array<Raindex__takeOrders4InputConfigOrdersOrderValidOutputsStruct> {
-    return this[3].toTupleArray<Raindex__takeOrders4InputConfigOrdersOrderValidOutputsStruct>();
+  get validOutputs(): Array<Raindex__takeOrders5InputConfigOrdersOrderValidOutputsStruct> {
+    return this[3].toTupleArray<Raindex__takeOrders5InputConfigOrdersOrderValidOutputsStruct>();
   }
 
   get nonce(): Bytes {
@@ -1127,7 +1169,7 @@ export class Raindex__takeOrders4InputConfigOrdersOrderStruct extends ethereum.T
   }
 }
 
-export class Raindex__takeOrders4InputConfigOrdersOrderEvaluableStruct extends ethereum.Tuple {
+export class Raindex__takeOrders5InputConfigOrdersOrderEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -1141,7 +1183,7 @@ export class Raindex__takeOrders4InputConfigOrdersOrderEvaluableStruct extends e
   }
 }
 
-export class Raindex__takeOrders4InputConfigOrdersOrderValidInputsStruct extends ethereum.Tuple {
+export class Raindex__takeOrders5InputConfigOrdersOrderValidInputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -1151,7 +1193,7 @@ export class Raindex__takeOrders4InputConfigOrdersOrderValidInputsStruct extends
   }
 }
 
-export class Raindex__takeOrders4InputConfigOrdersOrderValidOutputsStruct extends ethereum.Tuple {
+export class Raindex__takeOrders5InputConfigOrdersOrderValidOutputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -1161,17 +1203,21 @@ export class Raindex__takeOrders4InputConfigOrdersOrderValidOutputsStruct extend
   }
 }
 
-export class Raindex__takeOrders4InputConfigOrdersSignedContextStruct extends ethereum.Tuple {
+export class Raindex__takeOrders5InputConfigOrdersSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }
 
@@ -1180,13 +1226,13 @@ export class Raindex extends ethereum.SmartContract {
     return new Raindex("Raindex", address);
   }
 
-  addOrder4(
-    orderConfig: Raindex__addOrder4InputOrderConfigStruct,
-    post: Array<Raindex__addOrder4InputPostStruct>,
+  addOrder5(
+    orderConfig: Raindex__addOrder5InputOrderConfigStruct,
+    post: Array<Raindex__addOrder5InputPostStruct>,
   ): boolean {
     let result = super.call(
-      "addOrder4",
-      "addOrder4(((address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32,bytes32,bytes),((address,address,bytes),(address,bytes32[],bytes)[])[]):(bool)",
+      "addOrder5",
+      "addOrder5(((address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32,bytes32,bytes),((address,address,bytes),(address,bytes32,bytes32[],bytes)[])[]):(bool)",
       [
         ethereum.Value.fromTuple(orderConfig),
         ethereum.Value.fromTupleArray(post),
@@ -1196,13 +1242,13 @@ export class Raindex extends ethereum.SmartContract {
     return result[0].toBoolean();
   }
 
-  try_addOrder4(
-    orderConfig: Raindex__addOrder4InputOrderConfigStruct,
-    post: Array<Raindex__addOrder4InputPostStruct>,
+  try_addOrder5(
+    orderConfig: Raindex__addOrder5InputOrderConfigStruct,
+    post: Array<Raindex__addOrder5InputPostStruct>,
   ): ethereum.CallResult<boolean> {
     let result = super.tryCall(
-      "addOrder4",
-      "addOrder4(((address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32,bytes32,bytes),((address,address,bytes),(address,bytes32[],bytes)[])[]):(bool)",
+      "addOrder5",
+      "addOrder5(((address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32,bytes32,bytes),((address,address,bytes),(address,bytes32,bytes32[],bytes)[])[]):(bool)",
       [
         ethereum.Value.fromTuple(orderConfig),
         ethereum.Value.fromTupleArray(post),
@@ -1342,28 +1388,28 @@ export class Raindex extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBoolean());
   }
 
-  quote2(
-    quoteConfig: Raindex__quote2InputQuoteConfigStruct,
-  ): Raindex__quote2Result {
+  quote3(
+    quoteConfig: Raindex__quote3InputQuoteConfigStruct,
+  ): Raindex__quote3Result {
     let result = super.call(
-      "quote2",
-      "quote2(((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),uint256,uint256,(address,bytes32[],bytes)[])):(bool,bytes32,bytes32)",
+      "quote3",
+      "quote3(((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),uint256,uint256,(address,bytes32,bytes32[],bytes)[])):(bool,bytes32,bytes32)",
       [ethereum.Value.fromTuple(quoteConfig)],
     );
 
-    return new Raindex__quote2Result(
+    return new Raindex__quote3Result(
       result[0].toBoolean(),
       result[1].toBytes(),
       result[2].toBytes(),
     );
   }
 
-  try_quote2(
-    quoteConfig: Raindex__quote2InputQuoteConfigStruct,
-  ): ethereum.CallResult<Raindex__quote2Result> {
+  try_quote3(
+    quoteConfig: Raindex__quote3InputQuoteConfigStruct,
+  ): ethereum.CallResult<Raindex__quote3Result> {
     let result = super.tryCall(
-      "quote2",
-      "quote2(((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),uint256,uint256,(address,bytes32[],bytes)[])):(bool,bytes32,bytes32)",
+      "quote3",
+      "quote3(((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),uint256,uint256,(address,bytes32,bytes32[],bytes)[])):(bool,bytes32,bytes32)",
       [ethereum.Value.fromTuple(quoteConfig)],
     );
     if (result.reverted) {
@@ -1371,7 +1417,7 @@ export class Raindex extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(
-      new Raindex__quote2Result(
+      new Raindex__quote3Result(
         value[0].toBoolean(),
         value[1].toBytes(),
         value[2].toBytes(),
@@ -1379,26 +1425,26 @@ export class Raindex extends ethereum.SmartContract {
     );
   }
 
-  removeOrder3(
-    order: Raindex__removeOrder3InputOrderStruct,
-    post: Array<Raindex__removeOrder3InputPostStruct>,
+  removeOrder4(
+    order: Raindex__removeOrder4InputOrderStruct,
+    post: Array<Raindex__removeOrder4InputPostStruct>,
   ): boolean {
     let result = super.call(
-      "removeOrder3",
-      "removeOrder3((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),((address,address,bytes),(address,bytes32[],bytes)[])[]):(bool)",
+      "removeOrder4",
+      "removeOrder4((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),((address,address,bytes),(address,bytes32,bytes32[],bytes)[])[]):(bool)",
       [ethereum.Value.fromTuple(order), ethereum.Value.fromTupleArray(post)],
     );
 
     return result[0].toBoolean();
   }
 
-  try_removeOrder3(
-    order: Raindex__removeOrder3InputOrderStruct,
-    post: Array<Raindex__removeOrder3InputPostStruct>,
+  try_removeOrder4(
+    order: Raindex__removeOrder4InputOrderStruct,
+    post: Array<Raindex__removeOrder4InputPostStruct>,
   ): ethereum.CallResult<boolean> {
     let result = super.tryCall(
-      "removeOrder3",
-      "removeOrder3((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),((address,address,bytes),(address,bytes32[],bytes)[])[]):(bool)",
+      "removeOrder4",
+      "removeOrder4((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),((address,address,bytes),(address,bytes32,bytes32[],bytes)[])[]):(bool)",
       [ethereum.Value.fromTuple(order), ethereum.Value.fromTupleArray(post)],
     );
     if (result.reverted) {
@@ -1431,27 +1477,27 @@ export class Raindex extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBoolean());
   }
 
-  takeOrders4(
-    config: Raindex__takeOrders4InputConfigStruct,
-  ): Raindex__takeOrders4Result {
+  takeOrders5(
+    config: Raindex__takeOrders5InputConfigStruct,
+  ): Raindex__takeOrders5Result {
     let result = super.call(
-      "takeOrders4",
-      "takeOrders4((bytes32,bytes32,bytes32,bool,((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),uint256,uint256,(address,bytes32[],bytes)[])[],bytes)):(bytes32,bytes32)",
+      "takeOrders5",
+      "takeOrders5((bytes32,bytes32,bytes32,bool,((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),uint256,uint256,(address,bytes32,bytes32[],bytes)[])[],bytes)):(bytes32,bytes32)",
       [ethereum.Value.fromTuple(config)],
     );
 
-    return new Raindex__takeOrders4Result(
+    return new Raindex__takeOrders5Result(
       result[0].toBytes(),
       result[1].toBytes(),
     );
   }
 
-  try_takeOrders4(
-    config: Raindex__takeOrders4InputConfigStruct,
-  ): ethereum.CallResult<Raindex__takeOrders4Result> {
+  try_takeOrders5(
+    config: Raindex__takeOrders5InputConfigStruct,
+  ): ethereum.CallResult<Raindex__takeOrders5Result> {
     let result = super.tryCall(
-      "takeOrders4",
-      "takeOrders4((bytes32,bytes32,bytes32,bool,((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),uint256,uint256,(address,bytes32[],bytes)[])[],bytes)):(bytes32,bytes32)",
+      "takeOrders5",
+      "takeOrders5((bytes32,bytes32,bytes32,bool,((address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32),uint256,uint256,(address,bytes32,bytes32[],bytes)[])[],bytes)):(bytes32,bytes32)",
       [ethereum.Value.fromTuple(config)],
     );
     if (result.reverted) {
@@ -1459,7 +1505,7 @@ export class Raindex extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(
-      new Raindex__takeOrders4Result(value[0].toBytes(), value[1].toBytes()),
+      new Raindex__takeOrders5Result(value[0].toBytes(), value[1].toBytes()),
     );
   }
 
@@ -1499,38 +1545,38 @@ export class Raindex extends ethereum.SmartContract {
   }
 }
 
-export class AddOrder4Call extends ethereum.Call {
-  get inputs(): AddOrder4Call__Inputs {
-    return new AddOrder4Call__Inputs(this);
+export class AddOrder5Call extends ethereum.Call {
+  get inputs(): AddOrder5Call__Inputs {
+    return new AddOrder5Call__Inputs(this);
   }
 
-  get outputs(): AddOrder4Call__Outputs {
-    return new AddOrder4Call__Outputs(this);
+  get outputs(): AddOrder5Call__Outputs {
+    return new AddOrder5Call__Outputs(this);
   }
 }
 
-export class AddOrder4Call__Inputs {
-  _call: AddOrder4Call;
+export class AddOrder5Call__Inputs {
+  _call: AddOrder5Call;
 
-  constructor(call: AddOrder4Call) {
+  constructor(call: AddOrder5Call) {
     this._call = call;
   }
 
-  get orderConfig(): AddOrder4CallOrderConfigStruct {
-    return changetype<AddOrder4CallOrderConfigStruct>(
+  get orderConfig(): AddOrder5CallOrderConfigStruct {
+    return changetype<AddOrder5CallOrderConfigStruct>(
       this._call.inputValues[0].value.toTuple(),
     );
   }
 
-  get post(): Array<AddOrder4CallPostStruct> {
-    return this._call.inputValues[1].value.toTupleArray<AddOrder4CallPostStruct>();
+  get post(): Array<AddOrder5CallPostStruct> {
+    return this._call.inputValues[1].value.toTupleArray<AddOrder5CallPostStruct>();
   }
 }
 
-export class AddOrder4Call__Outputs {
-  _call: AddOrder4Call;
+export class AddOrder5Call__Outputs {
+  _call: AddOrder5Call;
 
-  constructor(call: AddOrder4Call) {
+  constructor(call: AddOrder5Call) {
     this._call = call;
   }
 
@@ -1539,19 +1585,19 @@ export class AddOrder4Call__Outputs {
   }
 }
 
-export class AddOrder4CallOrderConfigStruct extends ethereum.Tuple {
-  get evaluable(): AddOrder4CallOrderConfigEvaluableStruct {
-    return changetype<AddOrder4CallOrderConfigEvaluableStruct>(
+export class AddOrder5CallOrderConfigStruct extends ethereum.Tuple {
+  get evaluable(): AddOrder5CallOrderConfigEvaluableStruct {
+    return changetype<AddOrder5CallOrderConfigEvaluableStruct>(
       this[0].toTuple(),
     );
   }
 
-  get validInputs(): Array<AddOrder4CallOrderConfigValidInputsStruct> {
-    return this[1].toTupleArray<AddOrder4CallOrderConfigValidInputsStruct>();
+  get validInputs(): Array<AddOrder5CallOrderConfigValidInputsStruct> {
+    return this[1].toTupleArray<AddOrder5CallOrderConfigValidInputsStruct>();
   }
 
-  get validOutputs(): Array<AddOrder4CallOrderConfigValidOutputsStruct> {
-    return this[2].toTupleArray<AddOrder4CallOrderConfigValidOutputsStruct>();
+  get validOutputs(): Array<AddOrder5CallOrderConfigValidOutputsStruct> {
+    return this[2].toTupleArray<AddOrder5CallOrderConfigValidOutputsStruct>();
   }
 
   get nonce(): Bytes {
@@ -1567,7 +1613,7 @@ export class AddOrder4CallOrderConfigStruct extends ethereum.Tuple {
   }
 }
 
-export class AddOrder4CallOrderConfigEvaluableStruct extends ethereum.Tuple {
+export class AddOrder5CallOrderConfigEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -1581,7 +1627,7 @@ export class AddOrder4CallOrderConfigEvaluableStruct extends ethereum.Tuple {
   }
 }
 
-export class AddOrder4CallOrderConfigValidInputsStruct extends ethereum.Tuple {
+export class AddOrder5CallOrderConfigValidInputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -1591,7 +1637,7 @@ export class AddOrder4CallOrderConfigValidInputsStruct extends ethereum.Tuple {
   }
 }
 
-export class AddOrder4CallOrderConfigValidOutputsStruct extends ethereum.Tuple {
+export class AddOrder5CallOrderConfigValidOutputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -1601,17 +1647,17 @@ export class AddOrder4CallOrderConfigValidOutputsStruct extends ethereum.Tuple {
   }
 }
 
-export class AddOrder4CallPostStruct extends ethereum.Tuple {
-  get evaluable(): AddOrder4CallPostEvaluableStruct {
-    return changetype<AddOrder4CallPostEvaluableStruct>(this[0].toTuple());
+export class AddOrder5CallPostStruct extends ethereum.Tuple {
+  get evaluable(): AddOrder5CallPostEvaluableStruct {
+    return changetype<AddOrder5CallPostEvaluableStruct>(this[0].toTuple());
   }
 
-  get signedContext(): Array<AddOrder4CallPostSignedContextStruct> {
-    return this[1].toTupleArray<AddOrder4CallPostSignedContextStruct>();
+  get signedContext(): Array<AddOrder5CallPostSignedContextStruct> {
+    return this[1].toTupleArray<AddOrder5CallPostSignedContextStruct>();
   }
 }
 
-export class AddOrder4CallPostEvaluableStruct extends ethereum.Tuple {
+export class AddOrder5CallPostEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -1625,87 +1671,91 @@ export class AddOrder4CallPostEvaluableStruct extends ethereum.Tuple {
   }
 }
 
-export class AddOrder4CallPostSignedContextStruct extends ethereum.Tuple {
+export class AddOrder5CallPostSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }
 
-export class Clear3Call extends ethereum.Call {
-  get inputs(): Clear3Call__Inputs {
-    return new Clear3Call__Inputs(this);
+export class Clear4Call extends ethereum.Call {
+  get inputs(): Clear4Call__Inputs {
+    return new Clear4Call__Inputs(this);
   }
 
-  get outputs(): Clear3Call__Outputs {
-    return new Clear3Call__Outputs(this);
+  get outputs(): Clear4Call__Outputs {
+    return new Clear4Call__Outputs(this);
   }
 }
 
-export class Clear3Call__Inputs {
-  _call: Clear3Call;
+export class Clear4Call__Inputs {
+  _call: Clear4Call;
 
-  constructor(call: Clear3Call) {
+  constructor(call: Clear4Call) {
     this._call = call;
   }
 
-  get aliceOrder(): Clear3CallAliceOrderStruct {
-    return changetype<Clear3CallAliceOrderStruct>(
+  get aliceOrder(): Clear4CallAliceOrderStruct {
+    return changetype<Clear4CallAliceOrderStruct>(
       this._call.inputValues[0].value.toTuple(),
     );
   }
 
-  get bobOrder(): Clear3CallBobOrderStruct {
-    return changetype<Clear3CallBobOrderStruct>(
+  get bobOrder(): Clear4CallBobOrderStruct {
+    return changetype<Clear4CallBobOrderStruct>(
       this._call.inputValues[1].value.toTuple(),
     );
   }
 
-  get clearConfig(): Clear3CallClearConfigStruct {
-    return changetype<Clear3CallClearConfigStruct>(
+  get clearConfig(): Clear4CallClearConfigStruct {
+    return changetype<Clear4CallClearConfigStruct>(
       this._call.inputValues[2].value.toTuple(),
     );
   }
 
-  get aliceSignedContext(): Array<Clear3CallAliceSignedContextStruct> {
-    return this._call.inputValues[3].value.toTupleArray<Clear3CallAliceSignedContextStruct>();
+  get aliceSignedContext(): Array<Clear4CallAliceSignedContextStruct> {
+    return this._call.inputValues[3].value.toTupleArray<Clear4CallAliceSignedContextStruct>();
   }
 
-  get bobSignedContext(): Array<Clear3CallBobSignedContextStruct> {
-    return this._call.inputValues[4].value.toTupleArray<Clear3CallBobSignedContextStruct>();
+  get bobSignedContext(): Array<Clear4CallBobSignedContextStruct> {
+    return this._call.inputValues[4].value.toTupleArray<Clear4CallBobSignedContextStruct>();
   }
 }
 
-export class Clear3Call__Outputs {
-  _call: Clear3Call;
+export class Clear4Call__Outputs {
+  _call: Clear4Call;
 
-  constructor(call: Clear3Call) {
+  constructor(call: Clear4Call) {
     this._call = call;
   }
 }
 
-export class Clear3CallAliceOrderStruct extends ethereum.Tuple {
+export class Clear4CallAliceOrderStruct extends ethereum.Tuple {
   get owner(): Address {
     return this[0].toAddress();
   }
 
-  get evaluable(): Clear3CallAliceOrderEvaluableStruct {
-    return changetype<Clear3CallAliceOrderEvaluableStruct>(this[1].toTuple());
+  get evaluable(): Clear4CallAliceOrderEvaluableStruct {
+    return changetype<Clear4CallAliceOrderEvaluableStruct>(this[1].toTuple());
   }
 
-  get validInputs(): Array<Clear3CallAliceOrderValidInputsStruct> {
-    return this[2].toTupleArray<Clear3CallAliceOrderValidInputsStruct>();
+  get validInputs(): Array<Clear4CallAliceOrderValidInputsStruct> {
+    return this[2].toTupleArray<Clear4CallAliceOrderValidInputsStruct>();
   }
 
-  get validOutputs(): Array<Clear3CallAliceOrderValidOutputsStruct> {
-    return this[3].toTupleArray<Clear3CallAliceOrderValidOutputsStruct>();
+  get validOutputs(): Array<Clear4CallAliceOrderValidOutputsStruct> {
+    return this[3].toTupleArray<Clear4CallAliceOrderValidOutputsStruct>();
   }
 
   get nonce(): Bytes {
@@ -1713,7 +1763,7 @@ export class Clear3CallAliceOrderStruct extends ethereum.Tuple {
   }
 }
 
-export class Clear3CallAliceOrderEvaluableStruct extends ethereum.Tuple {
+export class Clear4CallAliceOrderEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -1727,7 +1777,7 @@ export class Clear3CallAliceOrderEvaluableStruct extends ethereum.Tuple {
   }
 }
 
-export class Clear3CallAliceOrderValidInputsStruct extends ethereum.Tuple {
+export class Clear4CallAliceOrderValidInputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -1737,7 +1787,7 @@ export class Clear3CallAliceOrderValidInputsStruct extends ethereum.Tuple {
   }
 }
 
-export class Clear3CallAliceOrderValidOutputsStruct extends ethereum.Tuple {
+export class Clear4CallAliceOrderValidOutputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -1747,21 +1797,21 @@ export class Clear3CallAliceOrderValidOutputsStruct extends ethereum.Tuple {
   }
 }
 
-export class Clear3CallBobOrderStruct extends ethereum.Tuple {
+export class Clear4CallBobOrderStruct extends ethereum.Tuple {
   get owner(): Address {
     return this[0].toAddress();
   }
 
-  get evaluable(): Clear3CallBobOrderEvaluableStruct {
-    return changetype<Clear3CallBobOrderEvaluableStruct>(this[1].toTuple());
+  get evaluable(): Clear4CallBobOrderEvaluableStruct {
+    return changetype<Clear4CallBobOrderEvaluableStruct>(this[1].toTuple());
   }
 
-  get validInputs(): Array<Clear3CallBobOrderValidInputsStruct> {
-    return this[2].toTupleArray<Clear3CallBobOrderValidInputsStruct>();
+  get validInputs(): Array<Clear4CallBobOrderValidInputsStruct> {
+    return this[2].toTupleArray<Clear4CallBobOrderValidInputsStruct>();
   }
 
-  get validOutputs(): Array<Clear3CallBobOrderValidOutputsStruct> {
-    return this[3].toTupleArray<Clear3CallBobOrderValidOutputsStruct>();
+  get validOutputs(): Array<Clear4CallBobOrderValidOutputsStruct> {
+    return this[3].toTupleArray<Clear4CallBobOrderValidOutputsStruct>();
   }
 
   get nonce(): Bytes {
@@ -1769,7 +1819,7 @@ export class Clear3CallBobOrderStruct extends ethereum.Tuple {
   }
 }
 
-export class Clear3CallBobOrderEvaluableStruct extends ethereum.Tuple {
+export class Clear4CallBobOrderEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -1783,7 +1833,7 @@ export class Clear3CallBobOrderEvaluableStruct extends ethereum.Tuple {
   }
 }
 
-export class Clear3CallBobOrderValidInputsStruct extends ethereum.Tuple {
+export class Clear4CallBobOrderValidInputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -1793,7 +1843,7 @@ export class Clear3CallBobOrderValidInputsStruct extends ethereum.Tuple {
   }
 }
 
-export class Clear3CallBobOrderValidOutputsStruct extends ethereum.Tuple {
+export class Clear4CallBobOrderValidOutputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -1803,7 +1853,7 @@ export class Clear3CallBobOrderValidOutputsStruct extends ethereum.Tuple {
   }
 }
 
-export class Clear3CallClearConfigStruct extends ethereum.Tuple {
+export class Clear4CallClearConfigStruct extends ethereum.Tuple {
   get aliceInputIOIndex(): BigInt {
     return this[0].toBigInt();
   }
@@ -1829,48 +1879,56 @@ export class Clear3CallClearConfigStruct extends ethereum.Tuple {
   }
 }
 
-export class Clear3CallAliceSignedContextStruct extends ethereum.Tuple {
+export class Clear4CallAliceSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }
 
-export class Clear3CallBobSignedContextStruct extends ethereum.Tuple {
+export class Clear4CallBobSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }
 
-export class Deposit4Call extends ethereum.Call {
-  get inputs(): Deposit4Call__Inputs {
-    return new Deposit4Call__Inputs(this);
+export class Deposit5Call extends ethereum.Call {
+  get inputs(): Deposit5Call__Inputs {
+    return new Deposit5Call__Inputs(this);
   }
 
-  get outputs(): Deposit4Call__Outputs {
-    return new Deposit4Call__Outputs(this);
+  get outputs(): Deposit5Call__Outputs {
+    return new Deposit5Call__Outputs(this);
   }
 }
 
-export class Deposit4Call__Inputs {
-  _call: Deposit4Call;
+export class Deposit5Call__Inputs {
+  _call: Deposit5Call;
 
-  constructor(call: Deposit4Call) {
+  constructor(call: Deposit5Call) {
     this._call = call;
   }
 
@@ -1886,30 +1944,30 @@ export class Deposit4Call__Inputs {
     return this._call.inputValues[2].value.toBytes();
   }
 
-  get post(): Array<Deposit4CallPostStruct> {
-    return this._call.inputValues[3].value.toTupleArray<Deposit4CallPostStruct>();
+  get post(): Array<Deposit5CallPostStruct> {
+    return this._call.inputValues[3].value.toTupleArray<Deposit5CallPostStruct>();
   }
 }
 
-export class Deposit4Call__Outputs {
-  _call: Deposit4Call;
+export class Deposit5Call__Outputs {
+  _call: Deposit5Call;
 
-  constructor(call: Deposit4Call) {
+  constructor(call: Deposit5Call) {
     this._call = call;
   }
 }
 
-export class Deposit4CallPostStruct extends ethereum.Tuple {
-  get evaluable(): Deposit4CallPostEvaluableStruct {
-    return changetype<Deposit4CallPostEvaluableStruct>(this[0].toTuple());
+export class Deposit5CallPostStruct extends ethereum.Tuple {
+  get evaluable(): Deposit5CallPostEvaluableStruct {
+    return changetype<Deposit5CallPostEvaluableStruct>(this[0].toTuple());
   }
 
-  get signedContext(): Array<Deposit4CallPostSignedContextStruct> {
-    return this[1].toTupleArray<Deposit4CallPostSignedContextStruct>();
+  get signedContext(): Array<Deposit5CallPostSignedContextStruct> {
+    return this[1].toTupleArray<Deposit5CallPostSignedContextStruct>();
   }
 }
 
-export class Deposit4CallPostEvaluableStruct extends ethereum.Tuple {
+export class Deposit5CallPostEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -1923,61 +1981,65 @@ export class Deposit4CallPostEvaluableStruct extends ethereum.Tuple {
   }
 }
 
-export class Deposit4CallPostSignedContextStruct extends ethereum.Tuple {
+export class Deposit5CallPostSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }
 
-export class Entask2Call extends ethereum.Call {
-  get inputs(): Entask2Call__Inputs {
-    return new Entask2Call__Inputs(this);
+export class Entask3Call extends ethereum.Call {
+  get inputs(): Entask3Call__Inputs {
+    return new Entask3Call__Inputs(this);
   }
 
-  get outputs(): Entask2Call__Outputs {
-    return new Entask2Call__Outputs(this);
+  get outputs(): Entask3Call__Outputs {
+    return new Entask3Call__Outputs(this);
   }
 }
 
-export class Entask2Call__Inputs {
-  _call: Entask2Call;
+export class Entask3Call__Inputs {
+  _call: Entask3Call;
 
-  constructor(call: Entask2Call) {
+  constructor(call: Entask3Call) {
     this._call = call;
   }
 
-  get post(): Array<Entask2CallPostStruct> {
-    return this._call.inputValues[0].value.toTupleArray<Entask2CallPostStruct>();
+  get post(): Array<Entask3CallPostStruct> {
+    return this._call.inputValues[0].value.toTupleArray<Entask3CallPostStruct>();
   }
 }
 
-export class Entask2Call__Outputs {
-  _call: Entask2Call;
+export class Entask3Call__Outputs {
+  _call: Entask3Call;
 
-  constructor(call: Entask2Call) {
+  constructor(call: Entask3Call) {
     this._call = call;
   }
 }
 
-export class Entask2CallPostStruct extends ethereum.Tuple {
-  get evaluable(): Entask2CallPostEvaluableStruct {
-    return changetype<Entask2CallPostEvaluableStruct>(this[0].toTuple());
+export class Entask3CallPostStruct extends ethereum.Tuple {
+  get evaluable(): Entask3CallPostEvaluableStruct {
+    return changetype<Entask3CallPostEvaluableStruct>(this[0].toTuple());
   }
 
-  get signedContext(): Array<Entask2CallPostSignedContextStruct> {
-    return this[1].toTupleArray<Entask2CallPostSignedContextStruct>();
+  get signedContext(): Array<Entask3CallPostSignedContextStruct> {
+    return this[1].toTupleArray<Entask3CallPostSignedContextStruct>();
   }
 }
 
-export class Entask2CallPostEvaluableStruct extends ethereum.Tuple {
+export class Entask3CallPostEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -1991,17 +2053,21 @@ export class Entask2CallPostEvaluableStruct extends ethereum.Tuple {
   }
 }
 
-export class Entask2CallPostSignedContextStruct extends ethereum.Tuple {
+export class Entask3CallPostSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }
 
@@ -2085,38 +2151,38 @@ export class MulticallCall__Outputs {
   }
 }
 
-export class RemoveOrder3Call extends ethereum.Call {
-  get inputs(): RemoveOrder3Call__Inputs {
-    return new RemoveOrder3Call__Inputs(this);
+export class RemoveOrder4Call extends ethereum.Call {
+  get inputs(): RemoveOrder4Call__Inputs {
+    return new RemoveOrder4Call__Inputs(this);
   }
 
-  get outputs(): RemoveOrder3Call__Outputs {
-    return new RemoveOrder3Call__Outputs(this);
+  get outputs(): RemoveOrder4Call__Outputs {
+    return new RemoveOrder4Call__Outputs(this);
   }
 }
 
-export class RemoveOrder3Call__Inputs {
-  _call: RemoveOrder3Call;
+export class RemoveOrder4Call__Inputs {
+  _call: RemoveOrder4Call;
 
-  constructor(call: RemoveOrder3Call) {
+  constructor(call: RemoveOrder4Call) {
     this._call = call;
   }
 
-  get order(): RemoveOrder3CallOrderStruct {
-    return changetype<RemoveOrder3CallOrderStruct>(
+  get order(): RemoveOrder4CallOrderStruct {
+    return changetype<RemoveOrder4CallOrderStruct>(
       this._call.inputValues[0].value.toTuple(),
     );
   }
 
-  get post(): Array<RemoveOrder3CallPostStruct> {
-    return this._call.inputValues[1].value.toTupleArray<RemoveOrder3CallPostStruct>();
+  get post(): Array<RemoveOrder4CallPostStruct> {
+    return this._call.inputValues[1].value.toTupleArray<RemoveOrder4CallPostStruct>();
   }
 }
 
-export class RemoveOrder3Call__Outputs {
-  _call: RemoveOrder3Call;
+export class RemoveOrder4Call__Outputs {
+  _call: RemoveOrder4Call;
 
-  constructor(call: RemoveOrder3Call) {
+  constructor(call: RemoveOrder4Call) {
     this._call = call;
   }
 
@@ -2125,21 +2191,21 @@ export class RemoveOrder3Call__Outputs {
   }
 }
 
-export class RemoveOrder3CallOrderStruct extends ethereum.Tuple {
+export class RemoveOrder4CallOrderStruct extends ethereum.Tuple {
   get owner(): Address {
     return this[0].toAddress();
   }
 
-  get evaluable(): RemoveOrder3CallOrderEvaluableStruct {
-    return changetype<RemoveOrder3CallOrderEvaluableStruct>(this[1].toTuple());
+  get evaluable(): RemoveOrder4CallOrderEvaluableStruct {
+    return changetype<RemoveOrder4CallOrderEvaluableStruct>(this[1].toTuple());
   }
 
-  get validInputs(): Array<RemoveOrder3CallOrderValidInputsStruct> {
-    return this[2].toTupleArray<RemoveOrder3CallOrderValidInputsStruct>();
+  get validInputs(): Array<RemoveOrder4CallOrderValidInputsStruct> {
+    return this[2].toTupleArray<RemoveOrder4CallOrderValidInputsStruct>();
   }
 
-  get validOutputs(): Array<RemoveOrder3CallOrderValidOutputsStruct> {
-    return this[3].toTupleArray<RemoveOrder3CallOrderValidOutputsStruct>();
+  get validOutputs(): Array<RemoveOrder4CallOrderValidOutputsStruct> {
+    return this[3].toTupleArray<RemoveOrder4CallOrderValidOutputsStruct>();
   }
 
   get nonce(): Bytes {
@@ -2147,7 +2213,7 @@ export class RemoveOrder3CallOrderStruct extends ethereum.Tuple {
   }
 }
 
-export class RemoveOrder3CallOrderEvaluableStruct extends ethereum.Tuple {
+export class RemoveOrder4CallOrderEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -2161,7 +2227,7 @@ export class RemoveOrder3CallOrderEvaluableStruct extends ethereum.Tuple {
   }
 }
 
-export class RemoveOrder3CallOrderValidInputsStruct extends ethereum.Tuple {
+export class RemoveOrder4CallOrderValidInputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -2171,7 +2237,7 @@ export class RemoveOrder3CallOrderValidInputsStruct extends ethereum.Tuple {
   }
 }
 
-export class RemoveOrder3CallOrderValidOutputsStruct extends ethereum.Tuple {
+export class RemoveOrder4CallOrderValidOutputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -2181,17 +2247,17 @@ export class RemoveOrder3CallOrderValidOutputsStruct extends ethereum.Tuple {
   }
 }
 
-export class RemoveOrder3CallPostStruct extends ethereum.Tuple {
-  get evaluable(): RemoveOrder3CallPostEvaluableStruct {
-    return changetype<RemoveOrder3CallPostEvaluableStruct>(this[0].toTuple());
+export class RemoveOrder4CallPostStruct extends ethereum.Tuple {
+  get evaluable(): RemoveOrder4CallPostEvaluableStruct {
+    return changetype<RemoveOrder4CallPostEvaluableStruct>(this[0].toTuple());
   }
 
-  get signedContext(): Array<RemoveOrder3CallPostSignedContextStruct> {
-    return this[1].toTupleArray<RemoveOrder3CallPostSignedContextStruct>();
+  get signedContext(): Array<RemoveOrder4CallPostSignedContextStruct> {
+    return this[1].toTupleArray<RemoveOrder4CallPostSignedContextStruct>();
   }
 }
 
-export class RemoveOrder3CallPostEvaluableStruct extends ethereum.Tuple {
+export class RemoveOrder4CallPostEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -2205,48 +2271,52 @@ export class RemoveOrder3CallPostEvaluableStruct extends ethereum.Tuple {
   }
 }
 
-export class RemoveOrder3CallPostSignedContextStruct extends ethereum.Tuple {
+export class RemoveOrder4CallPostSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }
 
-export class TakeOrders4Call extends ethereum.Call {
-  get inputs(): TakeOrders4Call__Inputs {
-    return new TakeOrders4Call__Inputs(this);
+export class TakeOrders5Call extends ethereum.Call {
+  get inputs(): TakeOrders5Call__Inputs {
+    return new TakeOrders5Call__Inputs(this);
   }
 
-  get outputs(): TakeOrders4Call__Outputs {
-    return new TakeOrders4Call__Outputs(this);
+  get outputs(): TakeOrders5Call__Outputs {
+    return new TakeOrders5Call__Outputs(this);
   }
 }
 
-export class TakeOrders4Call__Inputs {
-  _call: TakeOrders4Call;
+export class TakeOrders5Call__Inputs {
+  _call: TakeOrders5Call;
 
-  constructor(call: TakeOrders4Call) {
+  constructor(call: TakeOrders5Call) {
     this._call = call;
   }
 
-  get config(): TakeOrders4CallConfigStruct {
-    return changetype<TakeOrders4CallConfigStruct>(
+  get config(): TakeOrders5CallConfigStruct {
+    return changetype<TakeOrders5CallConfigStruct>(
       this._call.inputValues[0].value.toTuple(),
     );
   }
 }
 
-export class TakeOrders4Call__Outputs {
-  _call: TakeOrders4Call;
+export class TakeOrders5Call__Outputs {
+  _call: TakeOrders5Call;
 
-  constructor(call: TakeOrders4Call) {
+  constructor(call: TakeOrders5Call) {
     this._call = call;
   }
 
@@ -2259,7 +2329,7 @@ export class TakeOrders4Call__Outputs {
   }
 }
 
-export class TakeOrders4CallConfigStruct extends ethereum.Tuple {
+export class TakeOrders5CallConfigStruct extends ethereum.Tuple {
   get minimumIO(): Bytes {
     return this[0].toBytes();
   }
@@ -2276,8 +2346,8 @@ export class TakeOrders4CallConfigStruct extends ethereum.Tuple {
     return this[3].toBoolean();
   }
 
-  get orders(): Array<TakeOrders4CallConfigOrdersStruct> {
-    return this[4].toTupleArray<TakeOrders4CallConfigOrdersStruct>();
+  get orders(): Array<TakeOrders5CallConfigOrdersStruct> {
+    return this[4].toTupleArray<TakeOrders5CallConfigOrdersStruct>();
   }
 
   get data(): Bytes {
@@ -2285,9 +2355,9 @@ export class TakeOrders4CallConfigStruct extends ethereum.Tuple {
   }
 }
 
-export class TakeOrders4CallConfigOrdersStruct extends ethereum.Tuple {
-  get order(): TakeOrders4CallConfigOrdersOrderStruct {
-    return changetype<TakeOrders4CallConfigOrdersOrderStruct>(
+export class TakeOrders5CallConfigOrdersStruct extends ethereum.Tuple {
+  get order(): TakeOrders5CallConfigOrdersOrderStruct {
+    return changetype<TakeOrders5CallConfigOrdersOrderStruct>(
       this[0].toTuple(),
     );
   }
@@ -2300,28 +2370,28 @@ export class TakeOrders4CallConfigOrdersStruct extends ethereum.Tuple {
     return this[2].toBigInt();
   }
 
-  get signedContext(): Array<TakeOrders4CallConfigOrdersSignedContextStruct> {
-    return this[3].toTupleArray<TakeOrders4CallConfigOrdersSignedContextStruct>();
+  get signedContext(): Array<TakeOrders5CallConfigOrdersSignedContextStruct> {
+    return this[3].toTupleArray<TakeOrders5CallConfigOrdersSignedContextStruct>();
   }
 }
 
-export class TakeOrders4CallConfigOrdersOrderStruct extends ethereum.Tuple {
+export class TakeOrders5CallConfigOrdersOrderStruct extends ethereum.Tuple {
   get owner(): Address {
     return this[0].toAddress();
   }
 
-  get evaluable(): TakeOrders4CallConfigOrdersOrderEvaluableStruct {
-    return changetype<TakeOrders4CallConfigOrdersOrderEvaluableStruct>(
+  get evaluable(): TakeOrders5CallConfigOrdersOrderEvaluableStruct {
+    return changetype<TakeOrders5CallConfigOrdersOrderEvaluableStruct>(
       this[1].toTuple(),
     );
   }
 
-  get validInputs(): Array<TakeOrders4CallConfigOrdersOrderValidInputsStruct> {
-    return this[2].toTupleArray<TakeOrders4CallConfigOrdersOrderValidInputsStruct>();
+  get validInputs(): Array<TakeOrders5CallConfigOrdersOrderValidInputsStruct> {
+    return this[2].toTupleArray<TakeOrders5CallConfigOrdersOrderValidInputsStruct>();
   }
 
-  get validOutputs(): Array<TakeOrders4CallConfigOrdersOrderValidOutputsStruct> {
-    return this[3].toTupleArray<TakeOrders4CallConfigOrdersOrderValidOutputsStruct>();
+  get validOutputs(): Array<TakeOrders5CallConfigOrdersOrderValidOutputsStruct> {
+    return this[3].toTupleArray<TakeOrders5CallConfigOrdersOrderValidOutputsStruct>();
   }
 
   get nonce(): Bytes {
@@ -2329,7 +2399,7 @@ export class TakeOrders4CallConfigOrdersOrderStruct extends ethereum.Tuple {
   }
 }
 
-export class TakeOrders4CallConfigOrdersOrderEvaluableStruct extends ethereum.Tuple {
+export class TakeOrders5CallConfigOrdersOrderEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -2343,7 +2413,7 @@ export class TakeOrders4CallConfigOrdersOrderEvaluableStruct extends ethereum.Tu
   }
 }
 
-export class TakeOrders4CallConfigOrdersOrderValidInputsStruct extends ethereum.Tuple {
+export class TakeOrders5CallConfigOrdersOrderValidInputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -2353,7 +2423,7 @@ export class TakeOrders4CallConfigOrdersOrderValidInputsStruct extends ethereum.
   }
 }
 
-export class TakeOrders4CallConfigOrdersOrderValidOutputsStruct extends ethereum.Tuple {
+export class TakeOrders5CallConfigOrdersOrderValidOutputsStruct extends ethereum.Tuple {
   get token(): Address {
     return this[0].toAddress();
   }
@@ -2363,34 +2433,38 @@ export class TakeOrders4CallConfigOrdersOrderValidOutputsStruct extends ethereum
   }
 }
 
-export class TakeOrders4CallConfigOrdersSignedContextStruct extends ethereum.Tuple {
+export class TakeOrders5CallConfigOrdersSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }
 
-export class Withdraw4Call extends ethereum.Call {
-  get inputs(): Withdraw4Call__Inputs {
-    return new Withdraw4Call__Inputs(this);
+export class Withdraw5Call extends ethereum.Call {
+  get inputs(): Withdraw5Call__Inputs {
+    return new Withdraw5Call__Inputs(this);
   }
 
-  get outputs(): Withdraw4Call__Outputs {
-    return new Withdraw4Call__Outputs(this);
+  get outputs(): Withdraw5Call__Outputs {
+    return new Withdraw5Call__Outputs(this);
   }
 }
 
-export class Withdraw4Call__Inputs {
-  _call: Withdraw4Call;
+export class Withdraw5Call__Inputs {
+  _call: Withdraw5Call;
 
-  constructor(call: Withdraw4Call) {
+  constructor(call: Withdraw5Call) {
     this._call = call;
   }
 
@@ -2406,30 +2480,30 @@ export class Withdraw4Call__Inputs {
     return this._call.inputValues[2].value.toBytes();
   }
 
-  get post(): Array<Withdraw4CallPostStruct> {
-    return this._call.inputValues[3].value.toTupleArray<Withdraw4CallPostStruct>();
+  get post(): Array<Withdraw5CallPostStruct> {
+    return this._call.inputValues[3].value.toTupleArray<Withdraw5CallPostStruct>();
   }
 }
 
-export class Withdraw4Call__Outputs {
-  _call: Withdraw4Call;
+export class Withdraw5Call__Outputs {
+  _call: Withdraw5Call;
 
-  constructor(call: Withdraw4Call) {
+  constructor(call: Withdraw5Call) {
     this._call = call;
   }
 }
 
-export class Withdraw4CallPostStruct extends ethereum.Tuple {
-  get evaluable(): Withdraw4CallPostEvaluableStruct {
-    return changetype<Withdraw4CallPostEvaluableStruct>(this[0].toTuple());
+export class Withdraw5CallPostStruct extends ethereum.Tuple {
+  get evaluable(): Withdraw5CallPostEvaluableStruct {
+    return changetype<Withdraw5CallPostEvaluableStruct>(this[0].toTuple());
   }
 
-  get signedContext(): Array<Withdraw4CallPostSignedContextStruct> {
-    return this[1].toTupleArray<Withdraw4CallPostSignedContextStruct>();
+  get signedContext(): Array<Withdraw5CallPostSignedContextStruct> {
+    return this[1].toTupleArray<Withdraw5CallPostSignedContextStruct>();
   }
 }
 
-export class Withdraw4CallPostEvaluableStruct extends ethereum.Tuple {
+export class Withdraw5CallPostEvaluableStruct extends ethereum.Tuple {
   get interpreter(): Address {
     return this[0].toAddress();
   }
@@ -2443,16 +2517,20 @@ export class Withdraw4CallPostEvaluableStruct extends ethereum.Tuple {
   }
 }
 
-export class Withdraw4CallPostSignedContextStruct extends ethereum.Tuple {
+export class Withdraw5CallPostSignedContextStruct extends ethereum.Tuple {
   get signer(): Address {
     return this[0].toAddress();
   }
 
+  get domainSeparator(): Bytes {
+    return this[1].toBytes();
+  }
+
   get context(): Array<Bytes> {
-    return this[1].toBytesArray();
+    return this[2].toBytesArray();
   }
 
   get signature(): Bytes {
-    return this[2].toBytes();
+    return this[3].toBytes();
   }
 }

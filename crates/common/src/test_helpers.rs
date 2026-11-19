@@ -416,7 +416,7 @@ pub mod local_evm {
         let raw_amount = Float::from_fixed_decimal(amount, 18).unwrap().get_inner();
 
         raindex_instance
-            .deposit4(token, vault_id, raw_amount, vec![])
+            .deposit5(token, vault_id, raw_amount, vec![])
             .from(setup.owner)
             .send()
             .await
@@ -476,7 +476,7 @@ pub mod local_evm {
 
 pub mod orders {
     use alloy::primitives::{Address, U256};
-    use raindex_bindings::IRaindexV6::{EvaluableV4, OrderV4, IOV2};
+    use raindex_bindings::IRaindexV7::{EvaluableV4, OrderV4, IOV2};
 
     pub fn make_basic_order(input_token: Address, output_token: Address) -> OrderV4 {
         OrderV4 {
@@ -529,7 +529,7 @@ pub mod orders {
         }
 
         use super::super::local_evm::MultiRaindexTestSetup;
-        use raindex_bindings::IRaindexV6::OrderV4;
+        use raindex_bindings::IRaindexV7::OrderV4;
 
         pub async fn deploy_order_to_raindex(
             setup: &MultiRaindexTestSetup,

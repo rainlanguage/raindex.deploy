@@ -11,7 +11,7 @@ pub async fn fetch_transaction_by_hash<E: LocalDbQueryExecutor + ?Sized>(
     tx_hash: B256,
 ) -> Result<Vec<LocalDbTransaction>, LocalDbQueryError> {
     let stmt = build_fetch_transaction_by_hash_stmt(raindex_id, tx_hash);
-    exec.query_json(&stmt).await
+    exec.query_json_retryable(&stmt).await
 }
 
 #[cfg(all(test, target_family = "wasm"))]

@@ -71,6 +71,8 @@ mod tests {
             id: SgBytes("trade001".to_string()),
             timestamp: SgBigInt("1678886400".to_string()),
             trade_event: SgTradeEvent {
+                id: SgBytes("event001".to_string()),
+                __typename: "TakeOrder".to_string(),
                 transaction: SgTransaction {
                     id: SgBytes("tx001".to_string()),
                     from: SgBytes("0xfromAddress".to_string()),

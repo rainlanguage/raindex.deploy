@@ -183,15 +183,27 @@ export function flipTradingPair(pair: TradingPair): TradingPair {
   };
 }
 
+/**
+ * Formats a chart axis tick.
+ *
+ * @param useLocalTime - when true, use the browser timezone; otherwise UTC
+ */
 export function formatChartTimestamp(
   timestampSeconds: number,
   timeDeltaSeconds: number,
+  useLocalTime = false,
 ): string {
   const date = new Date(timestampSeconds * 1000);
-  const day = date.getDate();
-  const month = date.toLocaleString("en-US", { month: "short" });
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const day = useLocalTime ? date.getDate() : date.getUTCDate();
+  const month = useLocalTime
+    ? date.toLocaleString("en-US", { month: "short" })
+    : date.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+  const hours = (useLocalTime ? date.getHours() : date.getUTCHours())
+    .toString()
+    .padStart(2, "0");
+  const minutes = (useLocalTime ? date.getMinutes() : date.getUTCMinutes())
+    .toString()
+    .padStart(2, "0");
 
   if (timeDeltaSeconds <= TIME_DELTA_24_HOURS) {
     return `${month} ${day} ${hours}:${minutes}`;

@@ -24,7 +24,7 @@ pub async fn fetch_vault_balance_changes<E: LocalDbQueryExecutor + ?Sized>(
         owner,
         filter_kinds.as_deref(),
     )?;
-    exec.query_json(&stmt).await
+    exec.query_json_retryable(&stmt).await
 }
 
 #[cfg(all(test, target_family = "wasm"))]
@@ -94,6 +94,7 @@ mod wasm_tests {
             "blockNumber":100,
             "blockTimestamp":999,
             "owner":"0x0000000000000000000000000000000000000011",
+            "transactionSender":"0x0000000000000000000000000000000000000011",
             "changeType":"deposit",
             "token":"0x00000000000000000000000000000000000000bb",
             "vaultId":"0x01",

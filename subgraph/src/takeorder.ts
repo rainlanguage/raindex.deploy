@@ -1,5 +1,5 @@
 import { Bytes, ethereum } from "@graphprotocol/graph-ts";
-import { TakeOrderV3 } from "../generated/Raindex/Raindex";
+import { TakeOrderV4 } from "../generated/Raindex/Raindex";
 import { TakeOrder } from "../generated/schema";
 import { eventId } from "./interfaces/event";
 import { handleVaultBalanceChange, vaultEntityId } from "./vault";
@@ -8,14 +8,14 @@ import { createTradeEntity } from "./trade";
 import { crypto } from "@graphprotocol/graph-ts";
 import { getCalculator } from "./float";
 
-export function orderHashFromTakeOrderEvent(event: TakeOrderV3): Bytes {
+export function orderHashFromTakeOrderEvent(event: TakeOrderV4): Bytes {
   let orderHash = crypto.keccak256(
     ethereum.encode(event.parameters[1].value.toTuple()[0])!
   );
   return Bytes.fromByteArray(orderHash);
 }
 
-export function handleTakeOrder(event: TakeOrderV3): void {
+export function handleTakeOrder(event: TakeOrderV4): void {
   let order = event.params.config.order;
   let orderHash = orderHashFromTakeOrderEvent(event);
 
@@ -82,7 +82,7 @@ export function handleTakeOrder(event: TakeOrderV3): void {
   createTakeOrderEntity(event);
 }
 
-export function createTakeOrderEntity(event: TakeOrderV3): void {
+export function createTakeOrderEntity(event: TakeOrderV4): void {
   let takeOrder = new TakeOrder(eventId(event));
   takeOrder.raindex = event.address;
   takeOrder.inputAmount = event.params.input;

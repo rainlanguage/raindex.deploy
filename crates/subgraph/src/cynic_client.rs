@@ -2,8 +2,15 @@ use cynic::{
     serde::{Deserialize, Serialize},
     GraphQlError, GraphQlResponse, QueryBuilder, QueryFragment,
 };
-use reqwest::Url;
+use once_cell::sync::OnceCell;
+use reqwest::{Client, Url};
 use thiserror::Error;
+
+static CYNIC_HTTP_CLIENT: OnceCell<Client> = OnceCell::new();
+
+fn shared_http_client() -> Result<&'static Client, reqwest::Error> {
+    CYNIC_HTTP_CLIENT.get_or_try_init(|| Client::builder().build())
+}
 
 #[derive(Error, Debug)]
 pub enum CynicClientError {
@@ -26,7 +33,7 @@ pub trait CynicClient {
     ) -> Result<R, CynicClientError> {
         let request_body = R::build(variables);
 
-        let response = reqwest::Client::new()
+        let response = shared_http_client()?
             .post(self.get_base_url().clone())
             .json(&request_body)
             .send()
@@ -48,5 +55,18 @@ pub trait CynicClient {
             Some(errors) => Err(CynicClientError::GraphqlError(errors)),
             None => response_deserialized.data.ok_or(CynicClientError::Empty),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reuses_the_process_wide_http_client() {
+        let first = shared_http_client().expect("build shared HTTP client");
+        let second = shared_http_client().expect("reuse shared HTTP client");
+
+        assert!(std::ptr::eq(first, second));
     }
 }

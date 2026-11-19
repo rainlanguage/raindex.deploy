@@ -48,7 +48,11 @@ vi.mock('svelte/store', async (importOriginal) => {
 });
 
 const mockWindowSize = (width: number) => {
-	Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: width });
+	Object.defineProperty(window, 'innerWidth', {
+		writable: true,
+		configurable: true,
+		value: width
+	});
 	window.dispatchEvent(new Event('resize'));
 };
 
@@ -71,6 +75,22 @@ describe('Sidebar', () => {
 		});
 
 		expect(container).toBeTruthy();
+	});
+	it('shows Markets immediately after Vaults', () => {
+		mockWindowSize(1025);
+		const mockColorTheme = writable('light');
+		const mockPage = {
+			url: { pathname: '/markets' }
+		};
+		render(Sidebar, { colorTheme: mockColorTheme, page: mockPage });
+
+		const vaults = screen.getByTestId('sidebar-vaults').closest('a');
+		const markets = screen.getByTestId('sidebar-markets').closest('a');
+		expect(vaults).not.toBeNull();
+		expect(markets).not.toBeNull();
+		expect(markets).toHaveAttribute('href', '/markets');
+		expect(vaults!.compareDocumentPosition(markets!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(vaults!.parentElement?.nextElementSibling).toContainElement(markets);
 	});
 	it('renders menu bars button when screen width is small', () => {
 		// Mock small screen width

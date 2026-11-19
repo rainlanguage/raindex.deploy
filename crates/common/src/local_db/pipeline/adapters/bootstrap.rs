@@ -15,10 +15,12 @@ use crate::local_db::RaindexIdentifier;
 use async_trait::async_trait;
 use raindex_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct BootstrapConfig {
     pub raindex_id: RaindexIdentifier,
+    pub dump_sql: Option<Arc<String>>,
     pub dump_stmt: Option<SqlStatementBatch>,
     pub latest_block: u64,
     pub block_number_threshold: u32,
@@ -53,7 +55,7 @@ pub trait BootstrapPipeline {
         DB: LocalDbQueryExecutor + ?Sized,
     {
         let rows = db
-            .query_json::<Vec<DbMetadataRow>>(&fetch_db_metadata_stmt())
+            .query_json_retryable::<Vec<DbMetadataRow>>(&fetch_db_metadata_stmt())
             .await?;
         if let Some(row) = rows.first() {
             let expected = db_schema_version.unwrap_or(DB_SCHEMA_VERSION);
@@ -76,7 +78,7 @@ pub trait BootstrapPipeline {
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        let existing: Vec<TableResponse> = db.query_json(&fetch_tables_stmt()).await?;
+        let existing: Vec<TableResponse> = db.query_json_retryable(&fetch_tables_stmt()).await?;
         let existing_set: HashSet<String> = existing
             .into_iter()
             .map(|t| t.name.to_ascii_lowercase())
@@ -88,7 +90,7 @@ pub trait BootstrapPipeline {
 
         let last_synced_block = if existing_set.contains("target_watermarks") {
             let rows: Vec<TargetWatermarkRow> = db
-                .query_json(&fetch_target_watermark_stmt(raindex_id))
+                .query_json_retryable(&fetch_target_watermark_stmt(raindex_id))
                 .await?;
             rows.first().map(|r| r.last_block)
         } else {
@@ -124,7 +126,7 @@ pub trait BootstrapPipeline {
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        let rows: Vec<IntegrityCheckRow> = db.query_json(&integrity_check_stmt()).await?;
+        let rows: Vec<IntegrityCheckRow> = db.query_json_retryable(&integrity_check_stmt()).await?;
         let is_healthy = rows
             .first()
             .map(|row| row.quick_check.eq_ignore_ascii_case("ok"))
@@ -748,6 +750,7 @@ mod tests {
         let db = MockDb::default();
         let cfg = BootstrapConfig {
             raindex_id: RaindexIdentifier::new(1, Address::ZERO),
+            dump_sql: None,
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: 10_000,

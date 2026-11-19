@@ -17,7 +17,7 @@ use raindex_app_settings::{
     order::{OrderIOCfg, VaultType},
     raindex::RaindexCfg,
 };
-use raindex_bindings::{IRaindexV6::deposit4Call, Raindex::multicallCall, IERC20::approveCall};
+use raindex_bindings::{IRaindexV7::deposit5Call, Raindex::multicallCall, IERC20::approveCall};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 use url::Url;
 
@@ -375,7 +375,7 @@ impl RaindexOrderBuilder {
                 vault_id: vault_id.into(),
                 decimals,
             };
-            let calldata = deposit4Call::try_from(deposit_args)
+            let calldata = deposit5Call::try_from(deposit_args)
                 .map_err(crate::deposit::DepositError::from)?
                 .abi_encode();
             calldatas.push(Bytes::copy_from_slice(&calldata));

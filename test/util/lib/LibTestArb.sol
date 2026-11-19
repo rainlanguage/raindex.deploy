@@ -2,25 +2,28 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {Vm} from "forge-std-1.16.1/src/Vm.sol";
-import {IERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/IERC20.sol";
+import {Vm} from "forge-std-1.17.0/src/Vm.sol";
+import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {
-    IRaindexV6,
-    TakeOrdersConfigV5,
-    TakeOrderConfigV4,
+    IRaindexV7,
+    TakeOrdersConfigV6,
+    TakeOrderConfigV5,
     OrderV4,
     IOV2,
     EvaluableV4,
-    SignedContextV1,
-    TaskV2
-} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {IInterpreterV4} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterV4.sol";
-import {IInterpreterStoreV3} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterStoreV3.sol";
-import {LibDecimalFloat} from "rain-math-float-0.1.1/src/lib/LibDecimalFloat.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.2/src/lib/LibRainDeploy.sol";
-import {LibInterpreterDeploy} from "rainlang-0.1.5/src/lib/deploy/LibInterpreterDeploy.sol";
-import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.1/src/lib/LibTOFUTokenDecimals.sol";
-import {GenericPoolRaindexV6ArbOrderTaker} from "../../../src/concrete/arb/GenericPoolRaindexV6ArbOrderTaker.sol";
+    SignedContextV2,
+    TaskV3
+} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {IInterpreterV4} from "rainlang-0.2.36/src/interface/IInterpreterV4.sol";
+import {IInterpreterStoreV3} from "rainlang-0.2.36/src/interface/IInterpreterStoreV3.sol";
+import {LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.33/src/lib/LibRainDeploy.sol";
+import {
+    TEST_INTERPRETER_ADDRESS,
+    TEST_STORE_ADDRESS
+} from "rainlang-0.2.36/test/lib/deploy/LibTestInterpreterDeploy.sol";
+import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
+import {GenericPoolRaindexV7ArbOrderTaker} from "../../../src/concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol";
 import {LibRaindexDeploy} from "../../../src/lib/deploy/LibRaindexDeploy.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
 import {MockExchange} from "test/util/concrete/MockExchange.sol";
@@ -28,7 +31,7 @@ import {RealisticOrderTakerMockRaindex} from "test/util/concrete/RealisticOrderT
 
 /// @dev Return value from `setupAndArb`.
 struct ArbResult {
-    GenericPoolRaindexV6ArbOrderTaker arb;
+    GenericPoolRaindexV7ArbOrderTaker arb;
     MockToken inputToken;
     MockToken outputToken;
     RealisticOrderTakerMockRaindex raindex;
@@ -37,11 +40,11 @@ struct ArbResult {
 
 /// @dev Return value from `setup`. Caller keeps their own exchange reference.
 struct OrderTakerSetup {
-    GenericPoolRaindexV6ArbOrderTaker arb;
+    GenericPoolRaindexV7ArbOrderTaker arb;
     MockToken inputToken;
     MockToken outputToken;
-    IRaindexV6 raindex;
-    TakeOrdersConfigV5 takeOrdersConfig;
+    IRaindexV7 raindex;
+    TakeOrdersConfigV6 takeOrdersConfig;
 }
 
 library LibTestArb {
@@ -51,19 +54,17 @@ library LibTestArb {
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
     }
 
-    /// Build a no-op TaskV2 (empty bytecode, real deploy constants).
-    function noopTask() internal pure returns (TaskV2 memory) {
-        return TaskV2({
+    /// Build a no-op TaskV3 (empty bytecode, real deploy constants).
+    function noopTask() internal pure returns (TaskV3 memory) {
+        return TaskV3({
             evaluable: EvaluableV4(
-                IInterpreterV4(LibInterpreterDeploy.INTERPRETER_DEPLOYED_ADDRESS),
-                IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS),
-                hex""
+                IInterpreterV4(TEST_INTERPRETER_ADDRESS), IInterpreterStoreV3(TEST_STORE_ADDRESS), hex""
             ),
-            signedContext: new SignedContextV1[](0)
+            signedContext: new SignedContextV2[](0)
         });
     }
 
-    /// Set up a standard arb scenario and execute arb5.
+    /// Set up a standard arb scenario and execute arb6.
     ///
     /// @param vm The Vm cheatcode handle.
     /// @param raindexPullAmount How many inputTokens the mock Raindex pulls from arb.
@@ -71,14 +72,14 @@ library LibTestArb {
     /// @param exchangeInputAmount How many inputTokens the exchange has.
     /// @param swapAmount How many outputTokens the arb swaps at the exchange.
     /// @param task The post-arb task to run.
-    /// @param ethValue ETH to send with arb5.
+    /// @param ethValue ETH to send with arb6.
     function setupAndArb(
         Vm vm,
         uint256 raindexPullAmount,
         uint256 raindexOutputAmount,
         uint256 exchangeInputAmount,
         uint256 swapAmount,
-        TaskV2 memory task,
+        TaskV3 memory task,
         uint256 ethValue
     ) internal returns (ArbResult memory) {
         deployPrereqs(vm);
@@ -86,7 +87,7 @@ library LibTestArb {
         MockToken inputToken = new MockToken("Input", "IN", 18);
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
-        // arb5 only trusts the canonical raindex deployment, so etch the mock's
+        // arb6 only trusts the canonical raindex deployment, so etch the mock's
         // runtime code (immutables included) at that address.
         vm.etch(
             LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS,
@@ -99,12 +100,12 @@ library LibTestArb {
         outputToken.mint(address(raindex), raindexOutputAmount);
         inputToken.mint(address(exchange), exchangeInputAmount);
 
-        GenericPoolRaindexV6ArbOrderTaker arb = new GenericPoolRaindexV6ArbOrderTaker();
+        GenericPoolRaindexV7ArbOrderTaker arb = new GenericPoolRaindexV7ArbOrderTaker();
 
         bytes memory exchangeData =
             abi.encodeCall(MockExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), swapAmount));
 
-        TakeOrdersConfigV5 memory takeOrdersConfig;
+        TakeOrdersConfigV6 memory takeOrdersConfig;
         {
             IOV2[] memory validInputs = new IOV2[](1);
             validInputs[0] = IOV2(address(inputToken), bytes32(0));
@@ -114,19 +115,17 @@ library LibTestArb {
             OrderV4 memory order = OrderV4({
                 owner: address(0x1234),
                 evaluable: EvaluableV4(
-                    IInterpreterV4(LibInterpreterDeploy.INTERPRETER_DEPLOYED_ADDRESS),
-                    IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS),
-                    hex""
+                    IInterpreterV4(TEST_INTERPRETER_ADDRESS), IInterpreterStoreV3(TEST_STORE_ADDRESS), hex""
                 ),
                 validInputs: validInputs,
                 validOutputs: validOutputs,
                 nonce: bytes32(0)
             });
 
-            TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
-            orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
+            TakeOrderConfigV5[] memory orders = new TakeOrderConfigV5[](1);
+            orders[0] = TakeOrderConfigV5(order, 0, 0, new SignedContextV2[](0));
 
-            takeOrdersConfig = TakeOrdersConfigV5({
+            takeOrdersConfig = TakeOrdersConfigV6({
                 minimumIO: LibDecimalFloat.packLossless(0, 0),
                 maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
                 maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
@@ -136,7 +135,7 @@ library LibTestArb {
             });
         }
 
-        arb.arb5{value: ethValue}(IRaindexV6(address(raindex)), takeOrdersConfig, task);
+        arb.arb6{value: ethValue}(IRaindexV7(address(raindex)), takeOrdersConfig, task);
 
         return
             ArbResult({
@@ -146,7 +145,7 @@ library LibTestArb {
 
     /// Set up an order-taker arb scenario without executing it.
     /// The caller provides their own exchange. Returns everything needed
-    /// to call arb5 directly.
+    /// to call arb6 directly.
     ///
     /// @param vm The Vm cheatcode handle.
     /// @param exchange The exchange contract address.
@@ -158,7 +157,7 @@ library LibTestArb {
         MockToken inputToken = new MockToken("Input", "IN", 18);
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
-        // arb5 only trusts the canonical raindex deployment, so etch the mock's
+        // arb6 only trusts the canonical raindex deployment, so etch the mock's
         // runtime code (immutables included) at that address.
         vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, address(new RealisticOrderTakerMockRaindex(amount)).code);
         RealisticOrderTakerMockRaindex raindex =
@@ -167,12 +166,12 @@ library LibTestArb {
         outputToken.mint(address(raindex), amount);
         inputToken.mint(exchange, amount);
 
-        GenericPoolRaindexV6ArbOrderTaker arb = new GenericPoolRaindexV6ArbOrderTaker();
+        GenericPoolRaindexV7ArbOrderTaker arb = new GenericPoolRaindexV7ArbOrderTaker();
 
         bytes memory exchangeData =
             abi.encodeCall(MockExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), amount));
 
-        TakeOrdersConfigV5 memory takeOrdersConfig;
+        TakeOrdersConfigV6 memory takeOrdersConfig;
         {
             IOV2[] memory validInputs = new IOV2[](1);
             validInputs[0] = IOV2(address(inputToken), bytes32(0));
@@ -182,19 +181,17 @@ library LibTestArb {
             OrderV4 memory order = OrderV4({
                 owner: address(0x1234),
                 evaluable: EvaluableV4(
-                    IInterpreterV4(LibInterpreterDeploy.INTERPRETER_DEPLOYED_ADDRESS),
-                    IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS),
-                    hex""
+                    IInterpreterV4(TEST_INTERPRETER_ADDRESS), IInterpreterStoreV3(TEST_STORE_ADDRESS), hex""
                 ),
                 validInputs: validInputs,
                 validOutputs: validOutputs,
                 nonce: bytes32(0)
             });
 
-            TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
-            orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
+            TakeOrderConfigV5[] memory orders = new TakeOrderConfigV5[](1);
+            orders[0] = TakeOrderConfigV5(order, 0, 0, new SignedContextV2[](0));
 
-            takeOrdersConfig = TakeOrdersConfigV5({
+            takeOrdersConfig = TakeOrdersConfigV6({
                 minimumIO: LibDecimalFloat.packLossless(0, 0),
                 maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
                 maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
@@ -208,7 +205,7 @@ library LibTestArb {
             arb: arb,
             inputToken: inputToken,
             outputToken: outputToken,
-            raindex: IRaindexV6(address(raindex)),
+            raindex: IRaindexV7(address(raindex)),
             takeOrdersConfig: takeOrdersConfig
         });
     }

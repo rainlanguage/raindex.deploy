@@ -13,11 +13,13 @@
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 	import LocalDbSyncGate from '$lib/components/LocalDbSyncGate.svelte';
+	import { readable } from 'svelte/store';
 
 	const { id, chainId, raindex } = $page.params;
 	const parsedId = id as Hex;
 	const parsedChainId = Number(chainId);
 	const raindexAddress = raindex as Address;
+	const detailChainIds = readable([parsedChainId]);
 
 	const { account } = useAccount();
 	const { manager } = useTransactions();
@@ -50,6 +52,6 @@
 
 <PageHeader title="Vault" pathname={$page.url.pathname} />
 
-<LocalDbSyncGate>
+<LocalDbSyncGate nonBlocking selectedChainIds={detailChainIds}>
 	<VaultDetail id={parsedId} {raindexAddress} chainId={parsedChainId} {onDeposit} {onWithdraw} />
 </LocalDbSyncGate>

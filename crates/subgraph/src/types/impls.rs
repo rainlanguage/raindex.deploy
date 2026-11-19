@@ -226,6 +226,8 @@ mod tests {
         SgTrade {
             id: SgBytes("".to_string()),
             trade_event: SgTradeEvent {
+                id: SgBytes("".to_string()),
+                __typename: "TakeOrder".to_string(),
                 transaction: SgTransaction {
                     id: SgBytes("".to_string()),
                     from: SgBytes("".to_string()),

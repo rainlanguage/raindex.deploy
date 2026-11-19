@@ -6,7 +6,7 @@ resolver = "2"
 edition = "2021"
 license = "LicenseRef-DCL-1.0"
 version = "0.0.0-alpha.0"
-homepage = "https://github.com/rainlanguage/raindex"
+homepage = "https://github.com/rainlanguage/raindex.deploy"
 
 [workspace.dependencies]
 foundry-block-explorers = "0.2.6"
@@ -15,7 +15,15 @@ anyhow = "1.0.70"
 async-trait = "0.1.77"
 clap = { version = "4.2.5", features = ["cargo", "derive"] }
 once_cell = "1.17.1"
-reqwest = { version = "0.12.5", features = ["json"] }
+# rustls instead of the default native-tls/OpenSSL backend, so TLS follows
+# rustls-webpki's trust decisions. Keeps the other default features except
+# http2: native-tls never negotiated h2 here, so requests stay on HTTP/1.1.
+reqwest = { version = "0.12.20", default-features = false, features = [
+  "json",
+  "rustls-tls-native-roots",
+  "charset",
+  "system-proxy",
+] }
 rust-bigint = "1.2.0"
 serde = "1.0.200"
 futures = "0.3.17"
@@ -48,7 +56,7 @@ derive_builder = "0.20.0"
 thirtyfour = "0.31.0"
 test-context = "0.3.0"
 portpicker = "0.1.1"
-rain-erc = "0.1.1"
+rain-erc = "0.1.5"
 rain-math-float = "0.1.7"
 rain-error-decoding = "0.1.2"
 # Direct dep required: the #[wasm_bindgen] macro emits `::wasm_bindgen` paths, and

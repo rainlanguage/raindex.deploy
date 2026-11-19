@@ -1,4 +1,5 @@
 use super::candidates::TakeOrderCandidate;
+use super::config::ParsedTakeOrdersMode;
 use crate::raindex_client::RaindexError;
 use crate::utils::float::cmp_float;
 use crate::utils::timing::Timing;
@@ -34,6 +35,18 @@ pub struct SimulationResult {
     pub legs: Vec<SelectedTakeOrderLeg>,
     pub total_input: Float,
     pub total_output: Float,
+}
+
+pub fn simulate_candidates(
+    candidates: Vec<TakeOrderCandidate>,
+    mode: ParsedTakeOrdersMode,
+    price_cap: Float,
+) -> Result<SimulationResult, RaindexError> {
+    if mode.is_buy_mode() {
+        simulate_buy_over_candidates(candidates, mode.target_amount(), price_cap)
+    } else {
+        simulate_spend_over_candidates(candidates, mode.target_amount(), price_cap)
+    }
 }
 
 fn sort_candidates_by_price(candidates: &mut [TakeOrderCandidate]) -> Result<(), RaindexError> {

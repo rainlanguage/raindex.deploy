@@ -25,7 +25,7 @@ impl<'a> LocalDbTransactions<'a> {
         tx_hash: B256,
     ) -> Result<Option<RaindexTransaction>, RaindexError> {
         let stmt = build_fetch_transaction_by_hash_stmt(raindex_id, tx_hash);
-        let results: Vec<LocalDbTransaction> = self.db.query_json(&stmt).await?;
+        let results: Vec<LocalDbTransaction> = self.db.query_json_retryable(&stmt).await?;
 
         if let Some(local_tx) = results.into_iter().next() {
             let tx = RaindexTransaction::from_local_parts(

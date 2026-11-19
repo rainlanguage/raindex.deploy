@@ -210,12 +210,14 @@ mod tests {
             fetch,
             finality: FinalityConfig { depth: 12 },
             window_overrides: WindowOverrides::default(),
+            max_blocks_per_cycle: None,
         };
         let inputs = SyncInputs {
             raindex_id: raindex_id.clone(),
             metadata_rpcs: Vec::new(),
             cfg: sync_config,
             dump_str: None,
+            defer_analyze: false,
             block_number_threshold: 10000,
             manifest_end_block: 1,
         };
@@ -232,6 +234,7 @@ mod tests {
             target_block: 400,
             fetched_logs: 123,
             decoded_events: 456,
+            caught_up: true,
         };
         let export = ExportMetadata {
             dump_path: PathBuf::from(format!(

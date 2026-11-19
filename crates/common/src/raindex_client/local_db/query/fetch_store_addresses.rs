@@ -6,7 +6,7 @@ pub async fn fetch_store_addresses<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
     raindex_id: &RaindexIdentifier,
 ) -> Result<Vec<StoreAddressRow>, LocalDbQueryError> {
-    exec.query_json(&fetch_store_addresses_stmt(raindex_id))
+    exec.query_json_retryable(&fetch_store_addresses_stmt(raindex_id))
         .await
 }
 

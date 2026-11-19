@@ -1,18 +1,18 @@
 {
   "name": "@rainlanguage/raindex",
   "description": "Provides RainLanguage Raindex rust crates' functionalities in typescript through wasm bindgen",
-  "version": "0.0.1-alpha.238",
+  "version": "0.0.1-alpha.256",
   "license": "LicenseRef-DCL-1.0",
   "author": "Rain Open Source Software Ltd",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rainlanguage/raindex.git"
+    "url": "https://github.com/rainlanguage/raindex.deploy.git"
   },
   "keywords": [],
   "bugs": {
-    "url": "https://github.com/rainlanguage/raindex/issues"
+    "url": "https://github.com/rainlanguage/raindex.deploy/issues"
   },
-  "homepage": "https://github.com/rainlanguage/raindex#readme",
+  "homepage": "https://github.com/rainlanguage/raindex.deploy#readme",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "browser": {

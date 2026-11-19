@@ -4,6 +4,7 @@
   import { QKEY_ORDER_TRADES_LIST } from "../../queries/keys";
   import { TableBodyCell, TableHeadCell } from "flowbite-svelte";
   import { formatTimestampSecondsAsLocal } from "../../services/time";
+  import { useLocalTime } from "../../storesGeneric/useLocalTime";
   import Hash, { HashType } from "../Hash.svelte";
   import { BugOutline } from "flowbite-svelte-icons";
   import type {
@@ -92,7 +93,7 @@
     {@const oiRatio = Math.abs(outputAmt / inputAmt)}
     {@const validRatio = Number.isFinite(ioRatio) && Number.isFinite(oiRatio)}
     <TableBodyCell tdClass="px-4 py-2">
-      {formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
+      {formatTimestampSecondsAsLocal(BigInt(item.timestamp), $useLocalTime)}
     </TableBodyCell>
     <TableBodyCell tdClass="px-4 py-2">
       <div class="flex flex-col gap-1 text-sm">

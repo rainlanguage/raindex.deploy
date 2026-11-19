@@ -3,6 +3,7 @@ pub mod create_tables;
 pub mod fetch_all_tokens;
 pub mod fetch_erc20_tokens_by_addresses;
 pub mod fetch_last_synced_block;
+pub mod fetch_latest_trades_per_token;
 pub mod fetch_order_trades;
 pub mod fetch_order_trades_count;
 pub mod fetch_order_vaults_volume;

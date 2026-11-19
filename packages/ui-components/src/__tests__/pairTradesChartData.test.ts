@@ -459,33 +459,39 @@ describe("flipTradingPair", () => {
 });
 
 describe("formatChartTimestamp", () => {
-  it("formats with minutes for 24h delta", () => {
-    const ts = new Date(2024, 0, 15, 14, 30).getTime() / 1000;
+  it("formats with minutes for 24h delta in UTC by default", () => {
+    const ts = Date.UTC(2024, 0, 15, 14, 30) / 1000;
     const result = formatChartTimestamp(ts, TIME_DELTA_24_HOURS);
     expect(result).toBe("Jan 15 14:30");
   });
 
-  it("formats with hour precision for 7d delta", () => {
-    const ts = new Date(2024, 0, 15, 14, 30).getTime() / 1000;
+  it("formats with hour precision for 7d delta in UTC by default", () => {
+    const ts = Date.UTC(2024, 0, 15, 14, 30) / 1000;
     const result = formatChartTimestamp(ts, TIME_DELTA_7_DAYS);
     expect(result).toBe("Jan 15 14:00");
   });
 
-  it("formats with day only for 30d delta", () => {
-    const ts = new Date(2024, 0, 15, 14, 30).getTime() / 1000;
+  it("formats with day only for 30d delta in UTC by default", () => {
+    const ts = Date.UTC(2024, 0, 15, 14, 30) / 1000;
     const result = formatChartTimestamp(ts, TIME_DELTA_30_DAYS);
     expect(result).toBe("Jan 15");
   });
 
-  it("formats with day only for 1y delta", () => {
-    const ts = new Date(2024, 0, 15, 14, 30).getTime() / 1000;
+  it("formats with day only for 1y delta in UTC by default", () => {
+    const ts = Date.UTC(2024, 0, 15, 14, 30) / 1000;
     const result = formatChartTimestamp(ts, TIME_DELTA_1_YEAR);
     expect(result).toBe("Jan 15");
   });
 
-  it("pads single-digit hours and minutes", () => {
-    const ts = new Date(2024, 0, 5, 9, 5).getTime() / 1000;
+  it("pads single-digit hours and minutes in UTC by default", () => {
+    const ts = Date.UTC(2024, 0, 5, 9, 5) / 1000;
     const result = formatChartTimestamp(ts, TIME_DELTA_24_HOURS);
     expect(result).toBe("Jan 5 09:05");
+  });
+
+  it("formats in local time when useLocalTime is true", () => {
+    const ts = new Date(2024, 0, 15, 14, 30).getTime() / 1000;
+    const result = formatChartTimestamp(ts, TIME_DELTA_24_HOURS, true);
+    expect(result).toBe("Jan 15 14:30");
   });
 });

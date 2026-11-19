@@ -2,20 +2,20 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Test} from "forge-std-1.16.1/src/Test.sol";
+import {Test} from "forge-std-1.17.0/src/Test.sol";
 
 import {Token} from "test/util/concrete/Token.sol";
 import {Refundoor} from "test/util/concrete/Refundoor.sol";
 import {
     FlashLendingMockRaindex,
     OrderV4,
-    TakeOrderConfigV4,
+    TakeOrderConfigV5,
     IOV2,
-    SignedContextV1,
+    SignedContextV2,
     EvaluableV4
 } from "test/util/concrete/FlashLendingMockRaindex.sol";
-import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.1/src/lib/LibTOFUTokenDecimals.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.2/src/lib/LibRainDeploy.sol";
+import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.33/src/lib/LibRainDeploy.sol";
 import {LibRaindexDeploy} from "../../../src/lib/deploy/LibRaindexDeploy.sol";
 
 abstract contract ArbTest is Test {
@@ -51,7 +51,7 @@ abstract contract ArbTest is Test {
     function buildTakeOrderConfig(OrderV4 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
         internal
         view
-        returns (TakeOrderConfigV4[] memory)
+        returns (TakeOrderConfigV5[] memory)
     {
         if (order.validInputs.length == 0) {
             order.validInputs = new IOV2[](1);
@@ -65,8 +65,8 @@ abstract contract ArbTest is Test {
         order.validInputs[inputIOIndex].token = address(iTakerOutput);
         order.validOutputs[outputIOIndex].token = address(iTakerInput);
 
-        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
-        orders[0] = TakeOrderConfigV4(order, inputIOIndex, outputIOIndex, new SignedContextV1[](0));
+        TakeOrderConfigV5[] memory orders = new TakeOrderConfigV5[](1);
+        orders[0] = TakeOrderConfigV5(order, inputIOIndex, outputIOIndex, new SignedContextV2[](0));
         return orders;
     }
 

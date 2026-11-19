@@ -7,6 +7,7 @@
 		type VaultBalanceChangeFilter
 	} from '@rainlanguage/raindex';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
+	import { useLocalTime } from '../../storesGeneric/useLocalTime';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
@@ -80,7 +81,7 @@
 					</Tooltip>
 				</div>
 				<span class="text-xs text-gray-500 dark:text-gray-400">
-					{formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
+					{formatTimestampSecondsAsLocal(BigInt(item.timestamp), $useLocalTime)}
 				</span>
 			</div>
 		</TableBodyCell>

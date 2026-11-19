@@ -9,7 +9,7 @@ pub async fn fetch_erc20_tokens_by_addresses<E: LocalDbQueryExecutor + ?Sized>(
     addresses: &[Address],
 ) -> Result<Vec<Erc20TokenRow>, LocalDbQueryError> {
     if let Some(stmt) = build_fetch_stmt(raindex_id, addresses)? {
-        exec.query_json(&stmt).await
+        exec.query_json_retryable(&stmt).await
     } else {
         Ok(vec![])
     }

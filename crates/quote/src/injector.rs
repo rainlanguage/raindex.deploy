@@ -1,8 +1,8 @@
 use alloy::primitives::Address;
 use async_trait::async_trait;
-use raindex_bindings::IRaindexV6::{OrderV4, SignedContextV1};
+use raindex_bindings::IRaindexV7::{OrderV4, SignedContextV2};
 
-/// Caller-supplied source of additional `SignedContextV1` entries for each
+/// Caller-supplied source of additional `SignedContextV2` entries for each
 /// order candidate. Invoked during candidate building, after any oracle-URL
 /// contexts have been fetched. Returned contexts are appended (not replacing
 /// oracle contexts). Strategies that verify signed context by index must
@@ -20,7 +20,7 @@ pub trait SignedContextInjector: Send + Sync {
         input_io_index: u32,
         output_io_index: u32,
         counterparty: Address,
-    ) -> Vec<SignedContextV1>;
+    ) -> Vec<SignedContextV2>;
 }
 
 /// No-op injector used as the default when no caller-supplied injector is given.
@@ -34,7 +34,7 @@ impl SignedContextInjector for NoopInjector {
         _input_io_index: u32,
         _output_io_index: u32,
         _counterparty: Address,
-    ) -> Vec<SignedContextV1> {
+    ) -> Vec<SignedContextV2> {
         vec![]
     }
 }

@@ -2,7 +2,7 @@ use super::simulation::SimulationResult;
 use crate::raindex_client::RaindexError;
 use alloy::primitives::{Bytes, U256};
 use rain_math_float::Float;
-use raindex_bindings::IRaindexV6::{TakeOrderConfigV4, TakeOrdersConfigV5};
+use raindex_bindings::IRaindexV7::{TakeOrderConfigV5, TakeOrdersConfigV6};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -53,7 +53,7 @@ impl ParsedTakeOrdersMode {
 
 #[derive(Clone, Debug)]
 pub struct BuiltTakeOrdersConfig {
-    pub config: TakeOrdersConfigV5,
+    pub config: TakeOrdersConfigV6,
     pub sim: SimulationResult,
 }
 
@@ -84,10 +84,10 @@ pub fn build_take_orders_config_from_simulation(
 
     let zero = Float::zero()?;
 
-    let orders: Vec<TakeOrderConfigV4> = sim
+    let orders: Vec<TakeOrderConfigV5> = sim
         .legs
         .iter()
-        .map(|leg| TakeOrderConfigV4 {
+        .map(|leg| TakeOrderConfigV5 {
             order: leg.candidate.order.clone(),
             inputIOIndex: U256::from(leg.candidate.input_io_index),
             outputIOIndex: U256::from(leg.candidate.output_io_index),
@@ -101,7 +101,7 @@ pub fn build_take_orders_config_from_simulation(
     let minimum_io = if mode.is_exact_mode() { target } else { zero };
     let maximum_io_ratio = price_cap;
 
-    let config = TakeOrdersConfigV5 {
+    let config = TakeOrdersConfigV6 {
         minimumIO: minimum_io.get_inner(),
         maximumIO: maximum_io.get_inner(),
         maximumIORatio: maximum_io_ratio.get_inner(),

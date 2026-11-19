@@ -11,9 +11,11 @@
 	export let modalTitle: string;
 	export let closeOnConfirm: boolean = false;
 	export let args: TransactionConfirmationProps['args'];
+	export let onClosed: (() => void) | undefined = undefined;
 
 	let confirmationState: WalletConfirmationState = { status: 'awaiting_confirmation' };
 	let autoCloseTimeout: ReturnType<typeof setTimeout> | undefined;
+	let closed = false;
 
 	async function init() {
 		confirmationState = { status: 'awaiting_confirmation' };
@@ -21,7 +23,7 @@
 		const result = await handleWalletConfirmation(args);
 		confirmationState = result.state;
 		if (closeOnConfirm && confirmationState.status === 'confirmed') {
-			open = false;
+			closeModal();
 		}
 	}
 
@@ -36,16 +38,24 @@
 		init();
 	}
 
-	// Auto-close modal after 2 seconds when transaction is confirmed
-	$: if (confirmationState.status === 'confirmed' && open && !autoCloseTimeout) {
+	// Auto-close modal after 2 seconds when transaction is confirmed so the user
+	// can see the success state. Approvals that set closeOnConfirm skip this.
+	$: if (confirmationState.status === 'confirmed' && open && !autoCloseTimeout && !closeOnConfirm) {
 		autoCloseTimeout = setTimeout(() => {
-			open = false;
+			closeModal();
 		}, 2000);
 	}
 
-	function handleDismiss() {
+	function closeModal() {
+		if (closed) return;
+		closed = true;
 		clearAutoCloseTimeout();
 		open = false;
+		onClosed?.();
+	}
+
+	function handleDismiss() {
+		closeModal();
 	}
 </script>
 

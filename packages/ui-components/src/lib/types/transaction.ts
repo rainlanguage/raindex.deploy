@@ -59,6 +59,8 @@ export enum TransactionStatusMessage {
 export enum TransactionStoreErrorMessage {
   SWITCH_CHAIN_FAILED = "Failed to switch chain.",
   SUBGRAPH_TIMEOUT_ERROR = "The subgraph took too long to respond. Your transaction may still be processing.",
+  /** Shown under SUCCESS when indexing is slow after an on-chain receipt. */
+  INDEXING_CATCHING_UP = "On-chain confirmation succeeded. Balances and history may take a moment to refresh — use the explorer link to verify now.",
   SUBGRAPH_FAILED = "Failed to index transaction.",
   RECEIPT_FAILED = "Failed to get transaction receipt.",
 }

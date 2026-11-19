@@ -15,6 +15,6 @@ pub use preflight::{
 };
 pub use raindex_quote::injector::{NoopInjector, SignedContextInjector};
 pub use simulation::{
-    simulate_buy_over_candidates, simulate_spend_over_candidates, SelectedTakeOrderLeg,
-    SimulationResult,
+    simulate_buy_over_candidates, simulate_candidates, simulate_spend_over_candidates,
+    SelectedTakeOrderLeg, SimulationResult,
 };

@@ -1,6 +1,18 @@
-[package]
-name = "raindex"
-version = "0.1.13"
+# Release metadata, not foundry config. `[external.*]` is the namespace foundry
+# reserves for other tools and ignores outright, so it raises no unknown-section
+# warning and `forge config --fix` leaves it alone (a section foundry does not
+# reserve is read as a profile, warned about on every invocation and rewritten
+# into `[profile.*]` by the fixer).
+#
+# `version` is the LAST-published Soldeer release, not a next-version slot. A
+# normal PR never moves it; only a release does, in lockstep with the frozen
+# `src/generated/<tag>/` snapshot it names. `LibRainDeploySnapshot.deployTag()`
+# reads it here when `script/Build.sol`'s `cutRelease()` runs, and rainix's
+# `release-guard` checks it against the pushed `sol-v<version>` tag before
+# anything publishes.
+[external.package]
+name = "raindex-deploy"
+version = "0.1.17"
 
 [profile.default]
 src = 'src'
@@ -11,6 +23,8 @@ libs = ['dependencies']
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 
 ffi = true
+# script/Build.sol's codegen outgrows the default 2^30 gas limit.
+gas_limit = "18446744073709551615"
 solc = "0.8.25"
 evm_version = "cancun"
 
@@ -22,10 +36,15 @@ evm_version = "cancun"
 
 # optimizer settings for snapshotting.
 optimizer = true
-# Lowered from 1000000 → 1000 → 800 to stay under the EIP-170 24576-byte
-# contract size limit. With the per-owner state overlay removed (untaken orders
-# make no state change), RaindexV6 is 24,424 bytes at 800 runs (152 under).
 optimizer_runs = 800
+
+# RaindexV7 only fits EIP-170 via IR. Changing this profile moves its Zoltu address.
+additional_compiler_profiles = [
+  { name = "raindex", via_ir = true, optimizer_runs = 800 },
+]
+compilation_restrictions = [
+  { paths = "src/concrete/raindex/RaindexV7.sol", via_ir = true, min_optimizer_runs = 800, max_optimizer_runs = 800 },
+]
 
 bytecode_hash = "none"
 cbor_metadata = false
@@ -34,38 +53,51 @@ cbor_metadata = false
 # than expose ffi to forge.
 fs_permissions = [
   { access = "read", path = "./meta" },
-  { access = "read-write", path = "./meta/RaindexV6SubParserAuthoringMeta.rain.meta" },
-  { access = "read-write", path = "src/generated" },
+  { access = "read-write", path = "./meta/RaindexV7SubParserAuthoringMeta.rain.meta" },
+  # `script/Build.sol` writes the rolling candidate snapshot under
+  # `src/generated/` and the generated released-suites libs under `src/lib/`.
+  { access = "read-write", path = "./src" },
   { access = "read", path = "./subgraph" },
+  # script/Build.sol reads `[external.package].version` to name the frozen
+  # per-release snapshot dir.
+  { access = "read", path = "foundry.toml" },
+  { access = "read", path = "./.env.example" },
+  { access = "read-write", path = "./.staged-config" },
+  { access = "read", path = "./script/build.sh" },
+  { access = "read", path = ".github/workflows/manual-sol-artifacts.yaml" },
 ]
 
 remappings = [
   # Custom remap so @openzeppelin packages' own internal imports resolve.
-  "@openzeppelin/contracts/=dependencies/@openzeppelin-contracts-5.6.1/",
+  "@openzeppelin/contracts/=dependencies/@openzeppelin-contracts-5.7.0/",
 ]
 
 [dependencies]
-forge-std = "1.16.1"
-"@openzeppelin-contracts" = "5.6.1"
+forge-std = "1.17.0"
+"@openzeppelin-contracts" = "5.7.0"
 # rainlanguage/rain.interpreter was renamed to rainlanguage/rainlang;
 # its Soldeer registry name follows.
-rainlang = "0.1.5"
-rain-interpreter-interface = "0.1.0"
+rainlang = "0.2.36"
 # rainlanguage/rain.raindex.interface was renamed to
 # rainlanguage/raindex.interface; Soldeer registry name follows.
-raindex-interface = "0.1.1"
-rain-metadata = "0.1.0"
-rain-intorastring = "0.1.0"
-rain-sol-codegen = "0.1.0"
-rain-solmem = "0.1.3"
-rain-math-float = "0.1.1"
-rain-tofu-erc20-decimals = "0.1.1"
-rain-deploy = "0.1.2"
-rain-lib-typecast = "0.1.0"
-rain-lib-hash = "0.1.0"
-rain-math-binary = "0.1.1"
-rain-string = "0.2.0"
-rain-lib-memkv = "0.1.0"
+raindex-interface = "0.1.14"
+rain-metadata = "0.1.46"
+# The MetaBoard split out of `rain.metadata` into its own deploy repo. The
+# deploy pin lives there now; `rain-metadata` keeps the interfaces and libs.
+rain-metadata-deploy = "0.1.5"
+rain-intorastring = "0.1.4"
+rain-sol-codegen = "0.1.39"
+rain-solmem = "0.1.28"
+rain-math-float = "0.3.12"
+rain-math-float-deploy = "0.1.10"
+rain-tofu-erc20-decimals = "0.1.5"
+rain-tofu-erc20-decimals-deploy = "0.1.6"
+rain-deploy = "0.1.33"
+rain-lib-typecast = "0.1.4"
+rain-lib-hash = "0.1.27"
+rain-math-binary = "0.1.4"
+rain-string = "0.3.10"
+rain-lib-memkv = "0.2.0"
 
 [soldeer]
 recursive_deps = false
@@ -73,16 +105,33 @@ recursive_deps = false
 [fuzz]
 runs = 5096
 
+# rain-deploy:generated:rpc_endpoints:begin
 [rpc_endpoints]
 arbitrum = "${ARBITRUM_RPC_URL}"
 base = "${BASE_RPC_URL}"
 base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
+bsc = "${BSC_RPC_URL}"
+ethereum = "${ETHEREUM_RPC_URL}"
 flare = "${FLARE_RPC_URL}"
+hyperevm = "${HYPEREVM_RPC_URL}"
 polygon = "${POLYGON_RPC_URL}"
+robinhood = "${ROBINHOOD_RPC_URL}"
+# rain-deploy:generated:rpc_endpoints:end
 
+# Robinhood Chain (4663) is not indexed by Etherscan V2. Its Blockscout speaks
+# the Etherscan API, so the entry points there (the key is ignored). That
+# explorer has rejected non-browser clients, so if `--verify` fails there,
+# verify afterwards through Sourcify: `forge verify-contract --verifier
+# sourcify --chain 4663 ...`.
+# rain-deploy:generated:etherscan:begin
 [etherscan]
-arbitrum = { key = "${CI_DEPLOY_ARBITRUM_ETHERSCAN_API_KEY}" }
-base = { key = "${CI_DEPLOY_BASE_ETHERSCAN_API_KEY}" }
-base_sepolia = { key = "${CI_DEPLOY_BASE_SEPOLIA_ETHERSCAN_API_KEY}" }
-flare = { key = "${CI_DEPLOY_FLARE_ETHERSCAN_API_KEY}" }
-polygon = { key = "${CI_DEPLOY_POLYGON_ETHERSCAN_API_KEY}" }
+arbitrum = { key = "${CI_DEPLOY_ARBITRUM_ETHERSCAN_API_KEY}", chain = 42161 }
+base = { key = "${CI_DEPLOY_BASE_ETHERSCAN_API_KEY}", chain = 8453 }
+base_sepolia = { key = "${CI_DEPLOY_BASE_SEPOLIA_ETHERSCAN_API_KEY}", chain = 84532 }
+bsc = { key = "${CI_DEPLOY_BSC_ETHERSCAN_API_KEY}", chain = 56 }
+ethereum = { key = "${CI_DEPLOY_ETHEREUM_ETHERSCAN_API_KEY}", chain = 1 }
+flare = { key = "${CI_DEPLOY_FLARE_ETHERSCAN_API_KEY}", chain = 14 }
+hyperevm = { key = "${CI_DEPLOY_HYPEREVM_ETHERSCAN_API_KEY}", chain = 999 }
+polygon = { key = "${CI_DEPLOY_POLYGON_ETHERSCAN_API_KEY}", chain = 137 }
+robinhood = { key = "${CI_DEPLOY_ROBINHOOD_ETHERSCAN_API_KEY}", chain = 4663, url = "https://robinhoodchain.blockscout.com/api" }
+# rain-deploy:generated:etherscan:end

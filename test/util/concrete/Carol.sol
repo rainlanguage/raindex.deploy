@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {IERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/utils/SafeERC20.sol";
 import {IPull} from "test/util/concrete/IPull.sol";
 
 /// Carol pulls tokens from Alice then returns only some of them so the loan

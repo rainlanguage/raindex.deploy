@@ -11,6 +11,7 @@
 	import {
 		WalletSolid,
 		ReceiptSolid,
+		ChartMixedSolid,
 		FileLinesSolid,
 		PlusOutline,
 		BarsSolid
@@ -18,6 +19,7 @@
 	import {
 		ButtonDarkMode,
 		ButtonScrub,
+		ButtonTimeZone,
 		IconTelegram,
 		IconExternalLink,
 		logoDark,
@@ -112,6 +114,12 @@
 						<span data-testid="sidebar-vaults"></span>
 					</svelte:fragment>
 				</SidebarItem>
+				<SidebarItem label="Markets" href="/markets" on:click={toggleSide}>
+					<svelte:fragment slot="icon">
+						<ChartMixedSolid class="h-5 w-5" />
+						<span data-testid="sidebar-markets"></span>
+					</svelte:fragment>
+				</SidebarItem>
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
 				<WalletConnect {appKitModal} {connected} classes="w-full" />
@@ -154,6 +162,7 @@
 			<SidebarGroup border class="flex justify-start gap-2" ulClass="list-none">
 				<ButtonDarkMode {colorTheme} />
 				<ButtonScrub />
+				<ButtonTimeZone />
 			</SidebarGroup>
 			<SidebarGroup border class="min-h-0 flex-1 overflow-hidden" ulClass="list-none h-full">
 				<TransactionList />

@@ -5,10 +5,10 @@ use crate::raindex_client::vaults::RaindexVault;
 use crate::utils::timing::Timing;
 use alloy::primitives::{Address, B256};
 use rain_math_float::Float;
-use raindex_bindings::IRaindexV6::{OrderV4, SignedContextV1, IOV2};
+use raindex_bindings::IRaindexV7::{OrderV4, SignedContextV2, IOV2};
 use raindex_quote::{
-    get_order_quotes, BatchOrderQuotesResponse, NoopInjector, OrderQuoteValue, Pair,
-    SignedContextInjector,
+    get_order_quotes, get_order_quotes_for_pairs, BatchOrderQuotesResponse, NoopInjector,
+    OrderQuoteValue, Pair, SignedContextInjector,
 };
 use raindex_subgraph_client::utils::float::{F0, F1};
 use std::ops::{Div, Mul};
@@ -30,7 +30,7 @@ pub struct RaindexOrderQuote {
     /// the candidate builder can reuse the same context the quote saw.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[tsify(optional)]
-    pub signed_context: Vec<SignedContextV1>,
+    pub signed_context: Vec<SignedContextV2>,
 }
 impl_wasm_traits!(RaindexOrderQuote);
 impl RaindexOrderQuote {
@@ -378,15 +378,52 @@ pub async fn get_order_quotes_batch(
     .await
 }
 
+#[cfg(not(target_family = "wasm"))]
+pub(crate) async fn get_order_quotes_batch_for_pairs(
+    orders: &[RaindexOrder],
+    selected_pairs: &[Vec<Pair>],
+    block_number: Option<u64>,
+    chunk_size: Option<u32>,
+) -> Result<Vec<Vec<RaindexOrderQuote>>, RaindexError> {
+    get_order_quotes_batch_inner(
+        orders,
+        Some(selected_pairs),
+        block_number,
+        chunk_size,
+        Address::ZERO,
+        &NoopInjector,
+    )
+    .await
+}
+
 /// Batch variant of [`get_order_quotes_batch`] that threads a
 /// `counterparty` address and a caller-supplied [`SignedContextInjector`]
 /// through to the quote RPC. Oracle-fetched contexts come first, followed by
 /// entries produced by the injector; the composed list is attached to each
-/// `QuoteV2.signedContext` before the multicall and is therefore visible to
+/// `QuoteV3.signedContext` before the multicall and is therefore visible to
 /// any `calculate-io` execution run during quoting (e.g. gated orders that
 /// assert on `signer<0>()`).
 pub async fn get_order_quotes_batch_with_injector(
     orders: &[RaindexOrder],
+    block_number: Option<u64>,
+    chunk_size: Option<u32>,
+    counterparty: Address,
+    injector: &dyn SignedContextInjector,
+) -> Result<Vec<Vec<RaindexOrderQuote>>, RaindexError> {
+    get_order_quotes_batch_inner(
+        orders,
+        None,
+        block_number,
+        chunk_size,
+        counterparty,
+        injector,
+    )
+    .await
+}
+
+async fn get_order_quotes_batch_inner(
+    orders: &[RaindexOrder],
+    selected_pairs: Option<&[Vec<Pair>]>,
     block_number: Option<u64>,
     chunk_size: Option<u32>,
     counterparty: Address,
@@ -429,14 +466,26 @@ pub async fn get_order_quotes_batch_with_injector(
         .map(|o| o.clone().into_sg_order())
         .collect::<Result<Vec<_>, _>>()?;
 
+    if selected_pairs.is_some_and(|pairs| pairs.len() != orders.len()) {
+        return Err(RaindexError::PreflightError(
+            "Selected quote pairs must align with orders".into(),
+        ));
+    }
     let pair_counts: Vec<usize> = sg_orders
         .iter()
-        .map(|sg| {
+        .enumerate()
+        .map(|(order_index, sg)| {
             let order_v4: OrderV4 = sg.clone().try_into()?;
             let mut count = 0usize;
-            for input in &order_v4.validInputs {
-                for output in &order_v4.validOutputs {
-                    if input.token != output.token {
+            for (input_index, input) in order_v4.validInputs.iter().enumerate() {
+                for (output_index, output) in order_v4.validOutputs.iter().enumerate() {
+                    let is_selected = selected_pairs.is_none_or(|pairs| {
+                        pairs[order_index].iter().any(|pair| {
+                            pair.input_index == input_index as u32
+                                && pair.output_index == output_index as u32
+                        })
+                    });
+                    if input.token != output.token && is_selected {
                         count += 1;
                     }
                 }
@@ -456,20 +505,42 @@ pub async fn get_order_quotes_batch_with_injector(
         "starting order quote batch"
     );
 
-    let flat_results = get_order_quotes(
-        sg_orders,
-        block_number,
-        rpcs,
-        chunk_size.map(|v| v as usize),
-        counterparty,
-        injector,
-    )
-    .await?;
+    let flat_results = match selected_pairs {
+        Some(pairs) => {
+            get_order_quotes_for_pairs(
+                sg_orders,
+                pairs,
+                block_number,
+                rpcs,
+                chunk_size.map(|v| v as usize),
+                counterparty,
+                injector,
+            )
+            .await?
+        }
+        None => {
+            get_order_quotes(
+                sg_orders,
+                block_number,
+                rpcs,
+                chunk_size.map(|v| v as usize),
+                counterparty,
+                injector,
+            )
+            .await?
+        }
+    };
 
     let flat_raindex: Vec<RaindexOrderQuote> = flat_results
         .into_iter()
         .map(RaindexOrderQuote::try_from_batch_order_quotes_response)
         .collect::<Result<Vec<_>, _>>()?;
+    if flat_raindex.len() != total_pair_count {
+        return Err(RaindexError::PreflightError(format!(
+            "Quote response count mismatch: expected {total_pair_count}, got {}",
+            flat_raindex.len()
+        )));
+    }
     let successful_quote_count = flat_raindex.iter().filter(|quote| quote.success).count();
     let failed_quote_count = flat_raindex.len().saturating_sub(successful_quote_count);
     for quote in flat_raindex.iter().filter(|quote| !quote.success) {
@@ -555,7 +626,7 @@ mod tests {
         );
 
         // OZ Multicall returns `bytes[]`; helper to wrap per-target
-        // `quote2Return`s into the outer multicall return payload.
+        // `quote3Return`s into the outer multicall return payload.
         fn encode_multicall_bytes(inner: Vec<quoteReturn>) -> String {
             let elements: Vec<Bytes> = inner.into_iter().map(|r| r.abi_encode().into()).collect();
             encode_prefixed(<Vec<Bytes> as SolValue>::abi_encode(&elements))

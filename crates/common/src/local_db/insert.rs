@@ -1,17 +1,16 @@
 use super::decode::{DecodedEvent, DecodedEventData, InterpreterStoreSetEvent};
 use super::query::{SqlStatement, SqlStatementBatch, SqlValue};
 use super::RaindexIdentifier;
-use crate::{erc20::TokenInfo, rpc_client::LogEntryResponse};
+use crate::erc20::TokenInfo;
 use alloy::primitives::Bytes;
 use alloy::sol_types::SolValue;
 use alloy::{
     hex,
     primitives::{keccak256, Address, FixedBytes, B256, U256},
 };
-use itertools::Itertools;
 use rain_math_float::Float;
-use raindex_bindings::IRaindexV6::{
-    AddOrderV3, AfterClearV2, ClearV3, DepositV2, OrderV4, RemoveOrderV3, TakeOrderV3, WithdrawV2,
+use raindex_bindings::IRaindexV7::{
+    AddOrderV3, AfterClearV2, ClearV3, DepositV2, OrderV4, RemoveOrderV3, TakeOrderV4, WithdrawV2,
     IOV2,
 };
 use raindex_bindings::Raindex::MetaV1_2;
@@ -36,8 +35,6 @@ pub enum InsertError {
     FloatConversion(String),
     #[error("Missing decimals for token {token}")]
     MissingTokenDecimals { token: String },
-    #[error("Failed to serialize raw event payload: {0}")]
-    RawEventSerialization(String),
 }
 
 fn u256_to_u64(value: &U256, field: &'static str) -> Result<u64, InsertError> {
@@ -117,13 +114,9 @@ pub fn decoded_events_to_statements(
                 batch.add(generate_remove_order_statement(&context, remove_event));
                 batch.extend(generate_order_ios_statements(&context, &remove_event.order));
             }
-            DecodedEvent::TakeOrderV3(decoded) => {
+            DecodedEvent::TakeOrderV4(decoded) => {
                 let take_event = decoded.as_ref();
                 batch.add(generate_take_order_statement(&context, take_event)?);
-                batch.extend(generate_take_order_context_statements(&context, take_event));
-                batch.extend(generate_take_order_context_value_statements(
-                    &context, take_event,
-                ));
             }
             DecodedEvent::ClearV3(decoded) => {
                 batch.add(generate_clear_v3_statement(&context, decoded.as_ref())?);
@@ -144,96 +137,6 @@ pub fn decoded_events_to_statements(
                 );
             }
         }
-    }
-
-    Ok(batch)
-}
-
-pub fn raw_events_to_statements(
-    raindex_id: &RaindexIdentifier,
-    raw_events: &[LogEntryResponse],
-) -> Result<SqlStatementBatch, InsertError> {
-    struct RawEventRow<'a> {
-        block_number: u64,
-        log_index: u64,
-        block_timestamp: Option<u64>,
-        event: &'a LogEntryResponse,
-        topics_json: String,
-        raw_json: String,
-    }
-
-    let rows = raw_events
-        .iter()
-        .map(|event| {
-            let block_number = u256_to_u64(&event.block_number, "block_number")?;
-            let log_index = u256_to_u64(&event.log_index, "log_index")?;
-            let block_timestamp = event
-                .block_timestamp
-                .as_ref()
-                .map(|ts| u256_to_u64(ts, "block_timestamp"))
-                .transpose()?;
-            let topics_json = serde_json::to_string(&event.topics)
-                .map_err(|err| InsertError::RawEventSerialization(err.to_string()))?;
-            let raw_json = serde_json::to_string(&event)
-                .map_err(|err| InsertError::RawEventSerialization(err.to_string()))?;
-            Ok(RawEventRow {
-                block_number,
-                log_index,
-                block_timestamp,
-                event,
-                topics_json,
-                raw_json,
-            })
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-
-    let mut batch = SqlStatementBatch::new();
-
-    for row in rows.iter().sorted_by(|a, b| {
-        a.block_number
-            .cmp(&b.block_number)
-            .then_with(|| a.log_index.cmp(&b.log_index))
-    }) {
-        let block_timestamp = row.block_timestamp.map_or(SqlValue::Null, SqlValue::from);
-
-        batch.add(SqlStatement::new_with_params(
-            r#"INSERT INTO raw_events (
-    chain_id,
-    raindex_address,
-    block_number,
-    block_timestamp,
-    transaction_hash,
-    log_index,
-    address,
-    topics,
-    data,
-    raw_json
-) VALUES (
-    ?1,
-    ?2,
-    ?3,
-    ?4,
-    ?5,
-    ?6,
-    ?7,
-    ?8,
-    ?9,
-    ?10
-);
-"#,
-            vec![
-                SqlValue::from(raindex_id.chain_id),
-                SqlValue::from(raindex_id.raindex_address),
-                SqlValue::from(row.block_number),
-                block_timestamp,
-                SqlValue::from(row.event.transaction_hash),
-                SqlValue::from(row.log_index),
-                SqlValue::from(row.event.address),
-                SqlValue::from(row.topics_json.clone()),
-                SqlValue::from(row.event.data.clone()),
-                SqlValue::from(row.raw_json.clone()),
-            ],
-        ));
     }
 
     Ok(batch)
@@ -507,7 +410,7 @@ fn generate_remove_order_statement(
 
 fn generate_take_order_statement(
     context: &EventContext,
-    decoded: &TakeOrderV3,
+    decoded: &TakeOrderV4,
 ) -> Result<SqlStatement, InsertError> {
     let input_io_index_u64 = u256_to_u64(&decoded.config.inputIOIndex, "inputIOIndex")?;
     let output_io_index_u64 = u256_to_u64(&decoded.config.outputIOIndex, "outputIOIndex")?;
@@ -559,101 +462,6 @@ fn generate_take_order_statement(
             SqlValue::from(decoded.output),
         ],
     ))
-}
-
-fn generate_take_order_context_statements(
-    context: &EventContext,
-    decoded: &TakeOrderV3,
-) -> SqlStatementBatch {
-    const INSERT_CONTEXT_SQL: &str = r#"INSERT INTO take_order_contexts (
-    chain_id,
-    raindex_address,
-    transaction_hash,
-    log_index,
-    context_index,
-    context_value
-) VALUES (
-    ?1,
-    ?2,
-    ?3,
-    ?4,
-    ?5,
-    ?6
-);
-"#;
-
-    let mut batch = SqlStatementBatch::new();
-    let transaction_hash = context.transaction_hash;
-    let log_index = context.log_index;
-
-    for (context_index, signed_context) in decoded.config.signedContext.iter().enumerate() {
-        let context_value = format!(
-            "signer:{},signature:{}",
-            hex::encode_prefixed(signed_context.signer),
-            hex::encode_prefixed(&signed_context.signature)
-        );
-
-        batch.add(SqlStatement::new_with_params(
-            INSERT_CONTEXT_SQL,
-            vec![
-                SqlValue::from(context.raindex_id.chain_id),
-                SqlValue::from(context.raindex_id.raindex_address),
-                SqlValue::from(transaction_hash),
-                SqlValue::from(log_index),
-                SqlValue::from(context_index as u64),
-                SqlValue::from(context_value),
-            ],
-        ));
-    }
-
-    batch
-}
-
-fn generate_take_order_context_value_statements(
-    context: &EventContext,
-    decoded: &TakeOrderV3,
-) -> SqlStatementBatch {
-    const INSERT_VALUE_SQL: &str = r#"INSERT INTO context_values (
-    chain_id,
-    raindex_address,
-    transaction_hash,
-    log_index,
-    context_index,
-    value_index,
-    value
-) VALUES (
-    ?1,
-    ?2,
-    ?3,
-    ?4,
-    ?5,
-    ?6,
-    ?7
-);
-"#;
-
-    let mut batch = SqlStatementBatch::new();
-    let transaction_hash = context.transaction_hash;
-    let log_index = context.log_index;
-
-    for (context_index, signed_context) in decoded.config.signedContext.iter().enumerate() {
-        for (value_index, value) in signed_context.context.iter().enumerate() {
-            batch.add(SqlStatement::new_with_params(
-                INSERT_VALUE_SQL,
-                vec![
-                    SqlValue::from(context.raindex_id.chain_id),
-                    SqlValue::from(context.raindex_id.raindex_address),
-                    SqlValue::from(transaction_hash),
-                    SqlValue::from(log_index),
-                    SqlValue::from(context_index as u64),
-                    SqlValue::from(value_index as u64),
-                    SqlValue::from(*value),
-                ],
-            ));
-        }
-    }
-
-    batch
 }
 
 fn generate_clear_v3_statement(
@@ -964,15 +772,14 @@ mod tests {
     use super::*;
     use crate::local_db::decode::{EventType, UnknownEventDecoded};
     use crate::local_db::query::SqlValue;
-    use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
-    use alloy::primitives::{address, b256, Address, Bytes, FixedBytes, B256, U256};
+    use alloy::primitives::{b256, Address, Bytes, FixedBytes, B256, U256};
+    use itertools::Itertools;
     use raindex_bindings::IInterpreterStoreV3::Set;
-    use raindex_bindings::IRaindexV6::{
-        ClearConfigV2, ClearStateChangeV2, EvaluableV4, SignedContextV1, TakeOrderConfigV4,
+    use raindex_bindings::IRaindexV7::{
+        ClearConfigV2, ClearStateChangeV2, EvaluableV4, SignedContextV2, TakeOrderConfigV5,
     };
     use std::collections::HashMap;
-    use std::str::FromStr;
 
     fn encode_u256_prefixed(value: &U256) -> String {
         hex::encode_prefixed(value.to_be_bytes::<32>())
@@ -1110,14 +917,15 @@ mod tests {
     }
 
     fn sample_take_event() -> DecodedEventData<DecodedEvent> {
-        let take = TakeOrderV3 {
+        let take = TakeOrderV4 {
             sender: Address::from([0x09; 20]),
-            config: TakeOrderConfigV4 {
+            config: TakeOrderConfigV5 {
                 order: sample_order(),
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
-                signedContext: vec![SignedContextV1 {
+                signedContext: vec![SignedContextV2 {
                     signer: Address::from([0x0a; 20]),
+                    domainSeparator: alloy::primitives::B256::repeat_byte(0xd5),
                     context: vec![U256::from(0x2a).into()],
                     signature: Bytes::from(vec![0x11, 0x22, 0x33]),
                 }],
@@ -1127,12 +935,12 @@ mod tests {
         };
 
         build_event(
-            EventType::TakeOrderV3,
+            EventType::TakeOrderV4,
             "0x101",
             "0x201",
             b256!("0x000000000000000000000000000000000000000000000000000000000000def0"),
             "0x2",
-            DecodedEvent::TakeOrderV3(Box::new(take)),
+            DecodedEvent::TakeOrderV4(Box::new(take)),
         )
     }
 
@@ -1377,7 +1185,7 @@ mod tests {
     fn take_order_sql_generation() {
         let event = sample_take_event();
         let context = event_context(&RaindexIdentifier::new(1, Address::ZERO), &event).unwrap();
-        let DecodedEvent::TakeOrderV3(decoded) = &event.decoded_data else {
+        let DecodedEvent::TakeOrderV4(decoded) = &event.decoded_data else {
             unreachable!()
         };
         let statement = generate_take_order_statement(&context, decoded).unwrap();
@@ -1401,25 +1209,14 @@ mod tests {
             matches!(params[6], SqlValue::Text(ref v) if v == "0x0909090909090909090909090909090909090909")
         );
 
-        let contexts = generate_take_order_context_statements(&context, decoded);
-        assert_eq!(contexts.len(), decoded.config.signedContext.len());
-        assert!(contexts
-            .statements()
+        let batch =
+            decoded_events_to_statements(&context.raindex_id, &[event], &HashMap::new()).unwrap();
+        let sql: Vec<_> = batch.statements().iter().map(|stmt| stmt.sql()).collect();
+        assert!(sql
             .iter()
-            .all(|stmt| stmt.sql().contains("INSERT INTO take_order_contexts")));
-
-        let context_values = generate_take_order_context_value_statements(&context, decoded);
-        let expected_values: usize = decoded
-            .config
-            .signedContext
-            .iter()
-            .map(|ctx| ctx.context.len())
-            .sum();
-        assert_eq!(context_values.len(), expected_values);
-        assert!(context_values
-            .statements()
-            .iter()
-            .all(|stmt| stmt.sql().contains("INSERT INTO context_values")));
+            .any(|stmt| stmt.contains("INSERT INTO take_orders")));
+        assert!(!sql.iter().any(|stmt| stmt.contains("take_order_contexts")));
+        assert!(!sql.iter().any(|stmt| stmt.contains("context_values")));
     }
 
     #[test]
@@ -1696,125 +1493,5 @@ mod tests {
         // Ensure no in-place escaping mangles the stored strings.
         assert_literal_round_trip(&super::sql_string_literal(&name), &name);
         assert_literal_round_trip(&super::sql_string_literal(&symbol), &symbol);
-    }
-
-    #[test]
-    fn test_raw_events_sql_sorted_and_handles_null_timestamp() {
-        let events = vec![
-            LogEntryResponse {
-                address: address!("0x2222222222222222222222222222222222222222"),
-                topics: vec![
-                    Bytes::from_str("0x01").unwrap(),
-                    Bytes::from_str("0x02").unwrap(),
-                ],
-                data: Bytes::from_str("0xdeadbeef").unwrap(),
-                block_number: U256::from(2),
-                block_timestamp: Some(U256::from(0x64b8c125u64)),
-                transaction_hash: b256!(
-                    "0x00000000000000000000000000000000000000000000000000000000000000bb"
-                ),
-                transaction_index: "0x0".to_string(),
-                block_hash: B256::ZERO,
-                log_index: U256::from(1),
-                removed: false,
-            },
-            LogEntryResponse {
-                address: address!("0x1111111111111111111111111111111111111111"),
-                topics: vec![Bytes::from_str("0x01").unwrap()],
-                data: Bytes::from_str("0xbead").unwrap(),
-                block_number: U256::from(1),
-                block_timestamp: Some(U256::from(0x64b8c124u64)),
-                transaction_hash: b256!(
-                    "0x0000000000000000000000000000000000000000000000000000000000000aaa"
-                ),
-                transaction_index: "0x0".to_string(),
-                block_hash: B256::ZERO,
-                log_index: U256::ZERO,
-                removed: false,
-            },
-            LogEntryResponse {
-                address: address!("0x3333333333333333333333333333333333333333"),
-                topics: vec![Bytes::from_str("0x01").unwrap()],
-                data: Bytes::from_str("0xfeed").unwrap(),
-                block_number: U256::from(3),
-                block_timestamp: None,
-                transaction_hash: b256!(
-                    "0x0000000000000000000000000000000000000000000000000000000000000ccc"
-                ),
-                transaction_index: "0x0".to_string(),
-                block_hash: B256::ZERO,
-                log_index: U256::ZERO,
-                removed: false,
-            },
-        ];
-
-        let raindex_address = Address::from([0x10; 20]);
-        let batch =
-            raw_events_to_statements(&RaindexIdentifier::new(1, raindex_address), &events).unwrap();
-        assert_eq!(batch.len(), 3);
-
-        let hashes: Vec<_> = batch
-            .statements()
-            .iter()
-            .map(|stmt| match stmt.params().get(4) {
-                Some(SqlValue::Text(h)) => h.as_str(),
-                other => panic!("unexpected hash param: {:?}", other),
-            })
-            .collect();
-        assert_eq!(
-            hashes,
-            vec![
-                "0x0000000000000000000000000000000000000000000000000000000000000aaa",
-                "0x00000000000000000000000000000000000000000000000000000000000000bb",
-                "0x0000000000000000000000000000000000000000000000000000000000000ccc"
-            ]
-        );
-
-        let timestamps: Vec<_> = batch
-            .statements()
-            .iter()
-            .map(|stmt| stmt.params().get(3).cloned().unwrap())
-            .collect();
-        assert!(matches!(timestamps[0], SqlValue::U64(0x64b8c124)));
-        assert!(matches!(timestamps[1], SqlValue::U64(0x64b8c125)));
-        assert!(matches!(timestamps[2], SqlValue::Null));
-
-        let topics_values: Vec<_> = batch
-            .statements()
-            .iter()
-            .map(|stmt| match stmt.params().get(7) {
-                Some(SqlValue::Text(t)) => t.clone(),
-                other => panic!("unexpected topics param: {:?}", other),
-            })
-            .collect();
-        assert_eq!(topics_values[0], "[\"0x01\"]");
-        assert_eq!(topics_values[1], "[\"0x01\",\"0x02\"]");
-    }
-
-    #[test]
-    fn test_raw_events_sql_block_number_overflow() {
-        let events = vec![LogEntryResponse {
-            address: Address::from([0x11; 20]),
-            topics: vec![Bytes::from_str("0x01").unwrap()],
-            data: Bytes::from_str("0xbead").unwrap(),
-            block_number: U256::from(1u128 << 65),
-            block_timestamp: Some(U256::ZERO),
-            transaction_hash: b256!(
-                "0x0000000000000000000000000000000000000000000000000000000000000aaa"
-            ),
-            transaction_index: "0x0".to_string(),
-            block_hash: B256::ZERO,
-            log_index: U256::ZERO,
-            removed: false,
-        }];
-
-        let result = raw_events_to_statements(
-            &RaindexIdentifier::new(1, Address::from([0x10; 20])),
-            &events,
-        );
-        assert!(matches!(
-            result,
-            Err(InsertError::IoIndexOverflow { field }) if field == "block_number"
-        ));
     }
 }

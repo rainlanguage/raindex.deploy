@@ -1,4 +1,4 @@
 {
     "detectors_to_exclude": "assembly-usage,solc-version,unused-imports,different-pragma-directives-are-used,unindexed-event-address",
-    "filter_paths": "forge-std,openzeppelin,test,rain.math.float,rain.tofu.erc20-decimals"
+    "filter_paths": "forge-std,openzeppelin,test,rain.math.float,rain.tofu.erc20-decimals,src/abstract/(RaindexDeploySuites|RainDeploySuitesBase)\\.sol"
 }

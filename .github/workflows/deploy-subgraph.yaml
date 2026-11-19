@@ -8,24 +8,38 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     env:
-      GOLDSKY_TOKEN: ${{ secrets.CI_GOLDSKY_TOKEN }}
-      GOLDSKY_SUBGRAPH_NAME: raindex
+      SUBGRAPH_NAME: raindex
+      # Public query base for this Ormi account. subgraph-deploy skips a version that already answers here.
+      ORMI_QUERY_BASE: https://subgraph.api.ormilabs.com/api/public/9f4fc2fa-4a15-44f7-a7c1-66fdaa518a71
     steps:
-      - uses: rainlanguage/rainix/.github/actions/checkout@main
+      - uses: actions/checkout@v4
       - name: Free disk space
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
-      # Shared nix + cachix preamble (nix-quick-install, Cachix,
-      # cache-nix-action). The third-party action SHAs are pinned once in the
-      # rainix composite. checkout: false because free-disk-space runs between
-      # the checkout above and nix-quick-install.
-      - uses: rainlanguage/rainix/.github/actions/nix-cachix-setup@main
+        uses: jlumbroso/free-disk-space@v1.3.1
+      - uses: nixbuild/nix-quick-install-action@v30
         with:
-          checkout: false
-          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+      - uses: cachix/cachix-action@v15
+        continue-on-error: true
+        with:
+          name: rainlanguage
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: false
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
           gc-max-store-size-linux: 1G
       # subgraph-deploy builds from the committed subgraph/abis + subgraph/generated,
-      # so it needs no forge build and runs on the slim subgraph shell.
-      - run: nix develop github:rainlanguage/rainix#subgraph-shell -c subgraph-deploy
+      # so it needs no forge build and runs on the slim subgraph shell. The shell
+      # comes from this repo's flake.lock (the rainix rev it pins), not from
+      # rainix main, so the step that holds ORMI_DEPLOY_KEY runs reviewed tooling.
+      - run: nix develop .#subgraph-shell -c subgraph-deploy
+        env:
+          # GitHub secret ORMI_DEPLOY_KEY, from Vault secret/infra/rain/ormi (deploy_key).
+          ORMI_DEPLOY_KEY: ${{ secrets.ORMI_DEPLOY_KEY }}
       # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
       - name: Forward CI Status
         if: always()

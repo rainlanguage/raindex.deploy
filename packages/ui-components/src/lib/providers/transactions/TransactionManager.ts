@@ -60,16 +60,18 @@ export function createSdkIndexingFn<T>(options: {
       if (result.error) {
         const errorMsg = result.error.readableMsg?.toLowerCase() ?? "";
         if (errorMsg.includes("timeout")) {
+          // Chain receipt already succeeded before indexing. A subgraph/LocalDB
+          // timeout means app data is catching up — do not toast failure.
           ctx.updateState({
-            status: TransactionStatusMessage.ERROR,
-            errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR,
+            status: TransactionStatusMessage.SUCCESS,
+            errorDetails: TransactionStoreErrorMessage.INDEXING_CATCHING_UP,
           });
-        } else {
-          ctx.updateState({
-            status: TransactionStatusMessage.ERROR,
-            errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED,
-          });
+          return ctx.onSuccess();
         }
+        ctx.updateState({
+          status: TransactionStatusMessage.ERROR,
+          errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED,
+        });
         return ctx.onError();
       }
 

@@ -24,7 +24,7 @@ use alloy::serde::WithOtherFields;
 use alloy::sol_types::SolCall;
 use httpmock::MockServer;
 use rain_math_float::Float;
-use raindex_bindings::IRaindexV6::{takeOrders4Call, TakeOrdersConfigV5};
+use raindex_bindings::IRaindexV7::{takeOrders5Call, TakeOrdersConfigV6};
 use serde_json::json;
 use std::ops::{Mul, Sub};
 
@@ -217,7 +217,7 @@ async fn test_get_take_orders_calldata_happy_path_returns_valid_config() {
         "Raindex address should match"
     );
 
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -338,12 +338,12 @@ async fn test_get_take_orders_calldata_min_receive_mode_exact_vs_partial() {
     );
     let result_exact = result_exact.take_orders_info().unwrap();
 
-    let decoded_partial = takeOrders4Call::abi_decode(result_partial.calldata())
+    let decoded_partial = takeOrders5Call::abi_decode(result_partial.calldata())
         .expect("Should decode partial calldata");
     let config_partial = decoded_partial.config;
 
     let decoded_exact =
-        takeOrders4Call::abi_decode(result_exact.calldata()).expect("Should decode exact calldata");
+        takeOrders5Call::abi_decode(result_exact.calldata()).expect("Should decode exact calldata");
     let config_exact = decoded_exact.config;
 
     let expected_buy_target = Float::parse(buy_target).unwrap().get_inner();
@@ -504,7 +504,7 @@ async fn test_min_receive_mode_exact_returns_error_when_insufficient_liquidity()
     assert!(result_partial.is_ready(), "Expected Ready variant");
     let result_partial = result_partial.take_orders_info().unwrap();
 
-    let decoded_partial = takeOrders4Call::abi_decode(result_partial.calldata())
+    let decoded_partial = takeOrders5Call::abi_decode(result_partial.calldata())
         .expect("Should decode partial calldata");
     let config_partial = decoded_partial.config;
 
@@ -625,7 +625,7 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
     assert!(result.is_ready(), "Expected Ready variant");
     let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let original_config = decoded.config;
 
     assert_eq!(
@@ -657,7 +657,7 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
     );
 
     let lowered_max_io_ratio = Float::parse("1.5".to_string()).unwrap();
-    let modified_config = TakeOrdersConfigV5 {
+    let modified_config = TakeOrdersConfigV6 {
         minimumIO: original_config.minimumIO,
         maximumIO: original_config.maximumIO,
         maximumIORatio: lowered_max_io_ratio.get_inner(),
@@ -666,7 +666,7 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
         data: original_config.data.clone(),
     };
 
-    let modified_calldata_bytes = takeOrders4Call {
+    let modified_calldata_bytes = takeOrders5Call {
         config: modified_config,
     }
     .abi_encode();
@@ -719,7 +719,7 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
         "Should have received some tokens from cheap order"
     );
 
-    let exact_config = TakeOrdersConfigV5 {
+    let exact_config = TakeOrdersConfigV6 {
         minimumIO: original_config.maximumIO,
         maximumIO: original_config.maximumIO,
         maximumIORatio: lowered_max_io_ratio.get_inner(),
@@ -728,7 +728,7 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
         data: original_config.data.clone(),
     };
 
-    let exact_calldata_bytes = takeOrders4Call {
+    let exact_calldata_bytes = takeOrders5Call {
         config: exact_config,
     }
     .abi_encode();
@@ -844,7 +844,7 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
     assert!(result.is_ready(), "Expected Ready variant");
     let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let original_config = decoded.config;
 
     let expected_price_cap_2 = Float::parse(price_cap_2.clone()).unwrap();
@@ -859,7 +859,7 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
     let withdraw_tx = setup
         .local_evm
         .raindex
-        .withdraw4(setup.token2, vault_id_2, withdraw_amount, vec![])
+        .withdraw5(setup.token2, vault_id_2, withdraw_amount, vec![])
         .from(setup.owner)
         .into_transaction_request();
     setup
@@ -918,7 +918,7 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
         "Should have received tokens from cheap order"
     );
 
-    let exact_config = TakeOrdersConfigV5 {
+    let exact_config = TakeOrdersConfigV6 {
         minimumIO: original_config.maximumIO,
         maximumIO: original_config.maximumIO,
         maximumIORatio: original_config.maximumIORatio,
@@ -927,7 +927,7 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
         data: original_config.data.clone(),
     };
 
-    let exact_calldata_bytes = takeOrders4Call {
+    let exact_calldata_bytes = takeOrders5Call {
         config: exact_config,
     }
     .abi_encode();
@@ -1057,7 +1057,7 @@ async fn test_cross_raindex_selection_picks_best_book() {
     assert!(result.is_ready(), "Expected Ready variant");
     let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert_eq!(
@@ -1213,7 +1213,7 @@ async fn test_cross_raindex_selection_flips_when_economics_flip() {
         "Should select raindex A (max_output=10 > max_output=3)"
     );
 
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -1352,7 +1352,7 @@ async fn test_cross_raindex_economic_selection_prefers_best_yield() {
         "Should select raindex A (can fill 5 buy at ratio 1.0) over B (can fill 5 buy but at worse price 1.5)"
     );
 
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -1552,7 +1552,7 @@ async fn test_prices_sorted_best_to_worst_matching_config_orders() {
     assert!(result.is_ready(), "Expected Ready variant");
     let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert_eq!(
@@ -1669,7 +1669,7 @@ async fn test_spend_up_to_mode_happy_path() {
         "Raindex address should match"
     );
 
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -1797,11 +1797,11 @@ async fn test_spend_exact_vs_spend_up_to_modes() {
     let result_exact = result_exact.take_orders_info().unwrap();
 
     let decoded_up_to =
-        takeOrders4Call::abi_decode(result_up_to.calldata()).expect("Should decode up_to calldata");
+        takeOrders5Call::abi_decode(result_up_to.calldata()).expect("Should decode up_to calldata");
     let config_up_to = decoded_up_to.config;
 
     let decoded_exact =
-        takeOrders4Call::abi_decode(result_exact.calldata()).expect("Should decode exact calldata");
+        takeOrders5Call::abi_decode(result_exact.calldata()).expect("Should decode exact calldata");
     let config_exact = decoded_exact.config;
 
     let expected_spend_budget = Float::parse(spend_budget).unwrap().get_inner();
@@ -1911,7 +1911,7 @@ async fn test_spend_exact_mode_insufficient_liquidity() {
     let result_up_to = result_up_to.take_orders_info().unwrap();
 
     let decoded_up_to =
-        takeOrders4Call::abi_decode(result_up_to.calldata()).expect("Should decode up_to calldata");
+        takeOrders5Call::abi_decode(result_up_to.calldata()).expect("Should decode up_to calldata");
     let config_up_to = decoded_up_to.config;
 
     assert_eq!(
@@ -2153,7 +2153,7 @@ async fn test_spend_mode_cross_raindex_selection() {
     assert!(result.is_ready(), "Expected Ready variant");
     let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(

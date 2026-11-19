@@ -25,7 +25,7 @@ use alloy::{
 };
 use async_trait::async_trait;
 use rain_math_float::Float;
-use raindex_bindings::{IRaindexV6::deposit4Call, IERC20::approveCall};
+use raindex_bindings::{IRaindexV7::deposit5Call, IERC20::approveCall};
 use raindex_subgraph_client::{
     performance::vol::{VaultVolume, VolumeDetails},
     types::{
@@ -471,6 +471,24 @@ pub struct RaindexVaultToken {
     decimals: u8,
 }
 
+impl RaindexVaultToken {
+    pub(crate) fn raw_address(&self) -> Address {
+        self.address
+    }
+
+    pub(crate) fn raw_name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    pub(crate) fn raw_symbol(&self) -> Option<&str> {
+        self.symbol.as_deref()
+    }
+
+    pub(crate) fn raw_decimals(&self) -> u8 {
+        self.decimals
+    }
+}
+
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexVaultToken {
@@ -693,7 +711,7 @@ impl RaindexVault {
         let approval = self.build_approval_calldata(amount).await?;
 
         let deposit_args = self.get_deposit_args(amount);
-        let deposit = Bytes::copy_from_slice(&deposit4Call::try_from(deposit_args)?.abi_encode());
+        let deposit = Bytes::copy_from_slice(&deposit5Call::try_from(deposit_args)?.abi_encode());
 
         let withdraw = self.build_withdraw_calldata(amount).await?;
 
@@ -775,14 +793,38 @@ impl RaindexVault {
         preserve_js_class
     )]
     pub async fn get_owner_balance_wasm_binding(&self) -> Result<AccountBalance, RaindexError> {
-        let balance = self.get_owner_balance(self.owner).await?;
-        let decimals = self.token.decimals;
-        let float_balance = Float::from_fixed_decimal(balance, decimals)?;
-        let account_balance = AccountBalance {
-            balance: float_balance,
-            formatted_balance: float_balance.format()?,
-        };
-        Ok(account_balance)
+        self.account_balance(self.owner).await
+    }
+
+    /// Fetches the ERC20 balance of `account` for this vault's token.
+    ///
+    /// Same as [`RaindexVault::get_owner_balance_wasm_binding`], but for an
+    /// arbitrary address rather than the vault owner. Used by takers to cap a
+    /// take-order MAX against their own wallet balance.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const result = await vault.getAccountBalance(takerAddress);
+    /// if (result.error) {
+    ///   console.error("Error fetching balance:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const accountBalance = result.value;
+    /// console.log("Raw balance:", accountBalance.balance);
+    /// console.log("Formatted balance:", accountBalance.formattedBalance);
+    /// ```
+    #[wasm_export(
+        js_name = "getAccountBalance",
+        return_description = "Account balance in both raw and human-readable format",
+        unchecked_return_type = "AccountBalance",
+        preserve_js_class
+    )]
+    pub async fn get_account_balance_wasm_binding(
+        &self,
+        #[wasm_export(param_description = "Account address to check balance for")] account: String,
+    ) -> Result<AccountBalance, RaindexError> {
+        self.account_balance(Address::from_str(&account)?).await
     }
 }
 impl RaindexVault {
@@ -790,6 +832,16 @@ impl RaindexVault {
         let rpcs = self.raindex_client.get_rpc_urls_for_chain(self.chain_id)?;
         let erc20 = ERC20::new(rpcs, self.token.address);
         Ok(erc20.get_account_balance(owner).await?)
+    }
+
+    async fn account_balance(&self, account: Address) -> Result<AccountBalance, RaindexError> {
+        let balance = self.get_owner_balance(account).await?;
+        let decimals = self.token.decimals;
+        let float_balance = Float::from_fixed_decimal(balance, decimals)?;
+        Ok(AccountBalance {
+            balance: float_balance,
+            formatted_balance: float_balance.format()?,
+        })
     }
 
     /// Builds the withdraw calldata for `amount`.
@@ -917,6 +969,17 @@ pub struct RaindexVaultBalanceChange {
     timestamp: U256,
     transaction: RaindexTransaction,
     raindex: Address,
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl RaindexVaultBalanceChange {
+    pub(crate) fn raw_token_address(&self) -> Address {
+        self.token.raw_address()
+    }
+
+    pub(crate) fn raw_amount(&self) -> Float {
+        self.amount
+    }
 }
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
@@ -2235,6 +2298,7 @@ mod tests {
         use LocalDbVault;
 
         fn make_local_db_vaults_callback(vaults: Vec<LocalDbVault>) -> js_sys::Function {
+            let vaults_count = vaults.len();
             let json = serde_json::to_string(&vaults).unwrap();
             let result = WasmEncodedResult::Success::<String> {
                 value: json,
@@ -2245,8 +2309,15 @@ mod tests {
                 .as_string()
                 .unwrap();
 
-            let callback = Closure::wrap(Box::new(move |_sql: String| -> JsValue {
-                js_sys::JSON::parse(&payload).unwrap()
+            let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
+                if sql.contains("vaults_count") {
+                    serde_wasm_bindgen::to_value(&WasmEncodedResult::success(format!(
+                        "[{{\"vaults_count\":{vaults_count}}}]"
+                    )))
+                    .unwrap()
+                } else {
+                    js_sys::JSON::parse(&payload).unwrap()
+                }
             }) as Box<dyn Fn(String) -> JsValue>);
 
             callback.into_js_value().dyn_into().unwrap()
@@ -2459,7 +2530,7 @@ mod tests {
             );
             assert_eq!(
                 change.transaction().from().to_lowercase(),
-                transaction_sender.to_string()
+                transaction_sender.to_string().to_lowercase()
             );
         }
 
@@ -2479,6 +2550,15 @@ mod tests {
             let captured_sql = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
             let json = serde_json::to_string(&vec![keep_vault]).unwrap();
             let callback = create_sql_capturing_callback(&json, captured_sql.clone());
+            let callback = js_sys::Function::new_with_args(
+                "callback",
+                "return (sql, params) => sql.includes('vaults_count') \
+                 ? { value: '[{\"vaults_count\":1}]', error: null } \
+                 : callback(sql, params);",
+            )
+            .call1(&JsValue::UNDEFINED, &callback)
+            .unwrap()
+            .unchecked_into();
 
             let client = new_test_client_with_local_db(
                 vec![get_local_db_test_yaml()],
@@ -2567,7 +2647,7 @@ mod tests {
         use alloy::sol_types::SolCall;
         use httpmock::MockServer;
         use raindex_bindings::{
-            IRaindexV6::{deposit4Call, withdraw4Call},
+            IRaindexV7::{deposit5Call, withdraw5Call},
             IERC20::{allowanceCall, approveCall},
         };
         use raindex_subgraph_client::utils::float::*;
@@ -3836,7 +3916,7 @@ mod tests {
             assert_eq!(
                 result.deposit,
                 Bytes::copy_from_slice(
-                    &deposit4Call {
+                    &deposit5Call {
                         token,
                         vaultId: vault_id,
                         depositAmount: amount.get_inner(),
@@ -3848,7 +3928,7 @@ mod tests {
             assert_eq!(
                 result.withdraw,
                 Bytes::copy_from_slice(
-                    &withdraw4Call {
+                    &withdraw5Call {
                         token,
                         vaultId: vault_id,
                         targetAmount: amount.get_inner(),
@@ -3866,7 +3946,7 @@ mod tests {
             assert_eq!(
                 result.deposit,
                 Bytes::copy_from_slice(
-                    &deposit4Call {
+                    &deposit5Call {
                         token,
                         vaultId: vault_id,
                         depositAmount: amount.get_inner(),
@@ -3878,7 +3958,7 @@ mod tests {
             assert_eq!(
                 result.withdraw,
                 Bytes::copy_from_slice(
-                    &withdraw4Call {
+                    &withdraw5Call {
                         token,
                         vaultId: vault_id,
                         targetAmount: amount.get_inner(),

@@ -110,6 +110,59 @@ pub async fn acquire() -> Result<Option<LeadershipGuard>, LocalDbError> {
     DefaultLeadership::new().acquire().await
 }
 
+/// A separate, short-lived lock covers every network's initial provisioning.
+/// Unlike per-network leadership, never pretend ownership when Web Locks fail.
+#[cfg(target_family = "wasm")]
+pub(crate) async fn acquire_bootstrap() -> Result<Option<LeadershipGuard>, LocalDbError> {
+    acquire_bootstrap_lock("local-db-bootstrap").await
+}
+
+/// Serialize browser dump preflight and import, including per-network fallback.
+#[cfg(target_family = "wasm")]
+pub(crate) async fn acquire_import() -> Result<Option<LeadershipGuard>, LocalDbError> {
+    // Non-browser Wasm callers have no cross-tab ownership to coordinate.
+    if window().is_none() {
+        return Ok(Some(LeadershipGuard::new_noop()));
+    }
+    acquire_bootstrap_lock("local-db-sql-dump-import").await
+}
+
+/// Protect initial seed writes from existing per-network leaders in other tabs.
+#[cfg(target_family = "wasm")]
+pub(crate) async fn acquire_network_bootstrap(
+    network_key: &str,
+) -> Result<Option<LeadershipGuard>, LocalDbError> {
+    let name = DefaultLeadership::with_network_key(network_key.to_owned()).lock_name();
+    acquire_bootstrap_lock(&name).await
+}
+
+#[cfg(target_family = "wasm")]
+async fn acquire_bootstrap_lock(lock_name: &str) -> Result<Option<LeadershipGuard>, LocalDbError> {
+    let window = window().ok_or_else(|| {
+        LocalDbError::CustomError("Browser bootstrap ownership is unavailable".to_string())
+    })?;
+    let locks = Reflect::get(window.navigator().as_ref(), &JsValue::from_str("locks"))
+        .map_err(|_| LocalDbError::CustomError("Cannot access bootstrap Web Locks".to_string()))?;
+    if locks.is_null() || locks.is_undefined() {
+        return Err(LocalDbError::CustomError(
+            "Coordinated bootstrap requires Web Locks".to_string(),
+        ));
+    }
+    // Keep the callback alive if startup is stopped while the browser is still
+    // scheduling the lock request. A closed receiver drops any granted guard,
+    // releasing ownership instead of stranding it after cancellation.
+    let lock_name = lock_name.to_owned();
+    let (sender, receiver) = futures::channel::oneshot::channel();
+    wasm_bindgen_futures::spawn_local(async move {
+        let result = attempt_web_lock(&lock_name).await;
+        let _ = sender.send(result);
+    });
+    receiver
+        .await
+        .map_err(|_| LocalDbError::CustomError("Bootstrap ownership task stopped".to_string()))?
+        .map_err(|_| LocalDbError::CustomError("Cannot acquire bootstrap Web Lock".to_string()))
+}
+
 #[cfg(target_family = "wasm")]
 async fn attempt_web_lock(lock_name: &str) -> Result<Option<LeadershipGuard>, JsValue> {
     use std::cell::RefCell;
@@ -188,7 +241,17 @@ async fn attempt_web_lock(lock_name: &str) -> Result<Option<LeadershipGuard>, Js
             .unwrap_or_else(|| JsValue::from_str("Web Locks request failed")));
     }
 
-    let acquired_value = acquired_future.await?;
+    // request() can reject asynchronously without ever calling our callback.
+    // Observe that rejection so the coordinator can fall back rather than wait
+    // indefinitely for the acquired resolver.
+    let request_future = JsFuture::from(request_result?.dyn_into::<Promise>()?);
+    let acquired_value = match futures::future::select(acquired_future, request_future).await {
+        futures::future::Either::Left((result, _)) => result?,
+        futures::future::Either::Right((result, _)) => {
+            result?;
+            JsValue::FALSE
+        }
+    };
     drop(callback);
 
     if !acquired_value.as_bool().unwrap_or(false) {
@@ -487,5 +550,74 @@ mod wasm_tests {
             stub.release_called(),
             "expected release callback to run when guard dropped"
         );
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn cohort_and_network_runner_cannot_own_the_same_network() {
+        let network = DefaultLeadership::with_network_key("cohort-review-test".to_string());
+        let runner_guard = network.acquire().await.unwrap().unwrap();
+        assert!(acquire_network_bootstrap("cohort-review-test")
+            .await
+            .unwrap()
+            .is_none());
+        drop(runner_guard);
+        let cohort_guard = acquire_network_bootstrap("cohort-review-test")
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(network.acquire().await.unwrap().is_none());
+        drop(cohort_guard);
+        // Resolving the release promise schedules Web Locks cleanup; an
+        // immediate ifAvailable request may still observe the old ownership.
+        let mut reacquired = None;
+        for _ in 0..20 {
+            gloo_timers::future::TimeoutFuture::new(1).await;
+            reacquired = network.acquire().await.unwrap();
+            if reacquired.is_some() {
+                break;
+            }
+        }
+        assert!(reacquired.is_some());
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn bootstrap_ownership_excludes_other_startups_and_releases() {
+        // Scheduler tests may still be unwinding production bootstrap tasks.
+        // Exercise the same ownership implementation with an isolated name.
+        const NAME: &str = "test-bootstrap-ownership";
+        let guard = acquire_bootstrap_lock(NAME).await.unwrap().unwrap();
+        assert!(acquire_bootstrap_lock(NAME).await.unwrap().is_none());
+        // The bootstrap lock must not collide with normal network leadership.
+        let network_guard = DefaultLeadership::with_network_key("test".to_string())
+            .acquire()
+            .await
+            .unwrap()
+            .unwrap();
+        drop(network_guard);
+        drop(guard);
+        assert!(acquire_bootstrap_lock(NAME).await.unwrap().is_some());
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn cancelled_bootstrap_request_does_not_strand_ownership() {
+        const NAME: &str = "test-cancelled-bootstrap";
+        let mut pending = Box::pin(acquire_bootstrap_lock(NAME));
+        assert!(futures::poll!(&mut pending).is_pending());
+        drop(pending);
+        gloo_timers::future::TimeoutFuture::new(10).await;
+        assert!(acquire_bootstrap_lock(NAME).await.unwrap().is_some());
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn rejected_bootstrap_request_returns_an_error() {
+        let _stub = LockStub::install(true).unwrap();
+        let locks = Reflect::get(window().unwrap().navigator().as_ref(), &"locks".into()).unwrap();
+        Reflect::set(
+            &locks,
+            &"request".into(),
+            &Function::new_no_args("return Promise.reject(new Error('unavailable'));"),
+        )
+        .unwrap();
+        assert!(acquire_bootstrap().await.is_err());
     }
 }

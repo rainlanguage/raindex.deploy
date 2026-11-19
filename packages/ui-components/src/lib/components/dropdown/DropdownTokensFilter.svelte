@@ -2,7 +2,7 @@
 	import { Button, Dropdown, Label, Checkbox, Input } from 'flowbite-svelte';
 	import { ChevronDownSolid, SearchSolid } from 'flowbite-svelte-icons';
 	import { isEmpty } from 'lodash';
-	import type { Address, RaindexVaultToken } from '@rainlanguage/raindex';
+	import type { Address, NetworkCfg, RaindexVaultToken } from '@rainlanguage/raindex';
 	import type { AppStoresInterface } from '../../types/appStores';
 	import type { Readable } from 'svelte/store';
 	import type { QueryObserverResult } from '@tanstack/svelte-query';
@@ -12,6 +12,7 @@
 	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
 	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let selectedTokens: Address[];
+	export let configuredNetworks: NetworkCfg[] = [];
 
 	export let label: string = 'Filter by tokens';
 	export let allLabel: string = 'All tokens';
@@ -173,7 +174,7 @@
 							<div class="ml-2 flex w-full">
 								<div class="flex-1 text-sm font-medium">{getTokenDisplayName(token)}</div>
 								<div class="text-xs text-gray-500">
-									{getNetworkName(token.chainId)}
+									{getNetworkName(token.chainId, configuredNetworks) ?? `Chain ${token.chainId}`}
 								</div>
 							</div>
 						</Checkbox>

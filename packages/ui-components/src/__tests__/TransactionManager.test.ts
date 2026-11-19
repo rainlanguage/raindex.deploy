@@ -32,12 +32,25 @@ vi.mock("../lib/services/getExplorerLink", () => ({
   getExplorerLink: vi.fn(),
 }));
 
-vi.mock("@rainlanguage/raindex", async (importOriginal) => ({
-  ...(await importOriginal()),
-  getTransactionRemoveOrders: vi.fn(),
-  getTransaction: vi.fn(),
-  getTransactionAddOrders: vi.fn(),
-}));
+vi.mock("@rainlanguage/raindex", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    // Local stub builds may omit Float; keep deposit fixture setup working.
+    Float: actual.Float ?? {
+      parse: (value: string) => ({
+        value: {
+          format: () => ({ value }),
+          toString: () => value,
+        },
+        error: undefined,
+      }),
+    },
+    getTransactionRemoveOrders: vi.fn(),
+    getTransaction: vi.fn(),
+    getTransactionAddOrders: vi.fn(),
+  };
+});
 
 describe("TransactionManager", () => {
   let mockQueryClient: QueryClient;
@@ -264,7 +277,7 @@ describe("TransactionManager", () => {
       expect(mockContext.onSuccess).toHaveBeenCalled();
     });
 
-    it("should handle SDK timeout error in awaitIndexingFn", async () => {
+    it("should treat SDK indexing timeout as soft success in awaitIndexingFn", async () => {
       const mockTransaction = { execute: vi.fn() };
       vi.mocked(TransactionStore).mockImplementation(
         () => mockTransaction as unknown as TransactionStore,
@@ -293,13 +306,13 @@ describe("TransactionManager", () => {
 
       await callArgs.awaitIndexingFn!(mockContext);
 
-      // Verify error handling
+      // Receipt already confirmed — timeout means indexing is slow, not that the tx failed.
       expect(mockContext.updateState).toHaveBeenCalledWith({
-        status: TransactionStatusMessage.ERROR,
-        errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR,
+        status: TransactionStatusMessage.SUCCESS,
+        errorDetails: TransactionStoreErrorMessage.INDEXING_CATCHING_UP,
       });
-      expect(mockContext.onError).toHaveBeenCalled();
-      expect(mockContext.onSuccess).not.toHaveBeenCalled();
+      expect(mockContext.onSuccess).toHaveBeenCalled();
+      expect(mockContext.onError).not.toHaveBeenCalled();
     });
   });
 
@@ -875,7 +888,7 @@ describe("TransactionManager", () => {
       expect(mockContext.onSuccess).toHaveBeenCalled();
     });
 
-    it("should handle SDK timeout error in awaitIndexingFn", async () => {
+    it("should treat SDK indexing timeout as soft success in awaitIndexingFn", async () => {
       const mockTransaction = { execute: vi.fn() };
       vi.mocked(TransactionStore).mockImplementation(
         () => mockTransaction as unknown as TransactionStore,
@@ -903,13 +916,13 @@ describe("TransactionManager", () => {
 
       await callArgs.awaitIndexingFn!(mockContext);
 
-      // Verify error handling
+      // Receipt already confirmed — timeout means indexing is slow, not that the tx failed.
       expect(mockContext.updateState).toHaveBeenCalledWith({
-        status: TransactionStatusMessage.ERROR,
-        errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR,
+        status: TransactionStatusMessage.SUCCESS,
+        errorDetails: TransactionStoreErrorMessage.INDEXING_CATCHING_UP,
       });
-      expect(mockContext.onError).toHaveBeenCalled();
-      expect(mockContext.onSuccess).not.toHaveBeenCalled();
+      expect(mockContext.onSuccess).toHaveBeenCalled();
+      expect(mockContext.onError).not.toHaveBeenCalled();
     });
   });
 
@@ -1309,7 +1322,7 @@ describe("createSdkIndexingFn", () => {
     expect(linksUpdateCalls).toHaveLength(0);
   });
 
-  it('should set SUBGRAPH_TIMEOUT_ERROR and call onError when error contains "timeout"', async () => {
+  it('should treat indexing timeout as soft success when error contains "timeout"', async () => {
     const mockCall = vi.fn().mockResolvedValue({
       error: { readableMsg: "Request timeout exceeded" },
     } as WasmEncodedResult<unknown>);
@@ -1321,14 +1334,14 @@ describe("createSdkIndexingFn", () => {
     await indexingFn(mockContext);
 
     expect(mockUpdateState).toHaveBeenCalledWith({
-      status: TransactionStatusMessage.ERROR,
-      errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR,
+      status: TransactionStatusMessage.SUCCESS,
+      errorDetails: TransactionStoreErrorMessage.INDEXING_CATCHING_UP,
     });
-    expect(mockOnError).toHaveBeenCalled();
-    expect(mockOnSuccess).not.toHaveBeenCalled();
+    expect(mockOnSuccess).toHaveBeenCalled();
+    expect(mockOnError).not.toHaveBeenCalled();
   });
 
-  it("should set SUBGRAPH_TIMEOUT_ERROR for case-insensitive timeout detection", async () => {
+  it("should treat case-insensitive timeout detection as soft success", async () => {
     const mockCall = vi.fn().mockResolvedValue({
       error: { readableMsg: "TIMEOUT occurred while fetching data" },
     } as WasmEncodedResult<unknown>);
@@ -1340,12 +1353,14 @@ describe("createSdkIndexingFn", () => {
     await indexingFn(mockContext);
 
     expect(mockUpdateState).toHaveBeenCalledWith({
-      status: TransactionStatusMessage.ERROR,
-      errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR,
+      status: TransactionStatusMessage.SUCCESS,
+      errorDetails: TransactionStoreErrorMessage.INDEXING_CATCHING_UP,
     });
+    expect(mockOnSuccess).toHaveBeenCalled();
+    expect(mockOnError).not.toHaveBeenCalled();
   });
 
-  it("should set SUBGRAPH_TIMEOUT_ERROR for SDK TransactionIndexingTimeout error format", async () => {
+  it("should treat SDK TransactionIndexingTimeout as soft success", async () => {
     const mockCall = vi.fn().mockResolvedValue({
       error: {
         readableMsg:
@@ -1360,11 +1375,11 @@ describe("createSdkIndexingFn", () => {
     await indexingFn(mockContext);
 
     expect(mockUpdateState).toHaveBeenCalledWith({
-      status: TransactionStatusMessage.ERROR,
-      errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR,
+      status: TransactionStatusMessage.SUCCESS,
+      errorDetails: TransactionStoreErrorMessage.INDEXING_CATCHING_UP,
     });
-    expect(mockOnError).toHaveBeenCalled();
-    expect(mockOnSuccess).not.toHaveBeenCalled();
+    expect(mockOnSuccess).toHaveBeenCalled();
+    expect(mockOnError).not.toHaveBeenCalled();
   });
 
   it("should set SUBGRAPH_FAILED and call onError for non-timeout errors", async () => {

@@ -108,7 +108,7 @@ The package re-exports the WASM-bound API from the Rust crates. Representative
 items:
 
 - Functions
-  - `parseYaml`, `getOrderHash`, `getTakeOrders3Calldata`, `keccak256`,
+  - `parseYaml`, `getOrderHash`, `getTakeOrders5Calldata`, `keccak256`,
     `keccak256HexString`.
 - High-level classes (selected)
   - `RaindexClient` — raindex queries (orders, trades, vaults, quotes,

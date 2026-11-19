@@ -62,6 +62,7 @@ use wasm_bindgen_utils::{prelude::*, wasm_export};
 
 pub mod add_orders;
 pub mod local_db;
+pub mod markets;
 pub mod order_quotes;
 pub mod orders;
 pub mod orders_list;
@@ -370,7 +371,10 @@ impl RaindexClient {
 
         for raindex in &mut snapshot.raindexes {
             let stmt = fetch_last_synced_block_stmt(&raindex.raindex_id);
-            match db.query_json::<Vec<SyncStatusResponse>>(&stmt).await {
+            match db
+                .query_json_retryable::<Vec<SyncStatusResponse>>(&stmt)
+                .await
+            {
                 Ok(rows) => {
                     if let Some(row) = rows.into_iter().next() {
                         raindex.last_synced_block = Some(row.last_synced_block);
@@ -653,7 +657,7 @@ async fn initialize_local_db_readiness(
 
         for raindex_id in raindex_ids {
             let rows: Vec<TargetWatermarkRow> = db
-                .query_json(&fetch_target_watermark_stmt(&raindex_id))
+                .query_json_retryable(&fetch_target_watermark_stmt(&raindex_id))
                 .await?;
 
             if rows.is_empty() {
@@ -984,6 +988,21 @@ accounts:
             &js_sys::Function::new_no_args("return Promise.resolve({ value: '', error: null });"),
         )
         .unwrap();
+        for name in [
+            "beginSqlDumpImport",
+            "appendSqlDumpChunk",
+            "finishSqlDumpImport",
+            "cancelSqlDumpImport",
+        ] {
+            js_sys::Reflect::set(
+                &local_db,
+                &JsValue::from_str(name),
+                &js_sys::Function::new_no_args(
+                    "return Promise.resolve({ value: '', error: null });",
+                ),
+            )
+            .unwrap();
+        }
         local_db.into()
     }
 
@@ -1431,6 +1450,21 @@ raindexes:
                 js_sys::Reflect::set(
                     &local_db,
                     &JsValue::from_str("transaction"),
+                    &js_sys::Function::new_no_args(
+                        "return Promise.resolve({ value: '', error: null });",
+                    ),
+                )
+                .unwrap();
+            }
+            for name in [
+                "beginSqlDumpImport",
+                "appendSqlDumpChunk",
+                "finishSqlDumpImport",
+                "cancelSqlDumpImport",
+            ] {
+                js_sys::Reflect::set(
+                    &local_db,
+                    &JsValue::from_str(name),
                     &js_sys::Function::new_no_args(
                         "return Promise.resolve({ value: '', error: null });",
                     ),

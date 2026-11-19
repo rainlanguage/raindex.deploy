@@ -22,6 +22,30 @@ describe("Hash Component", () => {
     expect(getByText("abcde...67890")).toBeInTheDocument();
   });
 
+  it("renders short vault ids in full instead of duplicating them with ellipsis", () => {
+    const { getByText, queryByText } = render(Hash, {
+      props: {
+        value: "0xfab",
+        type: 0, // HashType.Identifier
+        shorten: true,
+        sliceLen: 5,
+      },
+    });
+    expect(getByText("0xfab")).toBeInTheDocument();
+    expect(queryByText("0xfab...0xfab")).not.toBeInTheDocument();
+  });
+
+  it("does not truncate values that are exactly two slice lengths", () => {
+    const { getByText } = render(Hash, {
+      props: {
+        value: "abcdefghij",
+        shorten: true,
+        sliceLen: 5,
+      },
+    });
+    expect(getByText("abcdefghij")).toBeInTheDocument();
+  });
+
   it("renders full hash when shorten is false", () => {
     const { getByText } = render(Hash, {
       props: {

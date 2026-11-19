@@ -2,32 +2,32 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {GenericPoolRaindexV6FlashBorrower} from "../../../src/concrete/arb/GenericPoolRaindexV6FlashBorrower.sol";
+import {GenericPoolRaindexV7FlashBorrower} from "../../../src/concrete/arb/GenericPoolRaindexV7FlashBorrower.sol";
 import {
-    IRaindexV6,
-    TakeOrdersConfigV5,
-    TakeOrderConfigV4,
+    IRaindexV7,
+    TakeOrdersConfigV6,
+    TakeOrderConfigV5,
     OrderV4,
     IOV2,
     EvaluableV4,
-    SignedContextV1,
-    TaskV2
-} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {IInterpreterV4} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterV4.sol";
-import {IInterpreterStoreV3} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterStoreV3.sol";
-import {LibDecimalFloat} from "rain-math-float-0.1.1/src/lib/LibDecimalFloat.sol";
+    SignedContextV2,
+    TaskV3
+} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {IInterpreterV4} from "rainlang-0.2.36/src/interface/IInterpreterV4.sol";
+import {IInterpreterStoreV3} from "rainlang-0.2.36/src/interface/IInterpreterStoreV3.sol";
+import {LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
 
-/// @dev Exchange that re-enters arb4 when called during _exchange.
+/// @dev Exchange that re-enters arb5 when called during _exchange.
 contract ReentrantExchange {
-    GenericPoolRaindexV6FlashBorrower internal immutable iArb;
-    IRaindexV6 internal immutable iRaindex;
+    GenericPoolRaindexV7FlashBorrower internal immutable iArb;
+    IRaindexV7 internal immutable iRaindex;
 
-    constructor(GenericPoolRaindexV6FlashBorrower arb, IRaindexV6 raindex) {
+    constructor(GenericPoolRaindexV7FlashBorrower arb, IRaindexV7 raindex) {
         iArb = arb;
         iRaindex = raindex;
     }
 
-    /// Called by pool.functionCallWithValue during _exchange. Re-enters arb4.
+    /// Called by pool.functionCallWithValue during _exchange. Re-enters arb5.
     fallback() external payable {
         // Build minimal valid-looking args. The reentrancy guard will revert
         // before any of this is actually processed.
@@ -42,12 +42,12 @@ contract ReentrantExchange {
             nonce: bytes32(0)
         });
 
-        TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
-        orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
+        TakeOrderConfigV5[] memory orders = new TakeOrderConfigV5[](1);
+        orders[0] = TakeOrderConfigV5(order, 0, 0, new SignedContextV2[](0));
 
-        iArb.arb4(
+        iArb.arb5(
             iRaindex,
-            TakeOrdersConfigV5({
+            TakeOrdersConfigV6({
                 minimumIO: LibDecimalFloat.packLossless(1, 0),
                 maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
                 maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
@@ -56,9 +56,9 @@ contract ReentrantExchange {
                 data: ""
             }),
             hex"",
-            TaskV2({
+            TaskV3({
                 evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
-                signedContext: new SignedContextV1[](0)
+                signedContext: new SignedContextV2[](0)
             })
         );
     }

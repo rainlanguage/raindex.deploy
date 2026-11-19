@@ -2,41 +2,41 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {IERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/utils/SafeERC20.sol";
 import {
-    IRaindexV6,
-    TakeOrdersConfigV5,
+    IRaindexV7,
+    TakeOrdersConfigV6,
     OrderConfigV4,
     ClearConfigV2,
     OrderV4,
-    SignedContextV1,
-    TaskV2,
-    QuoteV2,
+    SignedContextV2,
+    TaskV3,
+    QuoteV3,
     Float
-} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {IERC3156FlashBorrower} from "raindex-interface-0.1.1/src/interface/ierc3156/IERC3156FlashBorrower.sol";
+} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {IERC3156FlashBorrower} from "raindex-interface-0.1.14/src/interface/ierc3156/IERC3156FlashBorrower.sol";
 
-/// @dev Base for mock raindex contracts that stub all IRaindexV6 functions.
-/// Inheritors override flashLoan and/or takeOrders4 with real token transfers.
-abstract contract MockRaindexBase is IRaindexV6 {
+/// @dev Base for mock raindex contracts that stub all IRaindexV7 functions.
+/// Inheritors override flashLoan and/or takeOrders5 with real token transfers.
+abstract contract MockRaindexBase is IRaindexV7 {
     using SafeERC20 for IERC20;
 
     function flashLoan(IERC3156FlashBorrower, address, uint256, bytes calldata) external virtual returns (bool) {
         return false;
     }
 
-    function takeOrders4(TakeOrdersConfigV5 calldata) external virtual returns (Float, Float) {
+    function takeOrders5(TakeOrdersConfigV6 calldata) external virtual returns (Float, Float) {
         return (Float.wrap(0), Float.wrap(0));
     }
 
-    function entask2(TaskV2[] calldata) external pure {}
+    function entask3(TaskV3[] calldata) external pure {}
 
-    function quote2(QuoteV2 calldata) external pure returns (bool, Float, Float) {
+    function quote3(QuoteV3 calldata) external pure returns (bool, Float, Float) {
         revert("quote");
     }
 
-    function addOrder4(OrderConfigV4 calldata, TaskV2[] calldata) external pure returns (bool) {
+    function addOrder5(OrderConfigV4 calldata, TaskV3[] calldata) external pure returns (bool) {
         return false;
     }
 
@@ -44,18 +44,18 @@ abstract contract MockRaindexBase is IRaindexV6 {
         return false;
     }
 
-    function clear3(
+    function clear4(
         OrderV4 memory,
         OrderV4 memory,
         ClearConfigV2 calldata,
-        SignedContextV1[] memory,
-        SignedContextV1[] memory
+        SignedContextV2[] memory,
+        SignedContextV2[] memory
     ) external {}
 
-    function deposit4(address, bytes32, Float, TaskV2[] calldata) external {}
+    function deposit5(address, bytes32, Float, TaskV3[] calldata) external {}
     function flashFee(address, uint256) external view returns (uint256) {}
     function maxFlashLoan(address) external view returns (uint256) {}
-    function removeOrder3(OrderV4 calldata, TaskV2[] calldata) external returns (bool) {}
+    function removeOrder4(OrderV4 calldata, TaskV3[] calldata) external returns (bool) {}
     function vaultBalance2(address, address, bytes32) external view returns (Float) {}
-    function withdraw4(address, bytes32, Float, TaskV2[] calldata) external {}
+    function withdraw5(address, bytes32, Float, TaskV3[] calldata) external {}
 }

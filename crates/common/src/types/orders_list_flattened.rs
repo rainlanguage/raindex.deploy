@@ -2,7 +2,7 @@ use crate::types::vault::NO_SYMBOL;
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
 use alloy::dyn_abi::SolType;
 use alloy::primitives::hex::{decode, encode};
-use raindex_bindings::IRaindexV6::OrderV4;
+use raindex_bindings::IRaindexV7::OrderV4;
 use raindex_subgraph_client::types::common::*;
 use serde::{Deserialize, Serialize};
 
@@ -90,7 +90,7 @@ mod tests {
         primitives::{Address, Bytes, FixedBytes, B256, U256},
         sol_types::SolValue,
     };
-    use raindex_bindings::IRaindexV6::{EvaluableV4, OrderV4, IOV2};
+    use raindex_bindings::IRaindexV7::{EvaluableV4, OrderV4, IOV2};
     use raindex_subgraph_client::types::common::{
         SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderStructPartialTrade, SgRaindex,
         SgTransaction, SgVault,

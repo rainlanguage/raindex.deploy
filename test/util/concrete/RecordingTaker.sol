@@ -2,32 +2,36 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {TakeOrdersConfigV5, IRaindexV6} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {IRaindexV6OrderTaker} from "raindex-interface-0.1.1/src/interface/IRaindexV6OrderTaker.sol";
-import {Float} from "rain-math-float-0.1.1/src/lib/LibDecimalFloat.sol";
+import {TakeOrdersConfigV6, IRaindexV7} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {IRaindexV7OrderTaker} from "raindex-interface-0.1.14/src/interface/IRaindexV7OrderTaker.sol";
+import {Float} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
 
 /// Records onTakeOrders2 invocation + the args it was called with so a test can
 /// assert the callback fires only when something was taken and with the right
 /// token/amount arguments.
-contract RecordingTaker is IRaindexV6OrderTaker {
+contract RecordingTaker is IRaindexV7OrderTaker {
     uint256 public calls;
     address public lastOutputToken;
     address public lastInputToken;
     Float public lastTakerInput;
     Float public lastTakerOutput;
     bytes public lastData;
-    IRaindexV6 internal immutable iRaindex;
+    IRaindexV7 internal immutable iRaindex;
 
-    constructor(IRaindexV6 raindex) {
+    constructor(IRaindexV7 raindex) {
         iRaindex = raindex;
     }
 
-    function take(TakeOrdersConfigV5 memory config) external returns (Float, Float) {
-        return iRaindex.takeOrders4(config);
+    function take(TakeOrdersConfigV6 memory config) external returns (Float, Float) {
+        return iRaindex.takeOrders5(config);
     }
 
     function onTakeOrders2(
+        // Records the token it was given, including address(0).
+        // forge-lint: disable-next-line(missing-zero-check)
         address outputToken,
+        // Records the token it was given, including address(0).
+        // forge-lint: disable-next-line(missing-zero-check)
         address inputToken,
         Float takerInput,
         Float takerOutput,

@@ -3,7 +3,7 @@ use crate::take_orders::{build_approval_calldata, BuiltTakeOrdersConfig, ParsedT
 use alloy::primitives::{Address, Bytes};
 use alloy::sol_types::SolCall;
 use rain_math_float::Float;
-use raindex_bindings::IRaindexV6::takeOrders4Call;
+use raindex_bindings::IRaindexV7::takeOrders5Call;
 use serde::{Deserialize, Serialize};
 use std::ops::{Div, Mul};
 use wasm_bindgen_utils::prelude::*;
@@ -379,7 +379,7 @@ pub(crate) fn build_calldata_result(
     mode: ParsedTakeOrdersMode,
     price_cap: Float,
 ) -> Result<TakeOrdersCalldataResult, RaindexError> {
-    let calldata_bytes = takeOrders4Call {
+    let calldata_bytes = takeOrders5Call {
         config: built_config.config,
     }
     .abi_encode();
@@ -426,7 +426,7 @@ mod tests {
     use crate::take_orders::build_take_orders_config_from_simulation;
     use crate::test_helpers::candidates::make_candidate;
     use alloy::primitives::U256;
-    use raindex_bindings::IRaindexV6::takeOrders4Call;
+    use raindex_bindings::IRaindexV7::takeOrders5Call;
     use raindex_bindings::IERC20::approveCall;
 
     fn high_price_cap() -> Float {
@@ -473,7 +473,7 @@ mod tests {
         assert!(!take_orders_info.calldata().is_empty());
         assert!(!take_orders_info.prices().is_empty());
 
-        let decoded = takeOrders4Call::abi_decode(take_orders_info.calldata())
+        let decoded = takeOrders5Call::abi_decode(take_orders_info.calldata())
             .expect("Should decode calldata");
         assert!(!decoded.config.orders.is_empty());
         assert!(
@@ -508,7 +508,7 @@ mod tests {
         assert!(!take_orders_info.calldata().is_empty());
         assert!(!take_orders_info.prices().is_empty());
 
-        let decoded = takeOrders4Call::abi_decode(take_orders_info.calldata())
+        let decoded = takeOrders5Call::abi_decode(take_orders_info.calldata())
             .expect("Should decode calldata");
         assert!(!decoded.config.orders.is_empty());
         assert!(

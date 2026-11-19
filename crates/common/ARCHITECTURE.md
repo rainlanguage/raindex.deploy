@@ -23,7 +23,7 @@ require its `COMMIT_SHA` env var.
 
 - `add_order` — Compose Rainlang from DOTRAIN, parse to bytecode via on‑chain
   Parser, generate `addOrder3` call parameters, execute or simulate on a fork.
-- `remove_order` — Convert subgraph `SgOrder` to `removeOrder3` call, execute or
+- `remove_order` — Convert subgraph `SgOrder` to `removeOrder4` call, execute or
   return calldata.
 - `deposit` — ERC20 allowance check/approve and `deposit3` call
   builder/executor.
@@ -38,7 +38,11 @@ require its `COMMIT_SHA` env var.
   prepare batch withdraw calldata; expose WASM‑friendly structs. The `local_db/`
   subtree is split into `state.rs` (runtime state, query routing via
   `LocalDbState`/`QuerySource`/`SyncReadiness`) and `status.rs` (UI
-  status‑reporting types).
+  status‑reporting types). The `markets/` subtree discovers direct quote-token
+  pairs from active indexed orders and assembles normalized order books, trades,
+  and rolling statistics without application-specific token semantics. Registry
+  token data identifies each network's quote token and enriches indexed
+  metadata; it does not decide which base tokens are listed.
 - `dotrain_order` — Parse and validate a DOTRAIN config; compose
   scenarios/deployments to Rainlang; fetch authoring metadata and pragma words;
   merge additional settings.
@@ -90,7 +94,7 @@ Target gating is used extensively:
 
 ### 2) Remove Order
 
-- `RemoveOrderArgs` converts `SgOrder` to `removeOrder3Call` via subgraph
+- `RemoveOrderArgs` converts `SgOrder` to `removeOrder4Call` via subgraph
   traits.
 - Native execution mirrors `add_order` (Ledger provider + `WriteTransaction`),
   or return calldata only.
@@ -140,6 +144,28 @@ Target gating is used extensively:
   validation. When the YAML declares `local-db-sync` sections and DB callbacks
   are provided, the constructor automatically sets up the local DB and starts
   the sync scheduler.
+- Browser startup starts all networks independently when any persisted target
+  exists, retaining indexes and letting each missing network import its own
+  seed. A fresh DB coordinates missing targets when it owns at least two
+  networks, under a shared Web Lock and their per-network leadership locks.
+  Ownership transfers directly to cold runners, including on failure; networks
+  led in another tab are left to their existing runners. Smaller cohorts use
+  their individual runners, retaining ownership and fresh-DB index deferral.
+  Seeds download in parallel; failed downloads leave only those targets for
+  retry, while successful downloads are rechecked against persisted watermarks
+  and imported together in one bounded sqlite-web session. A globally fresh DB
+  drops non-unique secondary indexes and rebuilds them once after all seeds;
+  additions to a populated DB retain existing indexes. A shared import Web Lock
+  covers watermark/index preflight through commit or cancellation for both
+  cohort and per-network imports; without that ownership, or after SDK lease
+  contention, imports retain indexes. PRIMARY KEY/UNIQUE indexes remain
+  enforced. Cold network loops catch up, analyze their applied data and
+  establish readiness; the cohort does not run an additional `ANALYZE`.
+  Import/manifest failures and unsupported coordination fall back to per-network
+  provisioning; stale-target refresh retains its existing behavior. Coordinated
+  manifest and seed requests are bounded to two minutes each; per-network runner
+  requests keep their existing behavior. Scheduler stop cancels
+  coordination/import cleanup.
 - `LocalDbState` encapsulates the local DB handle, scheduler, `SyncReadiness`
   (tracks which chains have completed a sync cycle), and the set of configured
   chain IDs. Query routing uses `QuerySource::LocalDb` vs
@@ -330,7 +356,7 @@ are provided so frontends can submit via their own providers.
 ## Notable Dependencies (workspace crates)
 
 - `raindex_bindings` — Strongly‑typed ABI for Raindex and ERC20 contracts
-  (`addOrder3`, `removeOrder3`, `deposit3`, `withdraw3`, multicall).
+  (`addOrder3`, `removeOrder4`, `deposit3`, `withdraw3`, multicall).
 - `raindex_subgraph_client` — GraphQL types and clients for raindex data;
   provides `Sg*` models and helpers.
 - `raindex_app_settings` — DOTRAIN/raindex YAML structures, validation, and spec
@@ -343,8 +369,8 @@ are provided so frontends can submit via their own providers.
 - `rain_error_decoding` — ABI error decoding to readable types/names.
 - `rain_math_float` — Arbitrary‑precision floats with hex encoding for on‑chain
   compatibility and pretty formatting.
-- `alloy` & `alloy_ethers_typecast` — EVM primitives, providers, signers
-  (Ledger), and Read/Write contract helpers.
+- `alloy` — EVM primitives, providers, signers (Ledger), and transaction
+  building/sending.
 - `wasm_bindgen_utils`, `tsify` — WASM/JS interop helpers and type generation.
 
 ## Typical End‑to‑End Flows
@@ -358,7 +384,7 @@ are provided so frontends can submit via their own providers.
      submit via external provider (WASM).
 
 - Remove an order:
-  1. Fetch `SgOrder` from subgraph; convert to `removeOrder3Call` and execute or
+  1. Fetch `SgOrder` from subgraph; convert to `removeOrder4Call` and execute or
      export calldata.
 
 - Deposit/Withdraw:

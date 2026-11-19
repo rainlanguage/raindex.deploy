@@ -61,8 +61,8 @@ is controlled by two environment variables:
 
 - `DEPLOYMENT_KEY` — the deployer private key
 - `DEPLOYMENT_SUITE` — which contracts to deploy. One of:
-  - `raindex` — RaindexV6 only
-  - `subparser` — RaindexV6SubParser only
+  - `raindex` — RaindexV7 only
+  - `subparser` — RaindexV7SubParser only
   - `route-processor` — Sushi RouteProcessor4 only
   - `arb` — arb contracts only (order takers and flash borrowers)
 

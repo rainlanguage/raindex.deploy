@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars. Never commit terraform.tfvars or OpenTofu state.
+do_token = ""
+
+# Optional capacity overrides:
+# ssh_key_name = "raindex-op"
+# region         = "nyc3"
+# droplet_size   = "s-2vcpu-4gb"
+# volume_size_gb = 10

@@ -5,7 +5,7 @@ use crate::transaction::TransactionArgsError;
 use crate::write_tx::{execute_write_tx, WriteTransactionError, WriteTransactionStatus};
 use alloy::primitives::hex::FromHexError;
 use alloy::sol_types::SolCall;
-use raindex_bindings::IRaindexV6::removeOrder3Call;
+use raindex_bindings::IRaindexV7::removeOrder4Call;
 use raindex_subgraph_client::types::{common::SgOrder, order_detail_traits::OrderDetailError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -34,11 +34,11 @@ impl From<SgOrder> for RemoveOrderArgs {
     }
 }
 
-impl TryInto<removeOrder3Call> for RemoveOrderArgs {
+impl TryInto<removeOrder4Call> for RemoveOrderArgs {
     type Error = OrderDetailError;
 
-    fn try_into(self) -> Result<removeOrder3Call, OrderDetailError> {
-        Ok(removeOrder3Call {
+    fn try_into(self) -> Result<removeOrder4Call, OrderDetailError> {
+        Ok(removeOrder4Call {
             order: self.order.try_into()?,
             tasks: vec![],
         })
@@ -54,7 +54,7 @@ impl RemoveOrderArgs {
     ) -> Result<(), RemoveOrderArgsError> {
         let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
-        let remove_order_call: removeOrder3Call = self.try_into()?;
+        let remove_order_call: removeOrder4Call = self.try_into()?;
         let tx_request = transaction_args
             .try_into_transaction_request(remove_order_call, transaction_args.raindex_address)?;
 
@@ -64,7 +64,7 @@ impl RemoveOrderArgs {
     }
 
     pub async fn get_rm_order_calldata(self) -> Result<Vec<u8>, RemoveOrderArgsError> {
-        let remove_order_call: removeOrder3Call = self.try_into()?;
+        let remove_order_call: removeOrder4Call = self.try_into()?;
         Ok(remove_order_call.abi_encode())
     }
 }

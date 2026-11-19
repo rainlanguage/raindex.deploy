@@ -7,6 +7,7 @@ use crate::local_db::pipeline::adapters::{
     apply::DefaultApplyPipeline, events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
     window::DefaultWindowPipeline,
 };
+use crate::local_db::pipeline::runner::utils::configured_sync_networks;
 use crate::local_db::pipeline::runner::utils::ParsedRunnerSettings;
 use crate::local_db::pipeline::runner::RunOutcome;
 use crate::local_db::query::LocalDbQueryExecutor;
@@ -18,7 +19,7 @@ use crate::raindex_client::local_db::{
     SchedulerState, SyncReadiness,
 };
 use raindex_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
-use raindex_app_settings::network::NetworkCfg;
+#[cfg(test)]
 use std::collections::HashMap;
 use std::future::Future;
 use std::path::PathBuf;
@@ -95,14 +96,7 @@ pub fn start(
     sync_readiness: SyncReadiness,
     status_store: LocalDbSyncStatusStore,
 ) -> Result<NativeSyncHandle, LocalDbError> {
-    let mut networks_map: HashMap<String, NetworkCfg> = HashMap::new();
-    for raindex_cfg in settings.raindexes.values() {
-        networks_map
-            .entry(raindex_cfg.network.key.clone())
-            .or_insert_with(|| (*raindex_cfg.network).clone());
-    }
-    let mut networks: Vec<NetworkCfg> = networks_map.into_values().collect();
-    networks.sort_by(|a, b| a.key.cmp(&b.key));
+    let networks = configured_sync_networks(&settings);
 
     if networks.is_empty() {
         return Err(LocalDbError::CustomError(
@@ -237,15 +231,18 @@ async fn run_network_loop<R: NativeRunner>(
     tracing::info!(network = %network_key, chain_id, "starting native sync loop");
     status_store.record_network_status(NetworkSyncStatus::syncing(chain_id));
 
+    let mut backoff = super::CycleBackoff::default();
     loop {
         if stop_flag.load(Ordering::SeqCst) {
             break;
         }
 
-        match runner.run_once(&db).await {
+        let result = runner.run_once(&db).await;
+        let cycle = super::CycleResult::of(&result);
+        match result {
             Ok(outcome) => match outcome {
                 RunOutcome::Report(report) => {
-                    if report.failures.is_empty() {
+                    if report.failures.is_empty() && cycle == super::CycleResult::CaughtUp {
                         sync_readiness.mark_ready(chain_id);
                         status_store.record_chain_ready(chain_id);
                         status_store.record_network_status(NetworkSyncStatus::active(
@@ -257,6 +254,13 @@ async fn run_network_loop<R: NativeRunner>(
                             chain_id,
                             successes = report.successes.len(),
                             "sync cycle completed"
+                        );
+                    } else if report.failures.is_empty() {
+                        status_store.record_network_status(NetworkSyncStatus::syncing(chain_id));
+                        tracing::debug!(
+                            network = %network_key,
+                            chain_id,
+                            "sync cycle stopped short of the head, continuing"
                         );
                     } else {
                         for failure in &report.failures {
@@ -308,14 +312,31 @@ async fn run_network_loop<R: NativeRunner>(
             }
         }
 
-        if stop_flag.load(Ordering::SeqCst) {
-            break;
+        let delay_ms = backoff.next_delay_ms(interval_ms, cycle);
+        if backoff.consecutive_failures() > 0 {
+            tracing::warn!(
+                network = %network_key,
+                chain_id,
+                consecutive_failures = backoff.consecutive_failures(),
+                delay_ms,
+                "backing off before the next sync cycle"
+            );
         }
-
-        tokio::time::sleep(std::time::Duration::from_millis(interval_ms)).await;
+        sleep_unless_stopped(&stop_flag, delay_ms).await;
     }
 
     tracing::info!(network = %network_key, chain_id, "native sync loop stopped");
+}
+
+/// Sleeps `delay_ms` in short steps, returning early once `stop_flag` is set
+/// so a long backoff never delays shutdown.
+async fn sleep_unless_stopped(stop_flag: &AtomicBool, delay_ms: u64) {
+    let mut remaining = delay_ms;
+    while remaining > 0 && !stop_flag.load(Ordering::SeqCst) {
+        let step = remaining.min(super::STOP_POLL_MS);
+        tokio::time::sleep(std::time::Duration::from_millis(step)).await;
+        remaining -= step;
+    }
 }
 
 #[cfg(test)]

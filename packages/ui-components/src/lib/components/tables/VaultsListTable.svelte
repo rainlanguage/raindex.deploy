@@ -23,6 +23,7 @@
 		RaindexVault,
 		RaindexVaultsList,
 		type Address,
+		type NetworkSyncStatus,
 		type RaindexVaultsListResult,
 		type RaindexCfg
 	} from '@rainlanguage/raindex';
@@ -45,6 +46,9 @@
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let activeRaindexAddresses: AppStoresInterface['activeRaindexAddresses'];
 	export let ownerFilter: AppStoresInterface['ownerFilter'];
+	export let emptyMessage = 'No Vaults Found';
+	export let refreshVersion = 0;
+	export let localDbStatuses: Map<number, NetworkSyncStatus> | undefined = undefined;
 	export let handleDepositModal:
 		| ((
 				vault: RaindexVault,
@@ -86,6 +90,7 @@
 		) ?? [];
 
 	$: raindexesMap = raindexClient.getAllRaindexes()?.value ?? new Map<string, RaindexCfg>();
+	$: configuredNetworks = Array.from(raindexesMap.values(), (cfg) => cfg.network);
 	$: availableRaindexAddresses = (() => {
 		const addrs: string[] = [];
 		raindexesMap.forEach((cfg: RaindexCfg) => {
@@ -134,6 +139,12 @@
 		refetchInterval: DEFAULT_REFRESH_INTERVAL,
 		enabled: true
 	});
+
+	let appliedRefreshVersion = refreshVersion;
+	$: if (refreshVersion > appliedRefreshVersion) {
+		appliedRefreshVersion = refreshVersion;
+		$query.refetch();
+	}
 
 	$: if (selectedVaults.size > 0 && !$account) {
 		// If User disconnected — clear selected vaults
@@ -229,12 +240,13 @@
 		{activeRaindexAddresses}
 		{selectedRaindexAddresses}
 		{ownerFilter}
+		{localDbStatuses}
 	/>
 	<AppTable
 		{query}
 		dataSelector={(page) => page.items}
 		queryKey={QKEY_VAULTS}
-		emptyMessage="No Vaults Found"
+		{emptyMessage}
 		on:clickRow={(e) => {
 			goto(`/vaults/${e.detail.item.chainId}-${e.detail.item.raindex}-${e.detail.item.id}`);
 		}}
@@ -291,7 +303,7 @@
 			</TableBodyCell>
 
 			<TableBodyCell tdClass="px-4 py-2" data-testid="vault-network">
-				{getNetworkName(Number(item.chainId))}
+				{getNetworkName(Number(item.chainId), configuredNetworks) ?? `Chain ${item.chainId}`}
 			</TableBodyCell>
 
 			<TableBodyCell data-testid="vaultAddresses" tdClass="px-4 py-2">

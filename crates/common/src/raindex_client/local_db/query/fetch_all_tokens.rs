@@ -8,7 +8,7 @@ pub async fn fetch_all_tokens<E: LocalDbQueryExecutor + ?Sized>(
     args: FetchAllTokensArgs,
 ) -> Result<Vec<LocalDbToken>, LocalDbQueryError> {
     let stmt = build_fetch_all_tokens_stmt(&args)?;
-    exec.query_json(&stmt).await
+    exec.query_json_retryable(&stmt).await
 }
 
 #[cfg(all(test, target_family = "wasm"))]

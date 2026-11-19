@@ -7,12 +7,28 @@ jobs:
       id-token: write
       contents: read
     steps:
-      # Shared nix + cachix preamble (checkout, nix-quick-install, Cachix,
-      # cache-nix-action). The third-party action SHAs are pinned once in the
-      # rainix composite.
-      - uses: rainlanguage/rainix/.github/actions/nix-cachix-setup@main
+      - uses: actions/checkout@v4
+      - uses: nixbuild/nix-quick-install-action@v30
         with:
-          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+      - uses: cachix/cachix-action@v15
+        continue-on-error: true
+        with:
+          name: rainlanguage
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: false
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@v6
+        with:
+          # restore and save a cache using this key
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          # if there's no cache hit, restore a cache by this prefix
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          # collect garbage until the Nix store size (in bytes) is at most this number
+          # before trying to save a new cache
+          # 1G = 1073741824
           gc-max-store-size-linux: 1G
       - run: nix develop .#rust-shell --command cargo release --workspace
       # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch

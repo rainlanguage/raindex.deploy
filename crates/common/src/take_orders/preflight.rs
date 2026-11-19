@@ -1,12 +1,12 @@
 use crate::utils::timing::Timing;
 use alloy::network::TransactionBuilder;
-use alloy::primitives::{Address, Bytes, U256};
+use alloy::primitives::{Address, Bytes, B256, U256};
 use alloy::providers::Provider;
 use alloy::rpc::types::TransactionRequest;
 use alloy::serde::WithOtherFields;
 use alloy::sol_types::SolCall;
 use raindex_bindings::provider::ReadProvider;
-use raindex_bindings::IRaindexV6::{takeOrders4Call, TakeOrdersConfigV5};
+use raindex_bindings::IRaindexV7::{takeOrders5Call, TakeOrdersConfigV6};
 use raindex_bindings::IERC20::approveCall;
 use thiserror::Error;
 use tracing::{debug, info, warn};
@@ -150,7 +150,7 @@ pub async fn simulate_take_orders(
     provider: &ReadProvider,
     raindex: Address,
     taker: Address,
-    config: &TakeOrdersConfigV5,
+    config: &TakeOrdersConfigV6,
     block_number: Option<u64>,
 ) -> Result<(), String> {
     let started_at = Timing::now();
@@ -162,7 +162,7 @@ pub async fn simulate_take_orders(
         order_count,
         "starting take-orders preflight simulation"
     );
-    let calldata = takeOrders4Call {
+    let calldata = takeOrders5Call {
         config: config.clone(),
     }
     .abi_encode();
@@ -217,42 +217,60 @@ pub async fn find_failing_order_index(
     provider: &ReadProvider,
     raindex: Address,
     taker: Address,
-    config: &TakeOrdersConfigV5,
+    config: &TakeOrdersConfigV6,
     block_number: Option<u64>,
 ) -> Option<usize> {
+    match diagnose_take_orders_failure(provider, raindex, taker, config, block_number).await {
+        TakeOrdersFailureDiagnosis::FailingOrder(index) => Some(index),
+        TakeOrdersFailureDiagnosis::Recovered | TakeOrdersFailureDiagnosis::Unidentified => None,
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum TakeOrdersFailureDiagnosis {
+    FailingOrder(usize),
+    Recovered,
+    Unidentified,
+}
+
+pub(crate) async fn diagnose_take_orders_failure(
+    provider: &ReadProvider,
+    raindex: Address,
+    taker: Address,
+    config: &TakeOrdersConfigV6,
+    block_number: Option<u64>,
+) -> TakeOrdersFailureDiagnosis {
     let started_at = Timing::now();
     if config.orders.is_empty() {
         debug!(raindex = %raindex, "cannot find failing order in empty config");
-        return None;
+        return TakeOrdersFailureDiagnosis::Unidentified;
     }
 
     if config.orders.len() == 1 {
-        let result = simulate_take_orders(provider, raindex, taker, config, block_number).await;
-        if result.is_err() {
+        let first_retry =
+            simulate_take_orders(provider, raindex, taker, config, block_number).await;
+        if first_retry.is_err()
+            && simulate_take_orders(provider, raindex, taker, config, block_number)
+                .await
+                .is_err()
+        {
             warn!(
                 raindex = %raindex,
                 taker = %taker,
                 block_number = ?block_number,
                 failing_order_index = 0usize,
-                simulations_run = 1usize,
+                simulations_run = 2usize,
                 duration_ms = started_at.elapsed_ms(),
                 "identified failing order"
             );
-            return Some(0);
+            return TakeOrdersFailureDiagnosis::FailingOrder(0);
         }
-        return None;
+        return TakeOrdersFailureDiagnosis::Recovered;
     }
 
     let mut simulations_run = 0usize;
     for idx in 0..config.orders.len() {
-        let single_order_config = TakeOrdersConfigV5 {
-            minimumIO: config.minimumIO,
-            maximumIO: config.maximumIO,
-            maximumIORatio: config.maximumIORatio,
-            IOIsInput: config.IOIsInput,
-            orders: vec![config.orders[idx].clone()],
-            data: config.data.clone(),
-        };
+        let single_order_config = single_order_probe_config(config, idx);
 
         let result =
             simulate_take_orders(provider, raindex, taker, &single_order_config, block_number)
@@ -260,17 +278,38 @@ pub async fn find_failing_order_index(
         simulations_run += 1;
 
         if result.is_err() {
-            warn!(
-                raindex = %raindex,
-                taker = %taker,
-                block_number = ?block_number,
-                failing_order_index = idx,
-                simulations_run,
-                duration_ms = started_at.elapsed_ms(),
-                "identified failing order"
-            );
-            return Some(idx);
+            let retry =
+                simulate_take_orders(provider, raindex, taker, &single_order_config, block_number)
+                    .await;
+            simulations_run += 1;
+            if retry.is_err() {
+                warn!(
+                    raindex = %raindex,
+                    taker = %taker,
+                    block_number = ?block_number,
+                    failing_order_index = idx,
+                    simulations_run,
+                    duration_ms = started_at.elapsed_ms(),
+                    "identified failing order"
+                );
+                return TakeOrdersFailureDiagnosis::FailingOrder(idx);
+            }
         }
+    }
+
+    if simulate_take_orders(provider, raindex, taker, config, block_number)
+        .await
+        .is_ok()
+    {
+        info!(
+            raindex = %raindex,
+            taker = %taker,
+            block_number = ?block_number,
+            simulations_run,
+            duration_ms = started_at.elapsed_ms(),
+            "take-orders preflight recovered during failure diagnosis"
+        );
+        return TakeOrdersFailureDiagnosis::Recovered;
     }
 
     warn!(
@@ -281,12 +320,27 @@ pub async fn find_failing_order_index(
         duration_ms = started_at.elapsed_ms(),
         "could not identify failing order"
     );
-    None
+    TakeOrdersFailureDiagnosis::Unidentified
+}
+
+fn single_order_probe_config(config: &TakeOrdersConfigV6, idx: usize) -> TakeOrdersConfigV6 {
+    TakeOrdersConfigV6 {
+        // `minimumIO` is an aggregate constraint. Keeping the batch minimum
+        // when probing one leg would make healthy partial legs fail in exact
+        // modes and incorrectly identify them as the cause of the revert.
+        minimumIO: B256::ZERO,
+        maximumIO: config.maximumIO,
+        maximumIORatio: config.maximumIORatio,
+        IOIsInput: config.IOIsInput,
+        orders: vec![config.orders[idx].clone()],
+        data: config.data.clone(),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raindex_bindings::IRaindexV7::TakeOrderConfigV5;
 
     #[test]
     fn test_preflight_error_display() {
@@ -348,6 +402,28 @@ mod tests {
         assert_eq!(decoded.spender, spender);
         assert_eq!(decoded.amount, amount);
     }
+
+    #[test]
+    fn single_order_probe_drops_aggregate_minimum_io() {
+        let order = TakeOrderConfigV5::default();
+        let config = TakeOrdersConfigV6 {
+            minimumIO: U256::from(10).into(),
+            maximumIO: U256::from(20).into(),
+            maximumIORatio: U256::from(2).into(),
+            IOIsInput: true,
+            orders: vec![order.clone(), TakeOrderConfigV5::default()],
+            data: Bytes::from(vec![1]),
+        };
+
+        let probe = single_order_probe_config(&config, 0);
+
+        assert_eq!(probe.minimumIO, B256::ZERO);
+        assert_eq!(probe.maximumIO, config.maximumIO);
+        assert_eq!(probe.maximumIORatio, config.maximumIORatio);
+        assert_eq!(probe.IOIsInput, config.IOIsInput);
+        assert_eq!(probe.orders, vec![order]);
+        assert_eq!(probe.data, config.data);
+    }
 }
 
 #[cfg(all(test, not(target_family = "wasm")))]
@@ -356,7 +432,7 @@ mod local_evm_tests {
     use crate::erc20::ERC20;
     use alloy::primitives::B256;
     use raindex_bindings::provider::mk_read_provider;
-    use raindex_bindings::IRaindexV6::TakeOrderConfigV4;
+    use raindex_bindings::IRaindexV7::TakeOrderConfigV5;
     use raindex_test_fixtures::LocalEvm;
     use url::Url;
 
@@ -510,7 +586,7 @@ mod local_evm_tests {
         let rpc_url = Url::parse(&local_evm.url().to_string()).unwrap();
         let provider = mk_read_provider(&[rpc_url]).unwrap();
 
-        let config = TakeOrdersConfigV5 {
+        let config = TakeOrdersConfigV6 {
             minimumIO: B256::ZERO,
             maximumIO: U256::MAX.into(),
             maximumIORatio: U256::MAX.into(),
@@ -533,10 +609,10 @@ mod local_evm_tests {
         let rpc_url = Url::parse(&local_evm.url().to_string()).unwrap();
         let provider = mk_read_provider(&[rpc_url]).unwrap();
 
-        let fake_order = TakeOrderConfigV4 {
-            order: raindex_bindings::IRaindexV6::OrderV4 {
+        let fake_order = TakeOrderConfigV5 {
+            order: raindex_bindings::IRaindexV7::OrderV4 {
                 owner: Address::ZERO,
-                evaluable: raindex_bindings::IRaindexV6::EvaluableV4 {
+                evaluable: raindex_bindings::IRaindexV7::EvaluableV4 {
                     interpreter: Address::ZERO,
                     store: Address::ZERO,
                     bytecode: Bytes::new(),
@@ -550,7 +626,7 @@ mod local_evm_tests {
             signedContext: vec![],
         };
 
-        let config = TakeOrdersConfigV5 {
+        let config = TakeOrdersConfigV6 {
             minimumIO: B256::ZERO,
             maximumIO: U256::MAX.into(),
             maximumIORatio: U256::MAX.into(),
@@ -570,7 +646,7 @@ mod local_evm_tests {
         let rpc_url = Url::parse(&local_evm.url().to_string()).unwrap();
         let provider = mk_read_provider(&[rpc_url]).unwrap();
 
-        let config = TakeOrdersConfigV5 {
+        let config = TakeOrdersConfigV6 {
             minimumIO: B256::ZERO,
             maximumIO: U256::MAX.into(),
             maximumIORatio: U256::MAX.into(),
@@ -590,10 +666,10 @@ mod local_evm_tests {
         let rpc_url = Url::parse(&local_evm.url().to_string()).unwrap();
         let provider = mk_read_provider(&[rpc_url]).unwrap();
 
-        let fake_order = TakeOrderConfigV4 {
-            order: raindex_bindings::IRaindexV6::OrderV4 {
+        let fake_order = TakeOrderConfigV5 {
+            order: raindex_bindings::IRaindexV7::OrderV4 {
                 owner: Address::ZERO,
-                evaluable: raindex_bindings::IRaindexV6::EvaluableV4 {
+                evaluable: raindex_bindings::IRaindexV7::EvaluableV4 {
                     interpreter: Address::ZERO,
                     store: Address::ZERO,
                     bytecode: Bytes::new(),
@@ -607,7 +683,7 @@ mod local_evm_tests {
             signedContext: vec![],
         };
 
-        let config = TakeOrdersConfigV5 {
+        let config = TakeOrdersConfigV6 {
             minimumIO: B256::ZERO,
             maximumIO: U256::MAX.into(),
             maximumIORatio: U256::MAX.into(),

@@ -1,9 +1,8 @@
 use crate::raindex_client::orders::RaindexOrder;
 use crate::raindex_client::RaindexError;
 use crate::take_orders::{
-    build_take_order_candidates_for_pair, simulate_buy_over_candidates,
-    simulate_spend_over_candidates, ParsedTakeOrdersMode, SignedContextInjector, SimulationResult,
-    TakeOrderCandidate,
+    build_take_order_candidates_for_pair, simulate_candidates, ParsedTakeOrdersMode,
+    SignedContextInjector, SimulationResult, TakeOrderCandidate,
 };
 use crate::utils::float::cmp_float;
 use crate::utils::timing::Timing;
@@ -76,6 +75,14 @@ pub(crate) fn worst_price(sim: &SimulationResult) -> Result<Option<Float>, Raind
     Ok(max)
 }
 
+fn selection_primary(sim: &SimulationResult, mode: ParsedTakeOrdersMode) -> Float {
+    if mode.is_exact_mode() && !mode.is_buy_mode() {
+        sim.total_input
+    } else {
+        sim.total_output
+    }
+}
+
 pub(crate) fn select_best_raindex_simulation(
     candidates: Vec<TakeOrderCandidate>,
     mode: ParsedTakeOrdersMode,
@@ -91,9 +98,6 @@ pub(crate) fn select_best_raindex_simulation(
             .push(candidate);
     }
 
-    let target = mode.target_amount();
-    let is_buy_mode = mode.is_buy_mode();
-
     let mut best_result: Option<(Address, SimulationResult)> = None;
     let raindex_count = raindex_candidates.len();
     let mut skipped_empty_sims = 0usize;
@@ -107,11 +111,7 @@ pub(crate) fn select_best_raindex_simulation(
     for (raindex_addr, candidates) in raindex_candidates {
         let candidate_count = candidates.len();
         info!(raindex = %raindex_addr, candidate_count, "simulating raindex candidates");
-        let sim = if is_buy_mode {
-            simulate_buy_over_candidates(candidates, target, price_cap)?
-        } else {
-            simulate_spend_over_candidates(candidates, target, price_cap)?
-        };
+        let sim = simulate_candidates(candidates, mode, price_cap)?;
 
         if sim.legs.is_empty() {
             skipped_empty_sims += 1;
@@ -119,39 +119,47 @@ pub(crate) fn select_best_raindex_simulation(
             continue;
         }
 
-        let achieved = sim.total_output;
+        let achieved = selection_primary(&sim, mode);
         debug!(
             raindex = %raindex_addr,
             legs_count = sim.legs.len(),
             total_input = %format_float(sim.total_input),
             total_output = %format_float(sim.total_output),
-            "raindex simulation achieved output"
+            "raindex simulation achieved target"
         );
 
         let is_better = match &best_result {
             None => true,
             Some((best_addr, best_sim)) => {
-                let best_achieved = best_sim.total_output;
+                let best_achieved = selection_primary(best_sim, mode);
 
                 if achieved.gt(best_achieved)? {
                     true
                 } else if achieved.eq(best_achieved)? {
-                    let sim_worst = worst_price(&sim)?;
-                    let best_worst = worst_price(best_sim)?;
-                    match (sim_worst, best_worst) {
-                        (Some(sw), Some(bw)) => match cmp_float(&sw, &bw)? {
-                            std::cmp::Ordering::Less => {
-                                debug!(raindex = %raindex_addr, best_raindex = %best_addr, "tie-break selected lower worst price");
-                                true
-                            }
-                            std::cmp::Ordering::Equal => {
-                                let wins = raindex_addr < *best_addr;
-                                debug!(raindex = %raindex_addr, best_raindex = %best_addr, selected = wins, "tie-break compared raindex address");
-                                wins
-                            }
-                            std::cmp::Ordering::Greater => false,
-                        },
-                        _ => raindex_addr < *best_addr,
+                    if sim.total_output.gt(best_sim.total_output)? {
+                        debug!(raindex = %raindex_addr, best_raindex = %best_addr, "tie-break selected higher output");
+                        true
+                    } else if sim.total_output.lt(best_sim.total_output)? {
+                        debug!(raindex = %raindex_addr, best_raindex = %best_addr, "tie-break rejected lower output");
+                        false
+                    } else {
+                        let sim_worst = worst_price(&sim)?;
+                        let best_worst = worst_price(best_sim)?;
+                        match (sim_worst, best_worst) {
+                            (Some(sw), Some(bw)) => match cmp_float(&sw, &bw)? {
+                                std::cmp::Ordering::Less => {
+                                    debug!(raindex = %raindex_addr, best_raindex = %best_addr, "tie-break selected lower worst price");
+                                    true
+                                }
+                                std::cmp::Ordering::Equal => {
+                                    let wins = raindex_addr < *best_addr;
+                                    debug!(raindex = %raindex_addr, best_raindex = %best_addr, selected = wins, "tie-break compared raindex address");
+                                    wins
+                                }
+                                std::cmp::Ordering::Greater => false,
+                            },
+                            _ => raindex_addr < *best_addr,
+                        }
                     }
                 } else {
                     false
@@ -215,6 +223,13 @@ mod tests {
         }
     }
 
+    fn spend_exact(amount: Float) -> ParsedTakeOrdersMode {
+        ParsedTakeOrdersMode {
+            mode: crate::take_orders::TakeOrdersMode::SpendExact,
+            amount,
+        }
+    }
+
     #[test]
     fn test_select_best_raindex_single_raindex() {
         let ob1 = Address::from([0x11u8; 20]);
@@ -259,6 +274,35 @@ mod tests {
         assert_eq!(winner, ob2);
         let expected_output = Float::parse("8".to_string()).unwrap();
         assert!(sim.total_output.eq(expected_output).unwrap());
+    }
+
+    #[test]
+    fn spend_exact_prefers_full_spend_over_larger_partial_output() {
+        let partial_raindex = Address::from([0x11u8; 20]);
+        let full_raindex = Address::from([0x22u8; 20]);
+        let partial = make_candidate(
+            partial_raindex,
+            Float::parse("100".to_string()).unwrap(),
+            Float::parse("0.05".to_string()).unwrap(),
+        );
+        let full = make_candidate(
+            full_raindex,
+            Float::parse("5".to_string()).unwrap(),
+            Float::parse("2".to_string()).unwrap(),
+        );
+
+        let (winner, sim) = select_best_raindex_simulation(
+            vec![partial, full],
+            spend_exact(Float::parse("10".to_string()).unwrap()),
+            high_price_cap(),
+        )
+        .unwrap();
+
+        assert_eq!(winner, full_raindex);
+        assert!(sim
+            .total_input
+            .eq(Float::parse("10".to_string()).unwrap())
+            .unwrap());
     }
 
     #[test]

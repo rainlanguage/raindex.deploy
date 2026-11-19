@@ -4,11 +4,11 @@ This crate provides all functionality to quote Rain Raindex orders from Rust,
 expose the API to WASM/TypeScript, and ship a small CLI for ad‑hoc quoting and
 debugging. It stitches together three external systems:
 
-- On‑chain Raindex V6 contracts (`IRaindexV6`) via JSON‑RPC
+- On‑chain Raindex contracts (`IRaindexV7`) via JSON‑RPC
 - The Raindex subgraph for fetching order details by id
 - Rain error decoding to turn revert data into human readable errors
 
-It also includes a debugger that can fork an EVM and trace a `quote2` call for
+It also includes a debugger that can fork an EVM and trace a `quote3` call for
 step‑by‑step analysis of interpreter execution.
 
 ## Targets and Build Modes
@@ -32,7 +32,7 @@ Key gating:
   lookups).
 - Perform efficient batched on‑chain calls using the raindex's own OpenZeppelin
   `Multicall` (`multicall(bytes[])`). This is critical — Multicall3 forwards via
-  `CALL`, which would change `msg.sender` inside `quote2` to the Multicall3
+  `CALL`, which would change `msg.sender` inside `quote3` to the Multicall3
   contract and break any strategy that reads `order-counterparty()` in
   `calculate-io`. OZ Multicall uses `delegatecall`, preserving `msg.sender` as
   the caller-supplied `counterparty` so gated strategies simulate with the
@@ -43,17 +43,17 @@ Key gating:
   (`FailedQuote`).
 - Provide a CLI to drive the above with ergonomic input formats and JSON output.
 - Provide a quote debugger that forks an EVM and returns interpreter traces for
-  `quote2` calls.
+  `quote3` calls.
 
 ## Core Data Model
 
 - `OrderQuoteValue`
   - Fields: `max_output: Float`, `ratio: Float`
-  - Converts from the ABI type `quote2Return { exists, outputMax, ioRatio }`.
+  - Converts from the ABI type `quote3Return { exists, outputMax, ioRatio }`.
   - Used by both native and wasm; serializes to camelCase.
 
 - `QuoteTarget`
-  - A fully specified quote request with the exact `QuoteV2` (includes the
+  - A fully specified quote request with the exact `QuoteV3` (includes the
     `OrderV4` bytes, input/output indices, and optional signed context) and the
     `raindex` address.
   - Helpers:
@@ -100,7 +100,7 @@ Key gating:
 
 - `FailedQuote` represents a per‑call failure returned as an element within
   `Vec<QuoteResult>`:
-  - `NonExistent` — the target `quote2` call returned `exists=false`.
+  - `NonExistent` — the target `quote3` call returned `exists=false`.
   - `RevertError(AbiDecodedErrorType)` — decoder recognized the revert (often a
     Rain error like `TokenSelfTrade`).
   - `RevertErrorDecodeFailed(AbiDecodeFailedErrors)` — revert present but not
@@ -118,7 +118,7 @@ Key gating:
 
 ## RPC Layer: `rpc::batch_quote`
 
-Purpose: execute `quote2` for many `QuoteTarget`s efficiently while preserving
+Purpose: execute `quote3` for many `QuoteTarget`s efficiently while preserving
 the caller's `msg.sender`.
 
 Flow:
@@ -131,11 +131,11 @@ Flow:
    chunk with:
    - `to = raindex`
    - `from = counterparty` (preserved through `delegatecall` into each inner
-     `quote2`)
-   - `data = abi_encode(multicall(bytes[] { abi_encode(quote2Call), ... }))`
+     `quote3`)
+   - `data = abi_encode(multicall(bytes[] { abi_encode(quote3Call), ... }))`
    - optional `block_number` via `BlockId::Number(block)`
 4. On success, decode the `bytes[]` response and per-element decode
-   `quote2Return { exists, outputMax, ioRatio }`:
+   `quote3Return { exists, outputMax, ioRatio }`:
    - `exists == true` → `Ok(OrderQuoteValue::from(ret))`.
    - `exists == false` → `Err(FailedQuote::NonExistent)`.
    - ABI decode failure → `Err(FailedQuote::CorruptReturnData)`.
@@ -153,7 +153,7 @@ Flow:
 Notes:
 
 - `block_number` lets callers obtain deterministic historical quotes.
-- `counterparty` is the `from` address on every inner `quote2`, so strategies
+- `counterparty` is the `from` address on every inner `quote3`, so strategies
   that read `order-counterparty()` in `calculate-io` observe the real taker
   rather than a batching contract.
 
@@ -164,7 +164,7 @@ Notes:
 - `QuoteSpec` and `BatchQuoteSpec` use the helper
   `make_order_id(raindex, order_hash)` to query the subgraph.
 - ABI decoding of `orderBytes` constructs `OrderV4`, which is then embedded into
-  `QuoteV2`.
+  `QuoteV3`.
 
 ## Order Pair Sweep: `order_quotes::get_order_quotes`
 
@@ -183,7 +183,7 @@ Flow:
     `input.token != output.token`:
     - Build `pair_name` using token symbols from the subgraph record.
     - Build a `QuoteTarget` with
-      `QuoteV2 { order, inputIOIndex, outputIOIndex, signedContext: [] }`.
+      `QuoteV3 { order, inputIOIndex, outputIOIndex, signedContext: [] }`.
   - Batch quote all constructed targets at `req_block_number`.
   - For each pair, push a `BatchOrderQuotesResponse` with either
     `data: Some(OrderQuoteValue)` and `success: true`, or
@@ -237,7 +237,7 @@ Behavior:
 
 ## Quote Debugger: `quote_debug` (native only)
 
-Purpose: Help users debug a `quote2` call by forking a chain, executing the
+Purpose: Help users debug a `quote3` call by forking a chain, executing the
 call, collecting interpreter traces, and decoding any revert reason.
 
 - Types:
@@ -248,7 +248,7 @@ call, collecting interpreter traces, and decoding any revert reason.
   `rain_interpreter_eval::Forker::new_with_fork`.
 - `QuoteDebugger::debug(quote_target)`:
   - Validates IO indices with `QuoteTarget::validate()`.
-  - Encodes `quote2` call and executes it against the forked EVM.
+  - Encodes `quote3` call and executes it against the forked EVM.
   - If reverted, optionally decode revert data using the Rain selector registry.
   - Returns
     `(RainEvalResult, Option<Result<AbiDecodedErrorType, AbiDecodeFailedErrors>>)`
@@ -275,14 +275,13 @@ call, collecting interpreter traces, and decoding any revert reason.
 
 - `alloy` primitives and `sol_types`: ABI encode/decode, EVM types, and contract
   call modeling.
-- `raindex_bindings`: contract bindings (`IRaindexV6`, provider helpers like
-  `mk_read_provider`).
+- `raindex_bindings`: contract bindings (`IRaindexV7`, provider helpers like
+  `mk_read_provider`, which builds an alloy provider with fallback across
+  multiple HTTP RPCs).
 - `raindex_subgraph_client`: GraphQL client and types; provides `order_detail`
   and `batch_order_detail`.
 - `rain-error-decoding`: decodes revert selectors (known/unknown) into
   structured errors.
-- `alloy-ethers-typecast::ReadableClient`: convenience for fetching block number
-  across multiple HTTP RPCs.
 - `rain_math_float::Float`: canonical numeric type used in quotes; serializes to
   hex strings and provides safe equality/formatting.
 - `wasm-bindgen-utils`: `Tsify` derives and helper macros (`impl_wasm_traits!`,

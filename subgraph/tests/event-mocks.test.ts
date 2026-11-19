@@ -13,7 +13,7 @@ import {
   DepositV2,
   MetaV1_2,
   RemoveOrderV3,
-  TakeOrderV3,
+  TakeOrderV4,
 } from "../generated/Raindex/Raindex";
 import { WithdrawV2 } from "../generated/Raindex/Raindex";
 import { createTransactionEntity } from "../src/transaction";
@@ -246,7 +246,7 @@ export function createRemoveOrderEvent(
   return removeOrderEvent;
 }
 
-// event TakeOrderV3(address sender, TakeOrderConfigV4 config, Float input, Float output);
+// event TakeOrderV4(address sender, TakeOrderConfigV5 config, Float input, Float output);
 export function createTakeOrderEvent(
   sender: Address,
   owner: Address,
@@ -256,9 +256,9 @@ export function createTakeOrderEvent(
   evaluable: Evaluable,
   input: Float,
   output: Float
-): TakeOrderV3 {
+): TakeOrderV4 {
   let mockEvent = newMockEvent();
-  let takeOrderEvent = new TakeOrderV3(
+  let takeOrderEvent = new TakeOrderV4(
     mockEvent.address,
     mockEvent.logIndex,
     mockEvent.transactionLogIndex,
@@ -278,6 +278,13 @@ export function createTakeOrderEvent(
 
   let signedContext = new ethereum.Tuple();
   signedContext.push(ethereum.Value.fromAddress(sender));
+  signedContext.push(
+    ethereum.Value.fromFixedBytes(
+      Bytes.fromHexString(
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      )
+    )
+  );
   signedContext.push(ethereum.Value.fromUnsignedBigIntArray([]));
   signedContext.push(ethereum.Value.fromBytes(Bytes.fromHexString("0x")));
 

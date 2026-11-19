@@ -1,11 +1,102 @@
 use super::*;
-use alloy::{
-    hex,
-    primitives::{B256, U256},
-};
-use rain_math_float::Float;
+use crate::utils::float::F0;
+use alloy::{hex, primitives::B256};
+use std::collections::BTreeSet;
 
 impl RaindexSubgraphClient {
+    fn orders_list_filter(filter_args: SgOrdersListFilterArgs) -> Option<SgOrdersListQueryFilters> {
+        let tokens = filter_args.tokens.as_ref();
+        let input_tokens = tokens.map_or(&[][..], |tokens| tokens.inputs.as_slice());
+        let output_tokens = tokens.map_or(&[][..], |tokens| tokens.outputs.as_slice());
+        let has_input_tokens = !input_tokens.is_empty();
+        let has_output_tokens = !output_tokens.is_empty();
+        let has_positive_output_vault_balance =
+            filter_args.has_positive_output_vault_balance == Some(true);
+        let has_filters = !filter_args.owners.is_empty()
+            || filter_args.active.is_some()
+            || filter_args.order_hash.is_some()
+            || !filter_args.raindexes.is_empty()
+            || has_input_tokens
+            || has_output_tokens
+            || has_positive_output_vault_balance;
+
+        has_filters.then(|| {
+            let canonicalize = |tokens: &[String]| {
+                tokens
+                    .iter()
+                    .cloned()
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect::<Vec<_>>()
+            };
+            let equal_tokens = if has_input_tokens && has_output_tokens {
+                if input_tokens == output_tokens {
+                    Some(canonicalize(input_tokens))
+                } else {
+                    let inputs = canonicalize(input_tokens);
+                    (inputs == canonicalize(output_tokens)).then_some(inputs)
+                }
+            } else {
+                None
+            };
+            let positive_vault_id = has_positive_output_vault_balance
+                .then(|| SgBytes(hex::encode_prefixed(B256::ZERO)));
+            let positive_balance = has_positive_output_vault_balance.then(|| SgBytes(F0.as_hex()));
+            let vault_filter = |token_in| SgVaultTokenFilter {
+                token_in,
+                vault_id_not: positive_vault_id.clone(),
+                balance_gt: positive_balance.clone(),
+            };
+            let common_filter = SgOrdersListQueryFilters {
+                owner_in: filter_args.owners,
+                active: filter_args.active,
+                order_hash: filter_args.order_hash,
+                outputs_: has_positive_output_vault_balance.then(|| vault_filter(vec![])),
+                raindex_in: filter_args.raindexes,
+                ..Default::default()
+            };
+
+            match equal_tokens {
+                None => {
+                    let directional_filter = SgOrdersListQueryFilters {
+                        inputs_: has_input_tokens.then(|| SgVaultTokenFilter {
+                            token_in: input_tokens.to_vec(),
+                            vault_id_not: None,
+                            balance_gt: None,
+                        }),
+                        ..common_filter
+                    };
+
+                    if has_output_tokens {
+                        SgOrdersListQueryFilters {
+                            outputs_: Some(vault_filter(output_tokens.to_vec())),
+                            ..directional_filter
+                        }
+                    } else {
+                        directional_filter
+                    }
+                }
+                Some(tokens) => SgOrdersListQueryFilters {
+                    or: Some(vec![
+                        SgOrdersListQueryFilters {
+                            inputs_: Some(SgVaultTokenFilter {
+                                token_in: tokens.clone(),
+                                vault_id_not: None,
+                                balance_gt: None,
+                            }),
+                            ..common_filter.clone()
+                        },
+                        SgOrdersListQueryFilters {
+                            outputs_: Some(vault_filter(tokens)),
+                            ..common_filter
+                        },
+                    ]),
+                    ..Default::default()
+                },
+            }
+        })
+    }
+
     /// Fetch single order
     pub async fn order_detail(&self, id: &Id) -> Result<SgOrder, RaindexSubgraphClientError> {
         let data = self
@@ -43,58 +134,10 @@ impl RaindexSubgraphClient {
     ) -> Result<Vec<SgOrder>, RaindexSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
 
-        let has_basic_filters = !filter_args.owners.is_empty()
-            || filter_args.active.is_some()
-            || filter_args.order_hash.is_some()
-            || !filter_args.raindexes.is_empty();
-        let tokens = filter_args.tokens.as_ref();
-        let has_input_tokens = tokens.is_some_and(|tokens| !tokens.inputs.is_empty());
-        let has_output_tokens = tokens.is_some_and(|tokens| !tokens.outputs.is_empty());
-        let has_token_filters = has_input_tokens || has_output_tokens;
-        let has_positive_output_vault_balance =
-            filter_args.has_positive_output_vault_balance == Some(true);
-
-        let filters = if has_basic_filters || has_token_filters || has_positive_output_vault_balance
-        {
-            let mut filters = SgOrdersListQueryFilters {
-                owner_in: filter_args.owners.clone(),
-                active: filter_args.active,
-                order_hash: filter_args.order_hash.clone(),
-                inputs_: None,
-                outputs_: None,
-                raindex_in: filter_args.raindexes.clone(),
-            };
-
-            if has_input_tokens {
-                let tokens = tokens.unwrap();
-                filters.inputs_ = Some(SgVaultTokenFilter {
-                    token_in: tokens.inputs.clone(),
-                    vault_id_not: None,
-                    balance_gt: None,
-                });
-            }
-            if has_output_tokens || has_positive_output_vault_balance {
-                let output_tokens = tokens
-                    .map(|tokens| tokens.outputs.clone())
-                    .unwrap_or_default();
-                filters.outputs_ = Some(SgVaultTokenFilter {
-                    token_in: output_tokens,
-                    vault_id_not: has_positive_output_vault_balance
-                        .then(|| SgBytes(hex::encode_prefixed(B256::from(U256::ZERO)))),
-                    balance_gt: has_positive_output_vault_balance
-                        .then(|| SgBytes(Float::zero().expect("zero float").as_hex())),
-                });
-            }
-
-            Some(filters)
-        } else {
-            None
-        };
-
         let variables = SgOrdersListQueryVariables {
             first: pagination_variables.first,
             skip: pagination_variables.skip,
-            filters,
+            filters: Self::orders_list_filter(filter_args),
         };
 
         let data = self
@@ -175,8 +218,7 @@ mod tests {
     use crate::types::common::{
         SgBigInt, SgBytes, SgOrder, SgOrdersListFilterArgs, SgOrdersTokensFilterArgs, SgRaindex,
     };
-    use crate::utils::float::*;
-    use cynic::Id;
+    use cynic::{Id, QueryBuilder};
     use httpmock::prelude::*;
     use rain_math_float::Float;
     use reqwest::Url;
@@ -185,6 +227,130 @@ mod tests {
     fn setup_client(server: &MockServer) -> RaindexSubgraphClient {
         let url = Url::parse(&server.url("")).unwrap();
         RaindexSubgraphClient::new(url)
+    }
+
+    #[test]
+    fn equal_token_sets_use_canonical_nested_or() {
+        let token_a = "0x00000000000000000000000000000000000000aa".to_string();
+        let token_b = "0x00000000000000000000000000000000000000bb".to_string();
+        let filters = RaindexSubgraphClient::orders_list_filter(SgOrdersListFilterArgs {
+            tokens: Some(SgOrdersTokensFilterArgs {
+                inputs: vec![token_b.clone(), token_a.clone(), token_a.clone()],
+                outputs: vec![token_a.clone(), token_b.clone(), token_b.clone()],
+            }),
+            ..default_filter_args()
+        })
+        .unwrap();
+
+        assert!(filters.inputs_.is_none());
+        assert!(filters.outputs_.is_none());
+        let or = filters.or.unwrap();
+        assert_eq!(or.len(), 2);
+        assert_eq!(
+            or[0].inputs_.as_ref().unwrap().token_in,
+            vec![token_a.clone(), token_b.clone()]
+        );
+        assert!(or[0].outputs_.is_none());
+        assert_eq!(
+            or[1].outputs_.as_ref().unwrap().token_in,
+            vec![token_a, token_b]
+        );
+        assert!(or[1].inputs_.is_none());
+    }
+
+    #[test]
+    fn one_sided_and_unequal_token_sets_remain_directional() {
+        let token_a = "0x00000000000000000000000000000000000000aa".to_string();
+        let token_b = "0x00000000000000000000000000000000000000bb".to_string();
+        let input_only = RaindexSubgraphClient::orders_list_filter(SgOrdersListFilterArgs {
+            tokens: Some(SgOrdersTokensFilterArgs {
+                inputs: vec![token_a.clone()],
+                outputs: vec![],
+            }),
+            ..default_filter_args()
+        })
+        .unwrap();
+
+        assert_eq!(
+            input_only.inputs_.as_ref().unwrap().token_in,
+            vec![token_a.clone()]
+        );
+        assert!(input_only.outputs_.is_none());
+        assert!(input_only.or.is_none());
+
+        let unequal = RaindexSubgraphClient::orders_list_filter(SgOrdersListFilterArgs {
+            tokens: Some(SgOrdersTokensFilterArgs {
+                inputs: vec![token_a.clone()],
+                outputs: vec![token_b.clone()],
+            }),
+            ..default_filter_args()
+        })
+        .unwrap();
+
+        assert_eq!(unequal.inputs_.as_ref().unwrap().token_in, vec![token_a]);
+        assert_eq!(unequal.outputs_.as_ref().unwrap().token_in, vec![token_b]);
+        assert!(unequal.or.is_none());
+    }
+
+    #[test]
+    fn equal_token_request_serializes_only_distributed_or_branches() {
+        let token = "0x00000000000000000000000000000000000000aa".to_string();
+        let owner = "0x00000000000000000000000000000000000000bb";
+        let order_hash = "0x00000000000000000000000000000000000000000000000000000000000000cc";
+        let raindex = "0x00000000000000000000000000000000000000dd";
+
+        let request_body = SgOrdersListQuery::build(SgOrdersListQueryVariables {
+            first: Some(10),
+            skip: Some(0),
+            filters: RaindexSubgraphClient::orders_list_filter(SgOrdersListFilterArgs {
+                owners: vec![SgBytes(owner.to_string())],
+                active: Some(true),
+                order_hash: Some(SgBytes(order_hash.to_string())),
+                tokens: Some(SgOrdersTokensFilterArgs {
+                    inputs: vec![token.clone()],
+                    outputs: vec![token],
+                }),
+                raindexes: vec![raindex.to_string()],
+                has_positive_output_vault_balance: Some(true),
+            }),
+        });
+        let request_body = serde_json::to_value(request_body).unwrap();
+        let filters = request_body["variables"]["filters"].as_object().unwrap();
+        assert_eq!(filters.len(), 1);
+        let branches = filters["or"].as_array().unwrap();
+        assert_eq!(branches.len(), 2);
+
+        for branch in branches {
+            assert_eq!(
+                branch["owner_in"],
+                json!(["0x00000000000000000000000000000000000000bb"])
+            );
+            assert_eq!(branch["active"], json!(true));
+            assert_eq!(
+                branch["orderHash"],
+                json!("0x00000000000000000000000000000000000000000000000000000000000000cc")
+            );
+            assert_eq!(
+                branch["raindex_in"],
+                json!(["0x00000000000000000000000000000000000000dd"])
+            );
+            assert_eq!(
+                branch["outputs_"]["vaultId_not"],
+                json!("0x0000000000000000000000000000000000000000000000000000000000000000")
+            );
+            assert_eq!(branch["outputs_"]["balance_gt"], json!(F0.as_hex()));
+        }
+
+        assert_eq!(
+            branches[0]["inputs_"]["token_in"],
+            json!(["0x00000000000000000000000000000000000000aa"])
+        );
+        assert!(branches[0]["outputs_"].get("token_in").is_none());
+        assert!(branches[1].get("inputs_").is_none());
+        assert_eq!(
+            branches[1]["outputs_"]["token_in"],
+            json!(["0x00000000000000000000000000000000000000aa"])
+        );
     }
 
     fn default_sg_order() -> SgOrder {

@@ -53,7 +53,7 @@ pub async fn fetch_order_trades_batch<E: LocalDbQueryExecutor + ?Sized>(
         start_timestamp,
         end_timestamp,
     )?;
-    exec.query_json(&stmt).await
+    exec.query_json_retryable(&stmt).await
 }
 
 #[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]

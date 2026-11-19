@@ -1,15 +1,15 @@
-use crate::IRaindexV6::{
-    EvaluableV4, OrderV4, QuoteV2, SignedContextV1, TakeOrderConfigV4, TakeOrdersConfigV5, IOV2,
+use crate::IRaindexV7::{
+    EvaluableV4, OrderV4, QuoteV3, SignedContextV2, TakeOrderConfigV5, TakeOrdersConfigV6, IOV2,
 };
 use wasm_bindgen_utils::{impl_custom_tsify, impl_wasm_traits, prelude::*};
 
 impl_wasm_traits!(IOV2);
-impl_wasm_traits!(QuoteV2);
+impl_wasm_traits!(QuoteV3);
 impl_wasm_traits!(OrderV4);
 impl_wasm_traits!(EvaluableV4);
-impl_wasm_traits!(SignedContextV1);
-impl_wasm_traits!(TakeOrderConfigV4);
-impl_wasm_traits!(TakeOrdersConfigV5);
+impl_wasm_traits!(SignedContextV2);
+impl_wasm_traits!(TakeOrderConfigV5);
+impl_wasm_traits!(TakeOrdersConfigV6);
 
 impl_custom_tsify!(
     IOV2,
@@ -19,12 +19,12 @@ impl_custom_tsify!(
 }"
 );
 impl_custom_tsify!(
-    QuoteV2,
-    "export interface QuoteV2 {
+    QuoteV3,
+    "export interface QuoteV3 {
     order: OrderV4;
     inputIOIndex: string;
     outputIOIndex: string;
-    signedContext: SignedContextV1[];
+    signedContext: SignedContextV2[];
 }"
 );
 impl_custom_tsify!(
@@ -46,30 +46,31 @@ impl_custom_tsify!(
 }"
 );
 impl_custom_tsify!(
-    SignedContextV1,
-    "export interface SignedContextV1 {
+    SignedContextV2,
+    "export interface SignedContextV2 {
     signer: string;
+    domainSeparator: string;
     context: string[];
     signature: string;
 }"
 );
 impl_custom_tsify!(
-    TakeOrderConfigV4,
-    "export interface TakeOrderConfigV4 {
+    TakeOrderConfigV5,
+    "export interface TakeOrderConfigV5 {
     order: OrderV4;
     inputIOIndex: string;
     outputIOIndex: string;
-    signedContext: SignedContextV1[];
+    signedContext: SignedContextV2[];
 }"
 );
 impl_custom_tsify!(
-    TakeOrdersConfigV5,
-    "export interface TakeOrdersConfigV5 {
+    TakeOrdersConfigV6,
+    "export interface TakeOrdersConfigV6 {
     minimumIO: string;
     maximumIO: string;
     maximumIORatio: string;
     IOIsInput: string;
-    orders: TakeOrderConfigV4[];
+    orders: TakeOrderConfigV5[];
     data: string;
 }"
 );
@@ -91,7 +92,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_quote_tsify() {
-        let js_quote = to_js_value(&QuoteV2::default()).unwrap();
+        let js_quote = to_js_value(&QuoteV3::default()).unwrap();
         // validate serialized props match the tsify definition
         assert!(JsString::from_str("order").unwrap().js_in(&js_quote));
         assert!(JsString::from_str("inputIOIndex").unwrap().js_in(&js_quote));
@@ -126,10 +127,13 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_signed_contextv1_tsify() {
-        let js_signed_context = to_js_value(&SignedContextV1::default()).unwrap();
+    fn test_signed_contextv2_tsify() {
+        let js_signed_context = to_js_value(&SignedContextV2::default()).unwrap();
         // validate serialized props match the tsify definition
         assert!(JsString::from_str("signer")
+            .unwrap()
+            .js_in(&js_signed_context));
+        assert!(JsString::from_str("domainSeparator")
             .unwrap()
             .js_in(&js_signed_context));
         assert!(JsString::from_str("context")
@@ -142,7 +146,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_take_order_config_v4_tsify() {
-        let js_take_order_config = to_js_value(&TakeOrderConfigV4::default()).unwrap();
+        let js_take_order_config = to_js_value(&TakeOrderConfigV5::default()).unwrap();
         // validate serialized props match the tsify definition
         assert!(JsString::from_str("order")
             .unwrap()
@@ -160,7 +164,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_take_orders_config_v4_tsify() {
-        let js_take_orders_config = to_js_value(&TakeOrdersConfigV5::default()).unwrap();
+        let js_take_orders_config = to_js_value(&TakeOrdersConfigV6::default()).unwrap();
         // validate serialized props match the tsify definition
         assert!(JsString::from_str("minimumIO")
             .unwrap()

@@ -3,7 +3,6 @@ use crate::local_db::decode::DecodedEvent;
 use crate::local_db::insert::{
     decoded_events_to_statements as build_decoded_event_sql,
     generate_erc20_token_statements as build_token_upserts,
-    raw_events_to_statements as build_raw_event_sql,
 };
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::upsert_derived_trades::upsert_derived_trades_batch;
@@ -23,6 +22,7 @@ pub struct ApplyPipelineTargetInfo {
     pub raindex_id: RaindexIdentifier,
     pub start_block: u64,
     pub target_block: u64,
+    pub defer_analyze: bool,
     pub hash: B256,
 }
 
@@ -30,10 +30,9 @@ pub struct ApplyPipelineTargetInfo {
 ///
 /// Responsibilities (concrete):
 /// - Build a transactional batch containing:
-///   - Raw events INSERTs.
 ///   - Token upserts for provided `(Address, TokenInfo)` pairs.
-///   - Decoded event INSERTs for all raindex-scoped tables, binding the
-///     target raindex.
+///   - Decoded event INSERTs needed for order/vault queries, binding the target
+///     raindex. Raw events and signed take-order contexts are not persisted.
 ///   - Vault balance change/running balance upserts.
 ///   - Watermark update to the `target_block` (and later last hash).
 /// - Persist the batch with a single-writer gate; must assert that the batch
@@ -48,7 +47,7 @@ pub trait ApplyPipeline {
     fn build_batch(
         &self,
         target_info: &ApplyPipelineTargetInfo,
-        raw_logs: &[LogEntryResponse],
+        _raw_logs: &[LogEntryResponse],
         decoded_events: &[DecodedEventData<DecodedEvent>],
         existing_tokens: &[Erc20TokenRow],
         tokens_to_upsert: &[(Address, TokenInfo)],
@@ -66,10 +65,6 @@ pub trait ApplyPipeline {
 
         // 2) Build component batches
         let mut batch = SqlStatementBatch::new();
-
-        // Raw events first
-        let raw_batch = build_raw_event_sql(&target_info.raindex_id, raw_logs)?;
-        batch.extend(raw_batch);
 
         // Token upserts for the missing set only
         if !tokens_to_upsert.is_empty() {
@@ -110,7 +105,9 @@ pub trait ApplyPipeline {
 
         // Ensure SQLite planner stats are up to date so reads don't suffer from
         // poor query plans.
-        batch.add(SqlStatement::new("ANALYZE"));
+        if !target_info.defer_analyze {
+            batch.add(SqlStatement::new("ANALYZE"));
+        }
 
         Ok(batch)
     }
@@ -172,6 +169,7 @@ mod tests {
             raindex_id: raindex_id.clone(),
             start_block,
             target_block,
+            defer_analyze: false,
             hash: SAMPLE_HASH_B256,
         }
     }
@@ -239,7 +237,7 @@ mod tests {
 
     fn deposit_event(addr: Address) -> DecodedEventData<DecodedEvent> {
         use crate::local_db::decode::EventType;
-        use raindex_bindings::IRaindexV6::DepositV2;
+        use raindex_bindings::IRaindexV7::DepositV2;
         DecodedEventData {
             event_type: EventType::DepositV2,
             block_number: U256::from(1),
@@ -259,7 +257,7 @@ mod tests {
 
     fn withdraw_event(addr: Address) -> DecodedEventData<DecodedEvent> {
         use crate::local_db::decode::EventType;
-        use raindex_bindings::IRaindexV6::WithdrawV2;
+        use raindex_bindings::IRaindexV7::WithdrawV2;
         DecodedEventData {
             event_type: EventType::WithdrawV2,
             block_number: U256::from(0x10),
@@ -834,63 +832,7 @@ mod tests {
     }
 
     #[test]
-    fn raw_events_sorted_by_block_then_log() {
-        let pipeline = DefaultApplyPipeline::new();
-        let raindex_id = sample_raindex_id();
-
-        // Two raw logs out of order
-        let mk = |block: u64, log_index: u64| {
-            let tx_hash = B256::from(U256::from(block));
-            LogEntryResponse {
-                address: Address::from([0x11; 20]),
-                topics: vec![],
-                data: Bytes::new(),
-                block_number: U256::from(block),
-                block_timestamp: Some(U256::from(1)),
-                transaction_hash: tx_hash,
-                transaction_index: "0x0".into(),
-                block_hash: tx_hash,
-                log_index: U256::from(log_index),
-                removed: false,
-            }
-        };
-        let a = mk(10, 5);
-        let b = mk(10, 3);
-
-        let batch = pipeline
-            .build_batch(
-                &build_target_info(&raindex_id, 1, 10),
-                &[a, b],
-                &[],
-                &[],
-                &[],
-            )
-            .expect("batch ok");
-
-        let raws: Vec<_> = batch
-            .statements()
-            .iter()
-            .filter(|s| s.sql().starts_with("INSERT INTO raw_events"))
-            .collect();
-        assert_eq!(raws.len(), 2);
-        // Check param ?3 block_number and ?6 log_index are sorted ascending
-        let get_u = |stmt: &SqlStatement, idx: usize| match stmt.params().get(idx) {
-            Some(crate::local_db::query::SqlValue::U64(v)) => *v,
-            Some(crate::local_db::query::SqlValue::I64(v)) => *v as u64,
-            other => panic!("unexpected param type: {other:?}"),
-        };
-        let b1 = get_u(raws[0], 2);
-        let l1 = get_u(raws[0], 5);
-        let b2 = get_u(raws[1], 2);
-        let l2 = get_u(raws[1], 5);
-        assert!(b1 <= b2);
-        if b1 == b2 {
-            assert!(l1 < l2);
-        }
-    }
-
-    #[test]
-    fn only_raw_logs_emitted_when_no_tokens_or_decoded() {
+    fn raw_logs_do_not_create_rows_without_decoded_events() {
         let pipeline = DefaultApplyPipeline::new();
         let raindex_id = sample_raindex_id();
 
@@ -921,7 +863,7 @@ mod tests {
             .expect("batch ok");
 
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql()).collect();
-        assert!(texts
+        assert!(!texts
             .iter()
             .any(|s| s.starts_with("INSERT INTO raw_events")));
         assert!(!texts
@@ -993,6 +935,24 @@ mod tests {
     }
 
     #[test]
+    fn deferred_analysis_omits_per_target_analyze() {
+        let pipeline = DefaultApplyPipeline::new();
+        let raindex_id = sample_raindex_id();
+        let mut target = build_target_info(&raindex_id, 1, 100);
+        target.defer_analyze = true;
+
+        let batch = pipeline
+            .build_batch(&target, &[], &[], &[], &[])
+            .expect("batch ok");
+
+        assert!(batch.statements().iter().all(|s| s.sql() != "ANALYZE"));
+        assert!(batch
+            .statements()
+            .iter()
+            .any(|s| s.sql().starts_with("INSERT INTO target_watermarks")));
+    }
+
+    #[test]
     fn statements_order_raw_then_tokens_then_decoded_then_watermark() {
         let pipeline = DefaultApplyPipeline::new();
         let raindex_id = sample_raindex_id();
@@ -1039,11 +999,6 @@ mod tests {
             )
             .expect("batch ok");
 
-        let idx_raw = batch
-            .statements()
-            .iter()
-            .position(|s| s.sql().starts_with("INSERT INTO raw_events"))
-            .expect("raw present");
         let idx_token = batch
             .statements()
             .iter()
@@ -1070,7 +1025,6 @@ mod tests {
             .position(|s| s.sql().starts_with("DELETE FROM derived_trades"))
             .expect("derived trades refresh present");
 
-        assert!(idx_raw < idx_token, "raw should precede token upserts");
         assert!(idx_token < idx_decoded, "token upserts before decoded");
         assert!(
             idx_decoded < idx_derived_vault_deltas,

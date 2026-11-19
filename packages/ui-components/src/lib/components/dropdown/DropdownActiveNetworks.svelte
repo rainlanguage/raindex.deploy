@@ -3,21 +3,47 @@
 	import DropdownCheckbox from './DropdownCheckbox.svelte';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+	import type { NetworkCfg, NetworkSyncStatus } from '@rainlanguage/raindex';
 
 	const raindexClient = useRaindexClient();
 
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
+	export let localDbStatuses: Map<number, NetworkSyncStatus> | undefined = undefined;
 
 	let dropdownOptions: Record<string, string> = {};
+	let configuredNetworks: NetworkCfg[] = [];
+
+	function getNetworkOptionLabel(
+		chainId: number,
+		networks: NetworkCfg[],
+		statuses: Map<number, NetworkSyncStatus> | undefined
+	): string {
+		const networkName = getNetworkName(chainId, networks) ?? `Chain ${chainId}`;
+		if (!statuses) return networkName;
+
+		const localDbStatus = statuses.get(chainId)?.status;
+		const source =
+			localDbStatus === 'active'
+				? 'Local DB'
+				: localDbStatus === 'syncing'
+					? 'Syncing'
+					: localDbStatus === 'failure'
+						? 'Sync failed'
+						: 'Subgraph';
+		return `${networkName} · ${source}`;
+	}
+
 	$: {
 		const uniqueChainIds = raindexClient.getUniqueChainIds();
+		const networks = raindexClient.getAllNetworks();
+		configuredNetworks = Array.from(networks.value?.values() ?? []);
 		if (uniqueChainIds.error) {
 			dropdownOptions = {};
 		} else {
 			dropdownOptions = Object.fromEntries(
 				uniqueChainIds.value.map((chainId) => [
 					String(chainId),
-					getNetworkName(chainId) ?? `Chain ${chainId}`
+					getNetworkOptionLabel(chainId, configuredNetworks, localDbStatuses)
 				])
 			);
 		}
@@ -33,7 +59,7 @@
 		value = Object.fromEntries(
 			$selectedChainIds.map((chainId) => [
 				String(chainId),
-				getNetworkName(chainId) ?? `Chain ${chainId}`
+				getNetworkOptionLabel(chainId, configuredNetworks, localDbStatuses)
 			])
 		);
 	}

@@ -61,6 +61,7 @@ export { default as OrderOrVaultHash } from "./components/OrderOrVaultHash.svelt
 export { default as License } from "./components/License.svelte";
 export { default as ButtonDarkMode } from "./components/ButtonDarkMode.svelte";
 export { default as ButtonScrub } from "./components/ButtonScrub.svelte";
+export { default as ButtonTimeZone } from "./components/ButtonTimeZone.svelte";
 export { default as Sensitive } from "./components/Sensitive.svelte";
 export { default as OrderPage } from "./components/deployment/OrderPage.svelte";
 export { default as InputHex } from "./components/input/InputHex.svelte";
@@ -154,6 +155,7 @@ export {
   cachedWritableString,
 } from "./storesGeneric/cachedWritableStore";
 export { scrub } from "./storesGeneric/scrub";
+export { useLocalTime } from "./storesGeneric/useLocalTime";
 
 // Assets
 export { default as logoLight } from "./assets/logo-light.svg";

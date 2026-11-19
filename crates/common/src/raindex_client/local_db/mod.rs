@@ -9,7 +9,6 @@ use executor::JsCallbackExecutor;
 use serde_json::Value;
 #[cfg(target_family = "wasm")]
 use std::rc::Rc;
-#[cfg(not(target_family = "wasm"))]
 use std::sync::Arc;
 use std::{fmt, future::Future, pin::Pin};
 use wasm_bindgen_utils::prelude::*;
@@ -43,6 +42,16 @@ type ExecuteBatchFn = dyn Fn(
     ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + Send + 'static>>
     + Send
     + Sync;
+
+#[cfg(target_family = "wasm")]
+type ExecuteDumpFn =
+    dyn Fn(Arc<String>) -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + 'static>>;
+
+#[cfg(target_family = "wasm")]
+type ExecuteDumpsFn =
+    dyn Fn(
+        Vec<Arc<String>>,
+    ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + 'static>>;
 
 #[cfg(target_family = "wasm")]
 type QueryTextFn =
@@ -84,8 +93,14 @@ type FnPtr<T> = Arc<T>;
 #[derive(Clone)]
 pub struct LocalDb {
     execute_batch_fn: FnPtr<ExecuteBatchFn>,
+    #[cfg(target_family = "wasm")]
+    execute_dump_fn: FnPtr<ExecuteDumpFn>,
+    #[cfg(target_family = "wasm")]
+    execute_dumps_fn: FnPtr<ExecuteDumpsFn>,
     query_text_fn: FnPtr<QueryTextFn>,
     query_json_fn: FnPtr<QueryJsonFn>,
+    #[cfg(target_family = "wasm")]
+    query_json_retryable_fn: FnPtr<QueryJsonFn>,
     wipe_and_recreate_fn: FnPtr<WipeAndRecreateFn>,
 }
 
@@ -103,6 +118,22 @@ impl LocalDb {
                 let exec = Rc::clone(&exec);
                 let batch = batch.clone();
                 Box::pin(async move { exec.execute_batch(&batch).await })
+            })
+        };
+
+        let execute_dump_fn: FnPtr<ExecuteDumpFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move |dump: Arc<String>| {
+                let exec = Rc::clone(&exec);
+                Box::pin(async move { exec.execute_sql_dump(dump).await })
+            })
+        };
+
+        let execute_dumps_fn: FnPtr<ExecuteDumpsFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move |dumps: Vec<Arc<String>>| {
+                let exec = Rc::clone(&exec);
+                Box::pin(async move { exec.execute_sql_dumps(dumps).await })
             })
         };
 
@@ -124,6 +155,15 @@ impl LocalDb {
             })
         };
 
+        let query_json_retryable_fn: FnPtr<QueryJsonFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move |stmt: &SqlStatement| {
+                let exec = Rc::clone(&exec);
+                let stmt = stmt.clone();
+                Box::pin(async move { exec.query_json_retryable::<Value>(&stmt).await })
+            })
+        };
+
         let wipe_and_recreate_fn: FnPtr<WipeAndRecreateFn> = {
             let exec = Rc::clone(&exec);
             Rc::new(move || {
@@ -134,8 +174,11 @@ impl LocalDb {
 
         Self {
             execute_batch_fn,
+            execute_dump_fn,
+            execute_dumps_fn,
             query_text_fn,
             query_json_fn,
+            query_json_retryable_fn,
             wipe_and_recreate_fn,
         }
     }
@@ -210,11 +253,31 @@ impl LocalDbQueryExecutor for LocalDb {
         (self.execute_batch_fn)(batch).await
     }
 
+    #[cfg(target_family = "wasm")]
+    async fn execute_sql_dump(&self, dump: Arc<String>) -> Result<(), LocalDbQueryError> {
+        (self.execute_dump_fn)(dump).await
+    }
+
+    #[cfg(target_family = "wasm")]
+    async fn execute_sql_dumps(&self, dumps: Vec<Arc<String>>) -> Result<(), LocalDbQueryError> {
+        (self.execute_dumps_fn)(dumps).await
+    }
+
     async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
     where
         T: FromDbJson,
     {
         let value = (self.query_json_fn)(stmt).await?;
+        serde_json::from_value(value)
+            .map_err(|err| LocalDbQueryError::deserialization(err.to_string()))
+    }
+
+    #[cfg(target_family = "wasm")]
+    async fn query_json_retryable<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+    where
+        T: FromDbJson,
+    {
+        let value = (self.query_json_retryable_fn)(stmt).await?;
         serde_json::from_value(value)
             .map_err(|err| LocalDbQueryError::deserialization(err.to_string()))
     }
@@ -353,6 +416,62 @@ mod wasm_tests {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
+    #[wasm_bindgen_test]
+    async fn import_preflight_waits_for_cross_tab_ownership() {
+        use super::pipeline::runner::leadership::acquire_import;
+        use js_sys::{Array, Function, Reflect};
+        use std::sync::Arc;
+        let mut holder = None;
+        for _ in 0..100 {
+            holder = acquire_import().await.unwrap();
+            if holder.is_some() {
+                break;
+            }
+            TimeoutFuture::new(5).await;
+        }
+        let holder = holder.expect("previous test must release import ownership");
+        let local_db = Function::new_no_args(r#"return {
+            reads:0, populated:false, chunks:[],
+            query(sql) {
+                this.reads++;
+                if (!sql.includes('target_watermarks')) throw new Error('must retain populated indexes');
+                return {value:this.populated ? '[{"present":1}]' : '[]'};
+            },
+            transaction() {}, wipeAndRecreate() {},
+            beginSqlDumpImport() { return {value:'session'}; },
+            appendSqlDumpChunk(id, sql) { this.chunks.push(sql); return {value:''}; },
+            finishSqlDumpImport() { return {value:''}; }, cancelSqlDumpImport() {}
+        };"#).call0(&JsValue::UNDEFINED).unwrap();
+        let exec = JsCallbackExecutor::new(local_db.clone()).unwrap();
+        let mut import = exec.execute_sql_dumps(vec![Arc::new(
+            "BEGIN; INSERT INTO t VALUES (2); COMMIT;".into(),
+        )]);
+        for _ in 0..10 {
+            assert!(futures::poll!(import.as_mut()).is_pending());
+            gloo_timers::future::TimeoutFuture::new(1).await;
+        }
+        assert_eq!(
+            Reflect::get(&local_db, &"reads".into()).unwrap().as_f64(),
+            Some(0.0)
+        );
+        Reflect::set(&local_db, &"populated".into(), &JsValue::TRUE).unwrap();
+        drop(holder);
+        import.await.unwrap();
+        assert_eq!(
+            Reflect::get(&local_db, &"reads".into()).unwrap().as_f64(),
+            Some(1.0)
+        );
+        let chunks = Reflect::get(&local_db, &"chunks".into())
+            .unwrap()
+            .dyn_into::<Array>()
+            .unwrap();
+        let sql = chunks
+            .iter()
+            .map(|v| v.as_string().unwrap())
+            .collect::<String>();
+        assert!(!sql.contains("DROP INDEX"));
+    }
+
     fn single_raindex_settings_yaml() -> String {
         format!(
             r#"
@@ -424,23 +543,7 @@ raindexes:
     }
 
     fn test_local_db(query: js_sys::Function) -> JsValue {
-        let local_db = js_sys::Object::new();
-        js_sys::Reflect::set(&local_db, &JsValue::from_str("query"), &query).unwrap();
-        js_sys::Reflect::set(
-            &local_db,
-            &JsValue::from_str("wipeAndRecreate"),
-            &js_sys::Function::new_no_args(
-                "return Promise.resolve({ value: undefined, error: null });",
-            ),
-        )
-        .unwrap();
-        js_sys::Reflect::set(
-            &local_db,
-            &JsValue::from_str("transaction"),
-            &js_sys::Function::new_no_args("return Promise.resolve({ value: '', error: null });"),
-        )
-        .unwrap();
-        local_db.into()
+        crate::raindex_client::tests::local_db_object_from_query_callback(query)
     }
 
     fn recording_status_callback(

@@ -1,5 +1,6 @@
 use super::adapters::apply::{ApplyPipeline, ApplyPipelineTargetInfo};
 use super::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline};
+use super::adapters::window::requested_end_block;
 use super::{
     EventsPipeline, StatusBus, SyncConfig, SyncOutcome, SyncPhase, TokensPipeline, WindowPipeline,
 };
@@ -10,11 +11,14 @@ use crate::local_db::decode::{
 };
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::fetch_store_addresses::{fetch_store_addresses_stmt, StoreAddressRow};
-use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement, SqlStatementBatch};
+use crate::local_db::query::LocalDbQueryExecutor;
+#[cfg(not(target_family = "wasm"))]
+use crate::local_db::query::{SqlStatement, SqlStatementBatch};
 use crate::local_db::{LocalDbError, RaindexIdentifier};
 use crate::rpc_client::LogEntryResponse;
 use alloy::primitives::Address;
 use std::collections::{BTreeSet, HashSet};
+use std::sync::Arc;
 use url::Url;
 
 /// Generic engine that orchestrates a full sync cycle by delegating
@@ -34,7 +38,9 @@ pub struct SyncInputs {
     pub raindex_id: RaindexIdentifier,
     pub metadata_rpcs: Vec<Url>,
     pub cfg: SyncConfig,
-    pub dump_str: Option<String>,
+    pub dump_str: Option<Arc<String>>,
+    /// The browser runner will analyze once after all dump targets finish.
+    pub defer_analyze: bool,
     pub block_number_threshold: u32,
     pub manifest_end_block: u64,
 }
@@ -66,6 +72,7 @@ where
     {
         let latest_block = self.bootstrap_phase(db, input).await?;
         let (start_block, target_block) = self.compute_window(db, input, latest_block).await?;
+        let caught_up = target_block >= requested_end_block(&input.cfg, latest_block);
         if start_block > target_block {
             self.status.send(SyncPhase::Idle).await?;
             return Ok(SyncOutcome {
@@ -73,6 +80,7 @@ where
                 start_block,
                 target_block,
                 fetched_logs: 0,
+                caught_up: true,
                 decoded_events: 0,
             });
         }
@@ -112,6 +120,7 @@ where
                     raindex_id: input.raindex_id.clone(),
                     start_block,
                     target_block,
+                    defer_analyze: input.defer_analyze,
                     hash: target_hash,
                 },
                 raw_logs: &all_raw_logs,
@@ -127,6 +136,7 @@ where
             start_block,
             target_block,
             fetched_logs: all_raw_logs.len(),
+            caught_up,
             decoded_events: decoded_events.len(),
         })
     }
@@ -154,11 +164,14 @@ where
                 db,
                 &BootstrapConfig {
                     raindex_id: input.raindex_id.clone(),
+                    dump_sql: input.dump_str.clone(),
+                    #[cfg(target_family = "wasm")]
+                    dump_stmt: None,
+                    #[cfg(not(target_family = "wasm"))]
                     dump_stmt: input.dump_str.as_ref().map(|value| {
                         let mut batch_stmt = SqlStatementBatch::new();
                         for line in value.lines() {
-                            let stmt = SqlStatement::new(line);
-                            batch_stmt.add(stmt);
+                            batch_stmt.add(SqlStatement::new(line));
                         }
                         batch_stmt
                     }),
@@ -348,7 +361,7 @@ async fn load_known_store_addresses<DB>(
 where
     DB: LocalDbQueryExecutor + ?Sized,
 {
-    db.query_json(&fetch_store_addresses_stmt(raindex_id))
+    db.query_json_retryable(&fetch_store_addresses_stmt(raindex_id))
         .await
         .map_err(Into::into)
 }
@@ -412,7 +425,7 @@ mod tests {
         token: Address,
         tx: u8,
     ) -> DecodedEventData<DecodedEvent> {
-        use raindex_bindings::IRaindexV6::DepositV2;
+        use raindex_bindings::IRaindexV7::DepositV2;
         DecodedEventData {
             event_type: EventType::DepositV2,
             block_number: U256::from(block),
@@ -436,7 +449,7 @@ mod tests {
         output_token: Address,
         tx: u8,
     ) -> DecodedEventData<DecodedEvent> {
-        use raindex_bindings::IRaindexV6::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
+        use raindex_bindings::IRaindexV7::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
         DecodedEventData {
             event_type: EventType::AddOrderV3,
             block_number: U256::from(block),
@@ -506,8 +519,10 @@ mod tests {
                 fetch: FetchConfig::default(),
                 finality: FinalityConfig { depth: 0 },
                 window_overrides: WindowOverrides::default(),
+                max_blocks_per_cycle: None,
             },
             dump_str: None,
+            defer_analyze: false,
             block_number_threshold: 10_000,
             manifest_end_block: 1,
         }
@@ -1209,6 +1224,7 @@ mod tests {
         assert_eq!(outcome.start_block, 10);
         assert_eq!(outcome.target_block, 12);
         assert_eq!(outcome.fetched_logs, 3);
+        assert!(outcome.caught_up, "window reached the safe head");
         assert_eq!(outcome.decoded_events, 3);
 
         let phases = harness.status.phases();
@@ -1255,6 +1271,28 @@ mod tests {
         let fetch_calls = harness.tokens.fetch_calls();
         assert_eq!(fetch_calls.len(), 1);
         assert_eq!(fetch_calls[0], vec![token_b]);
+    }
+
+    #[tokio::test]
+    async fn run_reports_not_caught_up_when_window_stops_short() {
+        let harness = EngineHarness::new();
+        harness.events.set_latest_blocks(vec![Ok(100)]);
+        harness.events.push_block_hash(Ok(b256!(
+            "0x0000000000000000000000000000000000000000000000000000000000000001"
+        )));
+        // A capped window: 10..=20 while the safe head is 100.
+        harness.window.set_results(vec![Ok((10, 20))]);
+        harness.events.push_raindex_result(Ok(vec![]));
+        harness.events.push_decode_result(Ok(vec![]));
+        harness.tokens.set_load_existing_results(vec![Ok(vec![])]);
+
+        let mut inputs = base_inputs();
+        inputs.cfg.max_blocks_per_cycle = Some(11);
+
+        let outcome = harness.run(&inputs).await.expect("run succeeds");
+
+        assert_eq!((outcome.start_block, outcome.target_block), (10, 20));
+        assert!(!outcome.caught_up);
     }
 
     #[tokio::test]
@@ -1598,7 +1636,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn run_passes_dump_statement_to_bootstrap() {
+    async fn run_passes_dump_sql_to_bootstrap() {
         let harness = EngineHarness::new();
         harness.events.set_latest_blocks(vec![Ok(30)]);
         harness.window.set_results(vec![Ok((3, 3))]);
@@ -1618,17 +1656,24 @@ mod tests {
             .tokens
             .set_fetch_missing_results(vec![Ok(Vec::new())]);
         let mut inputs = base_inputs();
-        inputs.dump_str = Some("SELECT 1".into());
+        inputs.dump_str = Some(Arc::new("SELECT 1".into()));
 
         harness.run(&inputs).await.expect("run succeeds");
 
         let configs = harness.bootstrap.configs();
         assert_eq!(configs.len(), 1);
         let config = &configs[0];
-        let dump_stmt = config.dump_stmt.as_ref().expect("dump statement present");
-        let statements = dump_stmt.statements();
-        assert_eq!(statements.len(), 1);
-        assert_eq!(statements[0].sql(), "SELECT 1");
+        assert_eq!(
+            config.dump_sql.as_ref().map(|s| s.as_str()),
+            Some("SELECT 1")
+        );
+        #[cfg(not(target_family = "wasm"))]
+        assert_eq!(
+            config.dump_stmt.as_ref().map(SqlStatementBatch::len),
+            Some(1)
+        );
+        #[cfg(target_family = "wasm")]
+        assert!(config.dump_stmt.is_none());
         assert_eq!(config.deployment_block, inputs.cfg.deployment_block);
         assert_eq!(config.block_number_threshold, inputs.block_number_threshold);
         assert_eq!(config.latest_block, inputs.manifest_end_block);

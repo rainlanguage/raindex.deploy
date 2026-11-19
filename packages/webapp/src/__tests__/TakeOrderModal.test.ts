@@ -21,6 +21,15 @@ vi.mock('../lib/stores/wagmi', () => ({
 	signerAddress: mockSignerAddressStore
 }));
 
+vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@rainlanguage/ui-components')>();
+	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	return {
+		...actual,
+		WalletConnect: MockComponent
+	};
+});
+
 const MOCK_RAINDEX_ADDRESS = '0x1234567890123456789012345678901234567890';
 const MOCK_SIGNER_ADDRESS = '0x9876543210987654321098765432109876543210';
 
@@ -47,11 +56,16 @@ describe('TakeOrderModal', () => {
 		}
 	];
 
+	const mockGetAccountBalance = vi.fn();
+
 	const mockOrder = {
 		id: '0xorderid',
 		orderHash: '0xorderhash',
 		chainId: 1,
 		raindex: MOCK_RAINDEX_ADDRESS,
+		inputsList: {
+			items: [{ getAccountBalance: mockGetAccountBalance }]
+		},
 		getQuotes: vi.fn().mockResolvedValue({
 			value: mockQuotes,
 			error: undefined
@@ -70,6 +84,13 @@ describe('TakeOrderModal', () => {
 		vi.clearAllMocks();
 		mockOnSubmit.mockClear();
 		mockSignerAddressStore.mockSetSubscribeValue(MOCK_SIGNER_ADDRESS);
+		mockGetAccountBalance.mockResolvedValue({
+			value: {
+				balance: Float.parse('1000').value as Float,
+				formattedBalance: '1000'
+			},
+			error: undefined
+		});
 	});
 
 	it('renders take order modal correctly', async () => {
@@ -392,14 +413,42 @@ describe('TakeOrderModal', () => {
 		await fireEvent.click(cancelButton);
 	});
 
-	it('shows WalletConnect when not connected', async () => {
+	it('prompts to connect and does not fetch quotes when the wallet is disconnected', async () => {
 		mockSignerAddressStore.mockSetSubscribeValue('');
 
 		render(TakeOrderModal, defaultProps);
 
 		await waitFor(() => {
-			expect(screen.queryByTestId('submit-button')).not.toBeInTheDocument();
+			expect(screen.getByText('Connect your wallet to continue.')).toBeInTheDocument();
 		});
+		expect(screen.getByTestId('mock-component')).toBeInTheDocument();
+		expect(screen.queryByTestId('submit-button')).not.toBeInTheDocument();
+		expect(screen.queryByTestId('direction-buy')).not.toBeInTheDocument();
+		expect(screen.queryByText('Loading quotes...')).not.toBeInTheDocument();
+		expect(mockOrder.getQuotes).not.toHaveBeenCalled();
+	});
+
+	it('fetches quotes and shows the take form after the wallet connects', async () => {
+		mockSignerAddressStore.mockSetSubscribeValue('');
+		vi.mocked(mockOrder.getQuotes).mockResolvedValue({
+			value: mockQuotes as never,
+			error: undefined
+		});
+
+		render(TakeOrderModal, defaultProps);
+
+		await waitFor(() => {
+			expect(screen.getByText('Connect your wallet to continue.')).toBeInTheDocument();
+		});
+		expect(mockOrder.getQuotes).not.toHaveBeenCalled();
+
+		mockSignerAddressStore.mockSetSubscribeValue(MOCK_SIGNER_ADDRESS);
+
+		await waitFor(() => {
+			expect(screen.getByTestId('submit-button')).toBeInTheDocument();
+		});
+		expect(screen.queryByText('Connect your wallet to continue.')).not.toBeInTheDocument();
+		expect(mockOrder.getQuotes).toHaveBeenCalled();
 	});
 
 	it('shows submit button disabled initially', async () => {
@@ -791,6 +840,220 @@ describe('TakeOrderModal', () => {
 				expect(screen.getByTestId('max-output')).toBeInTheDocument();
 				expect(screen.getByTestId('max-output')).toHaveTextContent('100');
 			});
+		});
+	});
+
+	describe('MAX amount', () => {
+		const maxQuotes = [
+			{
+				pair: {
+					pairName: 'USDC/ETH',
+					inputIndex: 0,
+					outputIndex: 0
+				},
+				blockNumber: 12345678,
+				success: true,
+				data: {
+					maxOutput: floatToHex(Float.parse('100').value as Float),
+					maxInput: floatToHex(Float.parse('50').value as Float),
+					ratio: floatToHex(Float.parse('0.5').value as Float),
+					inverseRatio: floatToHex(Float.parse('2').value as Float),
+					formattedMaxOutput: '100',
+					formattedMaxInput: '50',
+					formattedRatio: '0.5',
+					formattedInverseRatio: '2'
+				}
+			}
+		];
+
+		it('fills buy MAX with walletInput / ratio when that is below quote maxOutput', async () => {
+			mockGetAccountBalance.mockResolvedValue({
+				value: {
+					balance: Float.parse('10').value as Float,
+					formattedBalance: '10'
+				},
+				error: undefined
+			});
+			vi.mocked(mockOrder.getQuotes).mockResolvedValue({
+				value: maxQuotes as never,
+				error: undefined
+			});
+
+			render(TakeOrderModal, defaultProps);
+
+			await waitFor(() => {
+				expect(screen.getByText('MAX')).toBeInTheDocument();
+			});
+			await fireEvent.click(screen.getByText('MAX'));
+
+			const amountInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
+			expect(amountInput.value).toBe('20');
+			expect(mockGetAccountBalance).toHaveBeenCalledWith(MOCK_SIGNER_ADDRESS);
+		});
+
+		it('fills sell MAX with the wallet input-token balance when it is below quote maxInput', async () => {
+			mockGetAccountBalance.mockResolvedValue({
+				value: {
+					balance: Float.parse('10').value as Float,
+					formattedBalance: '10'
+				},
+				error: undefined
+			});
+			vi.mocked(mockOrder.getQuotes).mockResolvedValue({
+				value: maxQuotes as never,
+				error: undefined
+			});
+
+			render(TakeOrderModal, defaultProps);
+
+			await waitFor(() => {
+				expect(screen.getByTestId('direction-sell')).toBeInTheDocument();
+			});
+			await fireEvent.click(screen.getByTestId('direction-sell'));
+
+			await waitFor(() => {
+				expect(screen.getByText('MAX')).toBeInTheDocument();
+			});
+			await fireEvent.click(screen.getByText('MAX'));
+
+			const amountInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
+			expect(amountInput.value).toBe('10');
+		});
+	});
+
+	describe('max price current-quote shortcut', () => {
+		const priceQuotes = [
+			{
+				pair: {
+					pairName: 'USDC/ETH',
+					inputIndex: 0,
+					outputIndex: 0
+				},
+				blockNumber: 12345678,
+				success: true,
+				data: {
+					maxOutput: floatToHex(Float.parse('100').value as Float),
+					maxInput: floatToHex(Float.parse('50').value as Float),
+					ratio: floatToHex(Float.parse('100').value as Float),
+					inverseRatio: floatToHex(Float.parse('0.01').value as Float),
+					formattedMaxOutput: '100',
+					formattedMaxInput: '50',
+					formattedRatio: '100',
+					formattedInverseRatio: '0.01'
+				}
+			}
+		];
+
+		it('fills Max Price with the current quote plus a 0.5% buffer', async () => {
+			vi.mocked(mockOrder.getQuotes).mockResolvedValue({
+				value: priceQuotes as never,
+				error: undefined
+			});
+
+			render(TakeOrderModal, defaultProps);
+
+			await waitFor(() => {
+				expect(screen.getByTestId('price-cap-current-button')).toBeInTheDocument();
+			});
+			expect(screen.getByTestId('price-cap-current-button')).toHaveTextContent('CURRENT +0.5%');
+
+			await fireEvent.click(screen.getByTestId('price-cap-current-button'));
+
+			const priceCapInput = screen.getByTestId('price-cap-input') as HTMLInputElement;
+			expect(priceCapInput.value).toBe('100.5');
+			expect(screen.getByTestId('price-cap-buffer-hint')).toHaveTextContent(
+				'Includes a 0.5% buffer above the current quote so the next block can still fill.'
+			);
+		});
+
+		it('does not reject CURRENT +0.5% when the buffered quote has more than 67 decimals', async () => {
+			const highPrecisionQuotes = [
+				{
+					...priceQuotes[0],
+					data: {
+						...priceQuotes[0].data,
+						ratio: floatToHex(
+							Float.parse('0.011068446678066134741211935').value as Float
+						),
+						formattedRatio: '0.011068446678066134741211935'
+					}
+				}
+			];
+			vi.mocked(mockOrder.getQuotes).mockResolvedValue({
+				value: highPrecisionQuotes as never,
+				error: undefined
+			});
+
+			render(TakeOrderModal, defaultProps);
+
+			await waitFor(() => {
+				expect(screen.getByTestId('price-cap-current-button')).toBeInTheDocument();
+			});
+			await fireEvent.click(screen.getByTestId('price-cap-current-button'));
+
+			const priceCapInput = screen.getByTestId('price-cap-input') as HTMLInputElement;
+			expect(priceCapInput.value).not.toBe('');
+			expect(screen.queryByTestId('price-cap-error')).not.toBeInTheDocument();
+		});
+
+		it('keeps the filled cap when the quote refreshes to a new price', async () => {
+			const laterQuotes = [
+				{
+					...priceQuotes[0],
+					data: {
+						...priceQuotes[0].data,
+						ratio: floatToHex(Float.parse('200').value as Float),
+						formattedRatio: '200'
+					}
+				}
+			];
+
+			vi.mocked(mockOrder.getQuotes)
+				.mockResolvedValueOnce({
+					value: priceQuotes as never,
+					error: undefined
+				})
+				.mockResolvedValueOnce({
+					value: laterQuotes as never,
+					error: undefined
+				});
+
+			render(TakeOrderModal, defaultProps);
+
+			await waitFor(() => {
+				expect(screen.getByTestId('price-cap-current-button')).toBeInTheDocument();
+			});
+			await fireEvent.click(screen.getByTestId('price-cap-current-button'));
+
+			const priceCapInput = screen.getByTestId('price-cap-input') as HTMLInputElement;
+			expect(priceCapInput.value).toBe('100.5');
+
+			await fireEvent.click(screen.getByTestId('refresh-button'));
+
+			await waitFor(() => {
+				expect(screen.getByTestId('current-price')).toHaveTextContent('200');
+			});
+			expect(priceCapInput.value).toBe('100.5');
+		});
+
+		it('hides the buffer hint when the user edits Max Price', async () => {
+			vi.mocked(mockOrder.getQuotes).mockResolvedValue({
+				value: priceQuotes as never,
+				error: undefined
+			});
+
+			render(TakeOrderModal, defaultProps);
+
+			await waitFor(() => {
+				expect(screen.getByTestId('price-cap-current-button')).toBeInTheDocument();
+			});
+			await fireEvent.click(screen.getByTestId('price-cap-current-button'));
+			expect(screen.getByTestId('price-cap-buffer-hint')).toBeInTheDocument();
+
+			const priceCapInput = screen.getByTestId('price-cap-input');
+			await fireEvent.input(priceCapInput, { target: { value: '101' } });
+
+			expect(screen.queryByTestId('price-cap-buffer-hint')).not.toBeInTheDocument();
 		});
 	});
 });

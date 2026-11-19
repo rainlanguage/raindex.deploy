@@ -20,4 +20,9 @@ describe("getExplorerLink", () => {
   it("should return an empty string if the chain is not found", () => {
     expect(getExplorerLink("0x123", 1, "tx")).toBe("");
   });
+  it("returns the Robinhood Blockscout link for chain 4663", () => {
+    expect(getExplorerLink("0xabc", 4663, "tx")).toBe(
+      "https://robinhoodchain.blockscout.com/tx/0xabc",
+    );
+  });
 });

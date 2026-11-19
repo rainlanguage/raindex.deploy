@@ -7,10 +7,12 @@ use async_trait::async_trait;
 use raindex_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
 use rusqlite::{types::ValueRef, Connection};
 use serde_json::{json, Map, Value};
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock, Weak};
 use std::time::Duration;
+use tokio::sync::RwLock as AsyncRwLock;
 use tokio::task::spawn_blocking;
 
 /// Pool of idle SQLite connections, each already set up with WAL journal mode,
@@ -19,9 +21,45 @@ use tokio::task::spawn_blocking;
 /// for bursts of concurrent order lookups.
 type ConnectionPool = Arc<Mutex<Vec<Connection>>>;
 
+/// SQLite permits concurrent readers in WAL mode, but still permits only one
+/// writer. Keep one access coordinator per database path so independent
+/// executors cannot race writes and database recreation can invalidate every
+/// connection pool before unlinking the database.
+static DB_PATH_STATES: OnceLock<Mutex<HashMap<PathBuf, Weak<DbPathState>>>> = OnceLock::new();
+
+struct DbPathState {
+    access: Arc<AsyncRwLock<()>>,
+    pools: Mutex<Vec<Weak<Mutex<Vec<Connection>>>>>,
+}
+
+impl DbPathState {
+    /// Registers a connection pool that must be invalidated if this database is
+    /// recreated. Dead pools are removed whenever a new executor is registered.
+    fn register_pool(&self, pool: &ConnectionPool) {
+        let mut pools = self.pools.lock().unwrap_or_else(|e| e.into_inner());
+        pools.retain(|pool| pool.upgrade().is_some());
+        pools.push(Arc::downgrade(pool));
+    }
+
+    /// Drops every idle connection for this database path. Callers must hold
+    /// the exclusive access guard so no connection can still be checked out.
+    fn clear_pools(&self) {
+        let mut pools = self.pools.lock().unwrap_or_else(|e| e.into_inner());
+        pools.retain(|pool| {
+            if let Some(pool) = pool.upgrade() {
+                pool.lock().unwrap_or_else(|e| e.into_inner()).clear();
+                true
+            } else {
+                false
+            }
+        });
+    }
+}
+
 pub struct RusqliteExecutor {
     db_path: PathBuf,
     pool: ConnectionPool,
+    db_state: Arc<DbPathState>,
 }
 
 fn sqlvalue_to_rusqlite(v: SqlValue) -> rusqlite::types::Value {
@@ -38,9 +76,14 @@ fn sqlvalue_to_rusqlite(v: SqlValue) -> rusqlite::types::Value {
 
 impl RusqliteExecutor {
     pub fn new<P: AsRef<Path>>(db_path: P) -> Self {
+        let db_path = db_path.as_ref().to_path_buf();
+        let pool = Arc::new(Mutex::new(Vec::new()));
+        let db_state = db_path_state_for(&db_path);
+        db_state.register_pool(&pool);
         Self {
-            db_path: db_path.as_ref().to_path_buf(),
-            pool: Arc::new(Mutex::new(Vec::new())),
+            db_path,
+            pool,
+            db_state,
         }
     }
 
@@ -64,6 +107,49 @@ impl RusqliteExecutor {
                 .map_err(|e| LocalDbQueryError::database(format!("SQL execution failed: {e}")))?;
         }
         Ok(())
+    }
+}
+
+/// Returns the shared access coordinator for a database path, pruning entries
+/// whose executors have all been dropped before looking up the requested path.
+fn db_path_state_for(db_path: &Path) -> Arc<DbPathState> {
+    let key = db_path_state_key(db_path);
+    let states = DB_PATH_STATES.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut states = states.lock().unwrap_or_else(|e| e.into_inner());
+    states.retain(|_, state| state.upgrade().is_some());
+
+    if let Some(state) = states.get(&key).and_then(Weak::upgrade) {
+        return state;
+    }
+
+    let state = Arc::new(DbPathState {
+        access: Arc::new(AsyncRwLock::new(())),
+        pools: Mutex::new(Vec::new()),
+    });
+    states.insert(key, Arc::downgrade(&state));
+    state
+}
+
+/// Produces a stable absolute identity for an existing database or for a new
+/// database whose parent directory already exists.
+fn db_path_state_key(db_path: &Path) -> PathBuf {
+    if let Ok(path) = std::fs::canonicalize(db_path) {
+        return path;
+    }
+
+    let absolute = if db_path.is_absolute() {
+        db_path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .map(|cwd| cwd.join(db_path))
+            .unwrap_or_else(|_| db_path.to_path_buf())
+    };
+
+    match (absolute.parent(), absolute.file_name()) {
+        (Some(parent), Some(file_name)) => std::fs::canonicalize(parent)
+            .map(|parent| parent.join(file_name))
+            .unwrap_or(absolute),
+        _ => absolute,
     }
 }
 
@@ -158,8 +244,10 @@ impl LocalDbQueryExecutor for RusqliteExecutor {
 
         let db_path = self.db_path.clone();
         let pool = self.pool.clone();
+        let write_guard = Arc::clone(&self.db_state.access).write_owned().await;
         let batch = batch.clone();
         spawn_blocking(move || {
+            let _write_guard = write_guard;
             let conn = checkout(&pool, &db_path)?;
             for stmt in &batch {
                 if let Err(err) = RusqliteExecutor::invoke_statement(&conn, stmt) {
@@ -177,8 +265,10 @@ impl LocalDbQueryExecutor for RusqliteExecutor {
     async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
         let db_path = self.db_path.clone();
         let pool = self.pool.clone();
+        let write_guard = Arc::clone(&self.db_state.access).write_owned().await;
         let stmt = stmt.clone();
         spawn_blocking(move || {
+            let _write_guard = write_guard;
             let conn = checkout(&pool, &db_path)?;
             RusqliteExecutor::invoke_statement(&conn, &stmt)?;
             release(&pool, conn);
@@ -194,13 +284,20 @@ impl LocalDbQueryExecutor for RusqliteExecutor {
     {
         let db_path = self.db_path.clone();
         let pool = self.pool.clone();
+        let read_guard = Arc::clone(&self.db_state.access).read_owned().await;
         let stmt = stmt.clone();
 
         let json_value = spawn_blocking(move || {
+            let _read_guard = read_guard;
             let conn = checkout(&pool, &db_path)?;
             let mut s = conn.prepare(stmt.sql()).map_err(|e| {
                 LocalDbQueryError::database(format!("Failed to prepare query: {e}"))
             })?;
+            if !s.readonly() {
+                return Err(LocalDbQueryError::database(
+                    "query_json only supports read-only SQL statements",
+                ));
+            }
             let column_names: Vec<String> = (0..s.column_count())
                 .map(|i| {
                     let raw = s.column_name(i).unwrap_or("");
@@ -258,9 +355,11 @@ impl LocalDbQueryExecutor for RusqliteExecutor {
 
     async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
         let db_path = self.db_path.clone();
-        let pool = Arc::clone(&self.pool);
+        let db_state = Arc::clone(&self.db_state);
+        let write_guard = Arc::clone(&db_state.access).write_owned().await;
         spawn_blocking(move || {
-            pool.lock().unwrap_or_else(|e| e.into_inner()).clear();
+            let _write_guard = write_guard;
+            db_state.clear_pools();
 
             for path in sqlite_file_paths(&db_path) {
                 if path.exists() {
@@ -297,6 +396,111 @@ mod tests {
     use super::*;
     use crate::local_db::query::create_tables::{create_tables_batch, create_tables_sql};
     use tempfile::TempDir;
+
+    #[test]
+    fn executors_for_same_database_share_path_state() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("shared-write-gate.db");
+        let first = RusqliteExecutor::new(&db_path);
+        let second = RusqliteExecutor::new(&db_path);
+
+        assert!(Arc::ptr_eq(&first.db_state, &second.db_state));
+    }
+
+    #[tokio::test]
+    async fn write_operations_wait_for_shared_database_gate() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("serialized-writes.db");
+        let first = RusqliteExecutor::new(&db_path);
+        let second = RusqliteExecutor::new(&db_path);
+        let guard = Arc::clone(&first.db_state.access).write_owned().await;
+
+        let statement = SqlStatement::new("CREATE TABLE serialized_write (id INTEGER);");
+        let mut pending_write = Box::pin(second.query_text(&statement));
+        assert!(
+            tokio::time::timeout(Duration::from_millis(50), pending_write.as_mut())
+                .await
+                .is_err(),
+            "a second executor must wait while the database write gate is held"
+        );
+
+        drop(guard);
+        tokio::time::timeout(Duration::from_secs(5), pending_write)
+            .await
+            .expect("write should resume after the gate is released")
+            .expect("write should succeed");
+    }
+
+    #[tokio::test]
+    async fn query_json_rejects_row_returning_writes() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("read-only-json.db");
+        let exec = RusqliteExecutor::new(&db_path);
+        exec.query_text(&SqlStatement::new("CREATE TABLE items (id INTEGER);"))
+            .await
+            .unwrap();
+
+        #[derive(Debug, serde::Deserialize)]
+        struct ReturnedId {
+            #[allow(dead_code)]
+            id: i64,
+        }
+
+        let err = exec
+            .query_json::<Vec<ReturnedId>>(&SqlStatement::new(
+                "INSERT INTO items (id) VALUES (1) RETURNING id;",
+            ))
+            .await
+            .unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("query_json only supports read-only SQL statements"));
+
+        #[derive(serde::Deserialize)]
+        struct RowCount {
+            count: i64,
+        }
+
+        let rows: Vec<RowCount> = exec
+            .query_json(&SqlStatement::new("SELECT COUNT(*) AS count FROM items;"))
+            .await
+            .unwrap();
+        assert_eq!(rows[0].count, 0);
+    }
+
+    #[tokio::test]
+    async fn wipe_invalidates_every_pool_for_database_path() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("shared-pools.db");
+        let first = RusqliteExecutor::new(&db_path);
+        let second = RusqliteExecutor::new(&db_path);
+        first
+            .query_text(&SqlStatement::new("CREATE TABLE items (id INTEGER);"))
+            .await
+            .unwrap();
+
+        #[derive(serde::Deserialize)]
+        struct RowCount {
+            #[allow(dead_code)]
+            count: i64,
+        }
+
+        let _: Vec<RowCount> = second
+            .query_json(&SqlStatement::new("SELECT COUNT(*) AS count FROM items;"))
+            .await
+            .unwrap();
+        assert_eq!(first.pool_len(), 1);
+        assert_eq!(second.pool_len(), 1);
+
+        first.wipe_and_recreate().await.unwrap();
+
+        assert_eq!(first.pool_len(), 0);
+        assert_eq!(second.pool_len(), 0);
+        second
+            .query_text(&SqlStatement::new("CREATE TABLE recreated (id INTEGER);"))
+            .await
+            .unwrap();
+    }
 
     #[test]
     fn empty_db_passes_schema_guard() {

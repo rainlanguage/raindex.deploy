@@ -1,14 +1,18 @@
 use super::*;
+use crate::local_db::query::fetch_latest_trades_per_token::FetchLatestTradesPerTokenArgs;
 use crate::local_db::query::fetch_trades::{
     extract_trades_count, FetchTradesArgs, FetchTradesTokensFilter,
 };
+use crate::raindex_client::local_db::query::fetch_latest_trades_per_token::fetch_latest_trades_per_token;
 use crate::raindex_client::local_db::query::fetch_trades::{fetch_trades, fetch_trades_count};
 use crate::utils::timing::Timing;
+use futures::future::join_all;
 use raindex_subgraph_client::types::common::{
-    SgBigInt, SgBytes, SgTrade, SgTradeEventFilter, SgTradeOrderFilter, SgTradesListQueryFilters,
+    SgBigInt, SgBytes, SgTrade, SgTradeEventFilter, SgTradeOrderFilter,
+    SgTradeVaultBalanceChangeTokenFilter, SgTradeVaultTokenFilter, SgTradesListQueryFilters,
     SgTradesTokensFilterArgs,
 };
-use raindex_subgraph_client::MultiRaindexSubgraphClient;
+use raindex_subgraph_client::{MultiRaindexSubgraphClient, SgPaginationArgs};
 use tracing::{debug, error, info, info_span, Instrument};
 use tsify::Tsify;
 use wasm_bindgen_utils::impl_wasm_traits;
@@ -111,6 +115,36 @@ impl From<GetTradesFilters> for SgTradesListQueryFilters {
             });
         }
 
+        if let Some(tokens) = filters.tokens {
+            let tokens: Option<SgTradesTokensFilterArgs> = tokens.into();
+            let tokens = normalize_trade_tokens(tokens.unwrap_or_default());
+            let vault_filter = |tokens: Vec<String>| SgTradeVaultBalanceChangeTokenFilter {
+                vault_: Some(SgTradeVaultTokenFilter { token_in: tokens }),
+            };
+            if !tokens.inputs.is_empty()
+                && !tokens.outputs.is_empty()
+                && tokens.inputs == tokens.outputs
+            {
+                sg_filters.or = Some(vec![
+                    SgTradesListQueryFilters {
+                        input_vault_balance_change_: Some(vault_filter(tokens.inputs)),
+                        ..Default::default()
+                    },
+                    SgTradesListQueryFilters {
+                        output_vault_balance_change_: Some(vault_filter(tokens.outputs)),
+                        ..Default::default()
+                    },
+                ]);
+            } else {
+                if !tokens.inputs.is_empty() {
+                    sg_filters.input_vault_balance_change_ = Some(vault_filter(tokens.inputs));
+                }
+                if !tokens.outputs.is_empty() {
+                    sg_filters.output_vault_balance_change_ = Some(vault_filter(tokens.outputs));
+                }
+            }
+        }
+
         sg_filters
     }
 }
@@ -161,6 +195,34 @@ fn summarize_trade_filters(filters: &GetTradesFilters) -> TradeFilterTraceSummar
         raindexes_count: filters.raindex_addresses.as_ref().map_or(0, Vec::len),
         has_order_hash_filter: filters.order_hash.is_some(),
         has_time_filter: filters.time_filter.is_some(),
+    }
+}
+
+fn latest_market_trade_filter(
+    quote_token: Address,
+    base_token: Address,
+    raindex_addresses: &[Address],
+) -> SgTradesListQueryFilters {
+    let vault_filter = |token: Address| SgTradeVaultBalanceChangeTokenFilter {
+        vault_: Some(SgTradeVaultTokenFilter {
+            token_in: vec![token.to_string().to_ascii_lowercase()],
+        }),
+    };
+    let direction = |input: Address, output: Address| SgTradesListQueryFilters {
+        input_vault_balance_change_: Some(vault_filter(input)),
+        output_vault_balance_change_: Some(vault_filter(output)),
+        ..Default::default()
+    };
+    SgTradesListQueryFilters {
+        raindex_in: raindex_addresses
+            .iter()
+            .map(|address| address.to_string().to_ascii_lowercase())
+            .collect(),
+        or: Some(vec![
+            direction(quote_token, base_token),
+            direction(base_token, quote_token),
+        ]),
+        ..Default::default()
     }
 }
 
@@ -527,6 +589,167 @@ impl RaindexClient {
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
+impl RaindexClient {
+    /// Fetches every trade matching a filter in one source read.
+    ///
+    /// This is intended for bounded aggregate queries, such as a 24-hour market
+    /// window. It deliberately has no public WASM binding because interactive
+    /// callers should use the paginated `get_trades` API.
+    pub(crate) async fn get_trades_unpaginated(
+        &self,
+        chain_id: u32,
+        filters: GetTradesFilters,
+    ) -> Result<Vec<RaindexTrade>, RaindexError> {
+        match self.query_source(chain_id) {
+            QuerySource::LocalDb(db) => {
+                let tokens = filters
+                    .tokens
+                    .clone()
+                    .map(|tokens| FetchTradesTokensFilter {
+                        inputs: tokens.inputs.unwrap_or_default(),
+                        outputs: tokens.outputs.unwrap_or_default(),
+                    })
+                    .unwrap_or_default();
+                fetch_trades(
+                    &db,
+                    FetchTradesArgs {
+                        chain_ids: vec![chain_id],
+                        raindex_addresses: filters.raindex_addresses.unwrap_or_default(),
+                        owners: filters.owners,
+                        takers: filters.takers,
+                        order_hash: filters.order_hash,
+                        order_hashes: Vec::new(),
+                        tokens,
+                        time_filter: filters.time_filter.unwrap_or_default(),
+                        pagination: PaginationParams::default(),
+                    },
+                )
+                .await?
+                .into_iter()
+                .map(RaindexTrade::try_from_local_db_trade)
+                .collect()
+            }
+            QuerySource::Subgraph => {
+                let multi_subgraph_args = self.get_multi_subgraph_args(Some(vec![chain_id]))?;
+                let token_filter = filters
+                    .tokens
+                    .clone()
+                    .and_then(Option::<SgTradesTokensFilterArgs>::from)
+                    .map(normalize_trade_tokens);
+                let name_to_chain_id: std::collections::HashMap<&str, u32> = multi_subgraph_args
+                    .iter()
+                    .flat_map(|(chain_id, args)| {
+                        args.iter().map(|arg| (arg.name.as_str(), *chain_id))
+                    })
+                    .collect();
+                let client = MultiRaindexSubgraphClient::new(
+                    multi_subgraph_args.values().flatten().cloned().collect(),
+                );
+                let mut trades = client
+                    .trades_list_all(filters.into())
+                    .await?
+                    .into_iter()
+                    .filter(|trade| {
+                        token_filter.as_ref().is_none_or(|tokens| {
+                            sg_trade_matches_token_filter(&trade.trade, tokens)
+                        })
+                    })
+                    .map(|trade| {
+                        let resolved_chain_id = name_to_chain_id
+                            .get(trade.subgraph_name.as_str())
+                            .copied()
+                            .ok_or_else(|| {
+                                RaindexError::SubgraphNotFound(
+                                    trade.subgraph_name.clone(),
+                                    trade.trade.id.0.clone(),
+                                )
+                            })?;
+                        RaindexTrade::try_from_sg_trade(resolved_chain_id, trade.trade)
+                    })
+                    .collect::<Result<Vec<_>, RaindexError>>()?;
+                trades.sort_by(|a, b| b.timestamp.cmp(&a.timestamp).then_with(|| a.id.cmp(&b.id)));
+                Ok(trades)
+            }
+        }
+    }
+
+    /// Returns at most one latest trade for every requested source token.
+    ///
+    /// The local DB performs this as one window-function query. The subgraph
+    /// fallback issues bounded, concurrent `first: 1` queries so historical
+    /// last prices never require downloading complete trade histories.
+    pub(crate) async fn get_latest_market_trades(
+        &self,
+        chain_id: u32,
+        quote_token: Address,
+        mut base_tokens: Vec<Address>,
+        raindex_addresses: Vec<Address>,
+    ) -> Result<Vec<RaindexTrade>, RaindexError> {
+        base_tokens.sort_unstable();
+        base_tokens.dedup();
+        if base_tokens.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        match self.query_source(chain_id) {
+            QuerySource::LocalDb(db) => fetch_latest_trades_per_token(
+                &db,
+                FetchLatestTradesPerTokenArgs {
+                    chain_id,
+                    raindex_addresses,
+                    quote_token,
+                    base_tokens,
+                },
+            )
+            .await?
+            .into_iter()
+            .map(RaindexTrade::try_from_local_db_trade)
+            .collect(),
+            QuerySource::Subgraph => {
+                let multi_subgraph_args = self.get_multi_subgraph_args(Some(vec![chain_id]))?;
+                let name_to_chain_id: std::collections::HashMap<&str, u32> = multi_subgraph_args
+                    .iter()
+                    .flat_map(|(chain_id, args)| {
+                        args.iter().map(|arg| (arg.name.as_str(), *chain_id))
+                    })
+                    .collect();
+                let client = MultiRaindexSubgraphClient::new(
+                    multi_subgraph_args.values().flatten().cloned().collect(),
+                );
+                let queries = base_tokens.into_iter().map(|base_token| {
+                    client.trades_list(
+                        latest_market_trade_filter(quote_token, base_token, &raindex_addresses),
+                        SgPaginationArgs {
+                            page: 1,
+                            page_size: 1,
+                        },
+                    )
+                });
+                let mut trades = Vec::new();
+                for result in join_all(queries).await {
+                    trades.extend(result?);
+                }
+                trades
+                    .into_iter()
+                    .map(|trade_with_name| {
+                        let resolved_chain_id = name_to_chain_id
+                            .get(trade_with_name.subgraph_name.as_str())
+                            .copied()
+                            .ok_or_else(|| {
+                                RaindexError::SubgraphNotFound(
+                                    trade_with_name.subgraph_name.clone(),
+                                    trade_with_name.trade.id.0.clone(),
+                                )
+                            })?;
+                        RaindexTrade::try_from_sg_trade(resolved_chain_id, trade_with_name.trade)
+                    })
+                    .collect()
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -543,6 +766,103 @@ mod tests {
     use serde_json::json;
     #[cfg(not(target_family = "wasm"))]
     use tracing_test::traced_test;
+    #[cfg(not(target_family = "wasm"))]
+    use {
+        crate::local_db::query::{
+            FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+        },
+        crate::raindex_client::{local_db::LocalDb, tests::new_with_local_db},
+        async_trait::async_trait,
+        std::sync::{Arc, Mutex},
+    };
+
+    #[test]
+    fn latest_market_filter_matches_both_trade_directions() {
+        let quote = address!("2222222222222222222222222222222222222222");
+        let base = address!("1111111111111111111111111111111111111111");
+        let raindex = address!("3333333333333333333333333333333333333333");
+
+        let filter = latest_market_trade_filter(quote, base, &[raindex]);
+
+        assert_eq!(filter.raindex_in, vec![raindex.to_string()]);
+        let directions = filter.or.expect("directional pair filters");
+        assert_eq!(directions.len(), 2);
+        let token = |direction: &SgTradesListQueryFilters, input: bool| {
+            let change = if input {
+                direction.input_vault_balance_change_.as_ref()
+            } else {
+                direction.output_vault_balance_change_.as_ref()
+            }
+            .expect("token change filter");
+            change
+                .vault_
+                .as_ref()
+                .expect("vault filter")
+                .token_in
+                .first()
+                .expect("token")
+                .clone()
+        };
+        assert_eq!(token(&directions[0], true), quote.to_string());
+        assert_eq!(token(&directions[0], false), base.to_string());
+        assert_eq!(token(&directions[1], true), base.to_string());
+        assert_eq!(token(&directions[1], false), quote.to_string());
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    #[derive(Clone)]
+    struct EmptyLocalDb;
+
+    #[cfg(not(target_family = "wasm"))]
+    #[async_trait]
+    impl LocalDbQueryExecutor for EmptyLocalDb {
+        async fn execute_batch(&self, _batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            Ok(())
+        }
+
+        async fn query_json<T>(&self, _stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            serde_json::from_str("[]")
+                .map_err(|error| LocalDbQueryError::deserialization(error.to_string()))
+        }
+
+        async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            Err(LocalDbQueryError::not_implemented("query_text"))
+        }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
+        }
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    #[derive(Clone)]
+    struct UnexpectedLocalDb;
+
+    #[cfg(not(target_family = "wasm"))]
+    #[async_trait]
+    impl LocalDbQueryExecutor for UnexpectedLocalDb {
+        async fn execute_batch(&self, _batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::database("unexpected local DB write"))
+        }
+
+        async fn query_json<T>(&self, _stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            Err(LocalDbQueryError::database("unexpected local DB read"))
+        }
+
+        async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            Err(LocalDbQueryError::database("unexpected local DB read"))
+        }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::database("unexpected local DB write"))
+        }
+    }
 
     #[test]
     fn trade_filter_trace_summary_counts_optional_filters() {
@@ -650,7 +970,7 @@ mod tests {
     }
 
     #[test]
-    fn maps_token_filters_to_subgraph_candidate_filter_without_unsupported_child_nesting() {
+    fn maps_equal_token_filters_to_subgraph_direction_union() {
         let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         let raindex = address!("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
         let token_a = address!("0x1111111111111111111111111111111111111111");
@@ -675,10 +995,67 @@ mod tests {
         assert_eq!(filters.timestamp_gte, Some(SgBigInt("10".to_string())));
         assert_eq!(filters.timestamp_lte, Some(SgBigInt("20".to_string())));
         assert_eq!(filters.raindex_in, vec![format!("{raindex:#x}")]);
-        assert!(filters.or.is_none());
+        let directions = filters.or.as_ref().expect("token direction union");
+        assert_eq!(directions.len(), 2);
         assert!(filters.input_vault_balance_change_.is_none());
         assert!(filters.output_vault_balance_change_.is_none());
         assert!(filters.trade_event_.is_none());
+        assert_eq!(
+            directions[0]
+                .input_vault_balance_change_
+                .as_ref()
+                .unwrap()
+                .vault_
+                .as_ref()
+                .unwrap()
+                .token_in,
+            vec![token_a.to_string(), token_b.to_string()]
+        );
+        assert_eq!(
+            directions[1]
+                .output_vault_balance_change_
+                .as_ref()
+                .unwrap()
+                .vault_
+                .as_ref()
+                .unwrap()
+                .token_in,
+            vec![token_a.to_string(), token_b.to_string()]
+        );
+    }
+
+    #[test]
+    fn maps_directional_token_filters_to_subgraph_intersection() {
+        let input = address!("0x1111111111111111111111111111111111111111");
+        let output = address!("0x2222222222222222222222222222222222222222");
+        let filters: SgTradesListQueryFilters = GetTradesFilters {
+            tokens: Some(GetTradesTokenFilter {
+                inputs: Some(vec![input]),
+                outputs: Some(vec![output]),
+            }),
+            ..Default::default()
+        }
+        .into();
+
+        assert!(filters.or.is_none());
+        assert_eq!(
+            filters
+                .input_vault_balance_change_
+                .unwrap()
+                .vault_
+                .unwrap()
+                .token_in,
+            vec![input.to_string()]
+        );
+        assert_eq!(
+            filters
+                .output_vault_balance_change_
+                .unwrap()
+                .vault_
+                .unwrap()
+                .token_in,
+            vec![output.to_string()]
+        );
     }
 
     #[cfg(not(target_family = "wasm"))]
@@ -719,6 +1096,69 @@ mod tests {
         assert_eq!(result.total_count(), 0);
         assert!(result.trades().is_empty());
         assert!(logs_contain("completed get_trades"));
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    #[tokio::test]
+    async fn unpaginated_trades_use_ready_local_db_without_subgraph_fallback() {
+        let sg_server = MockServer::start_async().await;
+        let subgraph = sg_server.mock(|when, then| {
+            when.path("/sg");
+            then.status(500);
+        });
+        let client = new_with_local_db(
+            vec![get_test_yaml(
+                &sg_server.url("/sg"),
+                &sg_server.url("/sg"),
+                "http://localhost:3000",
+                "http://localhost:3000",
+            )],
+            LocalDb::new(EmptyLocalDb),
+            vec![1],
+        )
+        .await;
+
+        let trades = client
+            .get_trades_unpaginated(1, GetTradesFilters::default())
+            .await
+            .unwrap();
+
+        assert!(trades.is_empty());
+        subgraph.assert_hits(0);
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    #[tokio::test]
+    async fn unpaginated_trades_use_subgraph_when_local_db_is_not_ready() {
+        let sg_server = MockServer::start_async().await;
+        let subgraph = sg_server.mock(|when, then| {
+            when.path("/sg");
+            then.status(200).json_body_obj(&json!({
+                "data": { "trades": [] }
+            }));
+        });
+        let mut client = RaindexClient::new(
+            vec![get_test_yaml(
+                &sg_server.url("/sg"),
+                &sg_server.url("/sg"),
+                "http://localhost:3000",
+                "http://localhost:3000",
+            )],
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+        client.local_db_state.db = Arc::new(Mutex::new(Some(LocalDb::new(UnexpectedLocalDb))));
+        client.local_db_state.sync_configured_chains.insert(1);
+
+        let trades = client
+            .get_trades_unpaginated(1, GetTradesFilters::default())
+            .await
+            .unwrap();
+
+        assert!(trades.is_empty());
+        subgraph.assert_hits(1);
     }
 
     fn test_sg_trade(input_token: Address, output_token: Address) -> SgTrade {
@@ -770,6 +1210,11 @@ mod tests {
                 "0x0000000000000000000000000000000000000000000000000000000000000001".to_string(),
             ),
             trade_event: SgTradeEvent {
+                id: SgBytes(
+                    "0x0000000000000000000000000000000000000000000000000000000000000001"
+                        .to_string(),
+                ),
+                __typename: "TakeOrder".to_string(),
                 transaction: SgTransaction {
                     id: SgBytes(
                         "0x0000000000000000000000000000000000000000000000000000000000000001"

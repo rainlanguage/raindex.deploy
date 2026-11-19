@@ -48,7 +48,7 @@ pub struct SgPaginationQueryVariables {
     pub skip: Option<i32>,
 }
 
-#[derive(cynic::InputObject, Debug, Clone, Tsify)]
+#[derive(cynic::InputObject, Debug, Clone, Tsify, Default)]
 #[cynic(graphql_type = "Order_filter")]
 pub struct SgOrdersListQueryFilters {
     #[cynic(rename = "owner_in", skip_serializing_if = "Vec::is_empty")]
@@ -63,6 +63,9 @@ pub struct SgOrdersListQueryFilters {
     pub outputs_: Option<SgVaultTokenFilter>,
     #[cynic(rename = "raindex_in", skip_serializing_if = "Vec::is_empty")]
     pub raindex_in: Vec<String>,
+    #[cynic(rename = "or", skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub or: Option<Vec<SgOrdersListQueryFilters>>,
 }
 
 #[derive(cynic::InputObject, Debug, Clone, Tsify)]
@@ -508,6 +511,9 @@ pub struct SgClearBounty {
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[cynic(graphql_type = "TradeEvent")]
 pub struct SgTradeEvent {
+    pub id: SgBytes,
+    #[serde(rename = "__typename")]
+    pub __typename: String,
     pub transaction: SgTransaction,
     pub sender: SgBytes,
 }

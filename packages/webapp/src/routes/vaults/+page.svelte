@@ -21,12 +21,14 @@
 	import { handleVaultsWithdrawAll } from '$lib/services/handleVaultsWithdrawAll';
 	import type { Hex } from 'viem';
 	import LocalDbSyncGate from '$lib/components/LocalDbSyncGate.svelte';
+	import { networkStatuses } from '$lib/stores/localDbStatus';
 
 	const { showInactiveOrders } = $page.data.stores;
 
 	const { account } = useAccount();
 	const { errToast } = useToasts();
 	const { manager } = useTransactions();
+	let localDbRefreshVersion = 0;
 
 	async function onWithdrawAll(raindexClient: RaindexClient, vaultsList: RaindexVaultsList) {
 		if (!$account) {
@@ -47,7 +49,13 @@
 
 <PageHeader title="Vaults" pathname={$page.url.pathname} />
 
-<LocalDbSyncGate>
+<LocalDbSyncGate
+	nonBlocking
+	{selectedChainIds}
+	emptyMessage="No Vaults Found"
+	on:synccomplete={() => (localDbRefreshVersion += 1)}
+	let:emptyMessage
+>
 	<VaultsListTable
 		{orderHash}
 		{showInactiveOrders}
@@ -57,6 +65,9 @@
 		{selectedChainIds}
 		{activeRaindexAddresses}
 		{ownerFilter}
+		{emptyMessage}
+		refreshVersion={localDbRefreshVersion}
+		localDbStatuses={$networkStatuses}
 		{onWithdrawAll}
 	/>
 </LocalDbSyncGate>

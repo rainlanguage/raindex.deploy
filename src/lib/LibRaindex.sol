@@ -2,15 +2,10 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {TaskV2} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {
-    SourceIndexV2,
-    StateNamespace,
-    StackItem,
-    EvalV4
-} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterV4.sol";
-import {LibNamespace, FullyQualifiedNamespace} from "rain-interpreter-interface-0.1.0/src/lib/ns/LibNamespace.sol";
-import {LibContext} from "rain-interpreter-interface-0.1.0/src/lib/caller/LibContext.sol";
+import {TaskV3} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {SourceIndexV2, StateNamespace, StackItem, EvalV4} from "rainlang-0.2.36/src/interface/IInterpreterV4.sol";
+import {LibNamespace, FullyQualifiedNamespace} from "rainlang-0.2.36/src/lib/ns/LibNamespace.sol";
+import {LibContext} from "rainlang-0.2.36/src/lib/caller/LibContext.sol";
 
 /// @dev Raindex context is actually fairly complex. The calling context column
 /// is populated before calculate order, but the remaining columns are only
@@ -19,41 +14,46 @@ import {LibContext} from "rain-interpreter-interface-0.1.0/src/lib/caller/LibCon
 /// as accounting limits such as current vault balances, etc.
 /// The token address and decimals for vault inputs and outputs IS available to
 /// the calculate order entrypoint, but not the final vault balances/diff.
-uint256 constant CALLING_CONTEXT_COLUMNS = 4;
+/// Each entrypoint fills only its own columns and leaves the rest empty, so a
+/// word read outside the entrypoints that fill its cell reverts out of bounds
+/// instead of reading another entrypoint's value.
+uint256 constant CALLING_CONTEXT_COLUMNS = 6;
 
 uint256 constant CONTEXT_COLUMNS = CALLING_CONTEXT_COLUMNS + 1;
 
-/// @dev Total number of context columns including extensions: base columns
-/// plus 2 for signers and signed context start, 1 for deposit, 1 for withdraw.
-uint256 constant CONTEXT_COLUMNS_EXTENDED = CONTEXT_COLUMNS + 2 + 1 + 1;
+/// @dev Number of sub parser word tables, one per context column up to and
+/// including the first signed context column.
+uint256 constant CONTEXT_COLUMNS_EXTENDED = CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1;
 
-/// @dev Contextual data available to both calculate order and handle IO. The
-/// order hash, order owner and order counterparty. IMPORTANT NOTE that the
-/// typical base context of an order with the caller will often be an unrelated
-/// clearer of the order rather than the owner or counterparty.
+/// @dev Order column. Clear gets all rows; take and quote omit the clearer;
+/// add and remove order tasks get only the order hash and owner. IMPORTANT NOTE
+/// that the clearer will often be unrelated to the owner or counterparty.
 uint256 constant CONTEXT_CALLING_CONTEXT_COLUMN = 1;
-uint256 constant CONTEXT_CALLING_CONTEXT_ROWS = 3;
+uint256 constant CONTEXT_CALLING_CONTEXT_ROWS = 4;
 
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH = 0;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER = 1;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY = 2;
+uint256 constant CONTEXT_CALLING_CONTEXT_ROW_ORDER_CLEARER = 3;
 
-/// @dev Context rows for the deposit calling context column. Available to the
-/// deposit post-action entrypoint.
+/// @dev Deposit column. Filled only for deposit tasks.
+uint256 constant CONTEXT_DEPOSIT_COLUMN = 5;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN = 0;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID = 1;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BEFORE = 2;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_AFTER = 3;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN_DECIMALS = 4;
+uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_DEPOSITOR = 5;
 
-/// @dev Context rows for the withdraw calling context column. Available to the
-/// withdraw post-action entrypoint.
+/// @dev Withdraw column. Filled only for withdraw tasks.
+uint256 constant CONTEXT_WITHDRAW_COLUMN = 6;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TOKEN = 0;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_ID = 1;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BEFORE = 2;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_AFTER = 3;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TARGET_AMOUNT = 4;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TOKEN_DECIMALS = 5;
+uint256 constant CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_WITHDRAWER = 6;
 
 /// @dev Calculations column contains the DECIMAL RESCALED calculations but
 /// otherwise provided as-is according to calculate order entrypoint
@@ -91,23 +91,46 @@ uint256 constant CONTEXT_VAULT_IO_ROWS = 5;
 
 /// @dev Signed context signer addresses occupy their own column so that each
 /// signer can be matched to its corresponding signed context column.
-uint256 constant CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN = 5;
+uint256 constant CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN = CONTEXT_COLUMNS;
 uint256 constant CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS = 1;
 uint256 constant CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW = 0;
 
-/// @dev Signed context data columns start after the signers column. Each
+/// @dev Signed context EIP-712 domain separators occupy their own column after
+/// the signers column. Row i is the domain separator signed context i was
+/// signed under, chosen by its signer.
+uint256 constant CONTEXT_SIGNED_CONTEXT_DOMAINS_COLUMN = CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN + 1;
+uint256 constant CONTEXT_SIGNED_CONTEXT_DOMAINS_ROWS = 1;
+uint256 constant CONTEXT_SIGNED_CONTEXT_DOMAINS_ROW = 0;
+
+/// @dev Signed context data columns start after the domains column. Each
 /// signer's data is a separate column at this offset + signer index.
-uint256 constant CONTEXT_SIGNED_CONTEXT_START_COLUMN = 6;
+uint256 constant CONTEXT_SIGNED_CONTEXT_START_COLUMN = CONTEXT_SIGNED_CONTEXT_DOMAINS_COLUMN + 1;
 uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROWS = 1;
 uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROW = 0;
 
 library LibRaindex {
-    /// @dev Evaluates each task in `post` against the provided `context`.
-    /// Tasks with empty bytecode are skipped.
-    function doPost(bytes32[][] memory context, TaskV2[] memory post) internal {
+    /// @dev Builds a calling context with `values` as context column `column`
+    /// and every other calling context column empty.
+    function callingContextColumn(uint256 column, bytes32[] memory values) internal pure returns (bytes32[][] memory) {
+        bytes32[][] memory callingContext = new bytes32[][](CALLING_CONTEXT_COLUMNS);
+        callingContext[column - 1] = values;
+        return callingContext;
+    }
+
+    /// @dev Evaluates each task in `post` against `context` padded with empty
+    /// columns to `CALLING_CONTEXT_COLUMNS`, so the signers, domains and signed
+    /// context columns are at `CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN`,
+    /// `CONTEXT_SIGNED_CONTEXT_DOMAINS_COLUMN` and
+    /// `CONTEXT_SIGNED_CONTEXT_START_COLUMN` as in order evaluation. Tasks with
+    /// empty bytecode are skipped.
+    function doPost(bytes32[][] memory context, TaskV3[] memory post) internal {
+        bytes32[][] memory callingContext = new bytes32[][](CALLING_CONTEXT_COLUMNS);
+        for (uint256 i = 0; i < context.length; ++i) {
+            callingContext[i] = context[i];
+        }
         StateNamespace namespace = StateNamespace.wrap(uint256(uint160(msg.sender)));
         FullyQualifiedNamespace qualifiedNamespace = LibNamespace.qualifyNamespace(namespace, address(this));
-        TaskV2 memory task;
+        TaskV3 memory task;
         StackItem[] memory emptyStack = new StackItem[](0);
         bytes32[] memory emptyStateOverlay = new bytes32[](0);
         for (uint256 i = 0; i < post.length; ++i) {
@@ -121,7 +144,7 @@ library LibRaindex {
                             namespace: qualifiedNamespace,
                             bytecode: task.evaluable.bytecode,
                             sourceIndex: SourceIndexV2.wrap(0),
-                            context: LibContext.build(context, task.signedContext),
+                            context: LibContext.buildV2(callingContext, task.signedContext),
                             inputs: emptyStack,
                             stateOverlay: emptyStateOverlay
                         })

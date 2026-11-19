@@ -1,0 +1,63 @@
+name: Raindex API
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "crates/**"
+      - "*.nix"
+      - "flake.lock"
+      - "infra/**"
+      - ".github/workflows/raindex-api.yaml"
+      - ".github/workflows/deploy-raindex-api.yaml"
+  pull_request:
+    paths:
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "crates/**"
+      - "*.nix"
+      - "flake.lock"
+      - "infra/**"
+      - ".github/workflows/raindex-api.yaml"
+      - ".github/workflows/deploy-raindex-api.yaml"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+permissions:
+  contents: read
+jobs:
+  production-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - uses: nixbuild/nix-quick-install-action@v30
+        with:
+          nix_conf: |
+            accept-flake-config = true
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      - uses: cachix/cachix-action@v15
+        continue-on-error: true
+        with:
+          name: rainlanguage
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: false
+      - uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock', 'Cargo.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          gc-max-store-size-linux: 8G
+      - name: Validate reproducible service and host definitions
+        run: |
+          nix flake check --no-build --impure
+          nix build .#raindex-api --no-link
+      - name: Validate infrastructure and workflows
+        run: |
+          nix shell .#opentofu -c tofu -chdir=infra init -backend=false
+          nix shell .#opentofu -c tofu -chdir=infra validate
+          nix shell .#actionlint -c actionlint \
+            .github/workflows/raindex-api.yaml \
+            .github/workflows/deploy-raindex-api.yaml

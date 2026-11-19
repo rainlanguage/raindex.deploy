@@ -350,6 +350,8 @@ mod tests {
                 owner: bytes.clone(),
             },
             trade_event: SgTradeEvent {
+                id: bytes.clone(),
+                __typename: "TakeOrder".to_string(),
                 sender: bytes.clone(),
                 transaction: SgTransaction {
                     id: bytes.clone(),
@@ -410,6 +412,8 @@ mod tests {
                 owner: bytes.clone(),
             },
             trade_event: SgTradeEvent {
+                id: bytes.clone(),
+                __typename: "TakeOrder".to_string(),
                 sender: bytes.clone(),
                 transaction: SgTransaction {
                     id: bytes.clone(),

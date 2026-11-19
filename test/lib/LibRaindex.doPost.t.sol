@@ -2,14 +2,14 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Test} from "forge-std-1.16.1/src/Test.sol";
+import {Test} from "forge-std-1.17.0/src/Test.sol";
 import {LibRaindexDoPostHarness} from "test/util/concrete/LibRaindexDoPostHarness.sol";
-import {TaskV2} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {IInterpreterV4, StackItem} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterV4.sol";
-import {IInterpreterStoreV3} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterStoreV3.sol";
-import {StateNamespace} from "rain-interpreter-interface-0.1.0/src/interface/deprecated/v2/IInterpreterStoreV2.sol";
-import {EvaluableV4} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterCallerV4.sol";
-import {SignedContextV1} from "rain-interpreter-interface-0.1.0/src/interface/deprecated/v1/IInterpreterCallerV2.sol";
+import {TaskV3} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {IInterpreterV4, StackItem} from "rainlang-0.2.36/src/interface/IInterpreterV4.sol";
+import {IInterpreterStoreV3} from "rainlang-0.2.36/src/interface/IInterpreterStoreV3.sol";
+import {StateNamespace} from "rainlang-0.2.36/src/interface/deprecated/v2/IInterpreterStoreV2.sol";
+import {EvaluableV4} from "rainlang-0.2.36/src/interface/IInterpreterCallerV5.sol";
+import {SignedContextV2} from "rainlang-0.2.36/src/interface/IInterpreterCallerV5.sol";
 
 /// @title LibRaindexDoPostTest
 /// @notice Audit GAP-A11-1/2/3 (#2536): `doPost` skips work for an empty post
@@ -20,7 +20,7 @@ contract LibRaindexDoPostTest is Test {
 
     /// GAP-A11-1: an empty post array is a no-op (no interpreter/store calls).
     function testDoPostEmptyPostArrayNoOp() external {
-        iHarness.doPost(new bytes32[][](0), new TaskV2[](0));
+        iHarness.doPost(new bytes32[][](0), new TaskV3[](0));
     }
 
     /// GAP-A11-2: a task with empty bytecode is skipped — neither `eval4` nor
@@ -33,10 +33,10 @@ contract LibRaindexDoPostTest is Test {
         );
         vm.mockCallRevert(store, abi.encodeWithSelector(IInterpreterStoreV3.set.selector), bytes("set must be skipped"));
 
-        TaskV2[] memory post = new TaskV2[](1);
-        post[0] = TaskV2({
+        TaskV3[] memory post = new TaskV3[](1);
+        post[0] = TaskV3({
             evaluable: EvaluableV4(IInterpreterV4(interpreter), IInterpreterStoreV3(store), hex""),
-            signedContext: new SignedContextV1[](0)
+            signedContext: new SignedContextV2[](0)
         });
         iHarness.doPost(new bytes32[][](0), post);
     }
@@ -56,10 +56,10 @@ contract LibRaindexDoPostTest is Test {
         vm.expectCall(interpreter, abi.encodeWithSelector(IInterpreterV4.eval4.selector));
         vm.mockCallRevert(store, abi.encodeWithSelector(IInterpreterStoreV3.set.selector), bytes("set must be skipped"));
 
-        TaskV2[] memory post = new TaskV2[](1);
-        post[0] = TaskV2({
+        TaskV3[] memory post = new TaskV3[](1);
+        post[0] = TaskV3({
             evaluable: EvaluableV4(IInterpreterV4(interpreter), IInterpreterStoreV3(store), hex"01"),
-            signedContext: new SignedContextV1[](0)
+            signedContext: new SignedContextV2[](0)
         });
         iHarness.doPost(new bytes32[][](0), post);
     }
@@ -87,10 +87,10 @@ contract LibRaindexDoPostTest is Test {
             abi.encodeCall(IInterpreterStoreV3.set, (StateNamespace.wrap(uint256(uint160(address(this)))), writes))
         );
 
-        TaskV2[] memory post = new TaskV2[](1);
-        post[0] = TaskV2({
+        TaskV3[] memory post = new TaskV3[](1);
+        post[0] = TaskV3({
             evaluable: EvaluableV4(IInterpreterV4(interpreter), IInterpreterStoreV3(store), hex"01"),
-            signedContext: new SignedContextV1[](0)
+            signedContext: new SignedContextV2[](0)
         });
         iHarness.doPost(new bytes32[][](0), post);
     }

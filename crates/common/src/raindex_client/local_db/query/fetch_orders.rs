@@ -37,7 +37,7 @@ pub async fn fetch_orders<E: LocalDbQueryExecutor + ?Sized>(
     args: FetchOrdersArgs,
 ) -> Result<Vec<LocalDbOrder>, LocalDbQueryError> {
     let stmt = build_fetch_orders_stmt(&args)?;
-    exec.query_json(&stmt).await
+    exec.query_json_retryable(&stmt).await
 }
 
 #[cfg(test)]

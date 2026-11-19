@@ -100,7 +100,7 @@ mod tests {
         let pipe = DefaultEventsPipeline::with_regular_rpcs(vec![test_url()])
             .expect("build with regular rpcs");
 
-        // with_hyperrpc (uses supported chain id; token string is arbitrary)
+        // with_hyperrpc (uses the numeric chain ID alias; token string is arbitrary)
         let _pipe3 = DefaultEventsPipeline::with_hyperrpc(42161, "token".to_string())
             .expect("build with hyperrpc");
         drop(pipe);
@@ -134,21 +134,10 @@ mod tests {
     }
 
     #[test]
-    fn constructor_error_paths() {
-        // Empty RPC list should error via RpcClient config mapping
+    fn with_regular_rpcs_rejects_empty_list() {
         let err = DefaultEventsPipeline::with_regular_rpcs(vec![]).expect_err("expected error");
         match err {
             LocalDbError::Rpc(RpcClientError::Config { .. }) => {}
-            other => panic!("unexpected error variant: {other:?}"),
-        }
-
-        // Unsupported chain id surfaces as Rpc -> UnsupportedChainId
-        let err = DefaultEventsPipeline::with_hyperrpc(9999, "token".to_string())
-            .expect_err("expected unsupported chain id error");
-        match err {
-            LocalDbError::Rpc(RpcClientError::UnsupportedChainId { chain_id }) => {
-                assert_eq!(chain_id, 9999);
-            }
             other => panic!("unexpected error variant: {other:?}"),
         }
     }

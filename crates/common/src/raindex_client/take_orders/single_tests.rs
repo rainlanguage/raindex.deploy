@@ -22,7 +22,7 @@ use alloy::serde::WithOtherFields;
 use alloy::sol_types::SolCall;
 use httpmock::MockServer;
 use rain_math_float::Float;
-use raindex_bindings::IRaindexV6::takeOrders4Call;
+use raindex_bindings::IRaindexV7::takeOrders5Call;
 use raindex_quote::Pair;
 use serde_json::json;
 use std::ops::{Div, Mul};
@@ -152,7 +152,7 @@ async fn test_single_order_take_happy_path_buy_up_to() {
         "Should have exactly 1 price entry"
     );
 
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert_eq!(config.orders.len(), 1, "Should have exactly 1 order");
@@ -251,7 +251,7 @@ async fn test_single_order_take_happy_path_buy_exact() {
 
     assert!(result.is_ready());
     let result = result.take_orders_info().unwrap();
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     let expected_buy = Float::parse(buy_target.to_string()).unwrap().get_inner();
@@ -351,7 +351,7 @@ async fn test_single_order_take_happy_path_spend_up_to() {
 
     assert!(result.is_ready());
     let result = result.take_orders_info().unwrap();
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -1058,7 +1058,7 @@ async fn test_single_order_take_approval_then_ready_flow() {
     );
 
     // Verify the calldata is valid by decoding it
-    let decoded = takeOrders4Call::abi_decode(take_info.calldata())
+    let decoded = takeOrders5Call::abi_decode(take_info.calldata())
         .expect("Should decode take orders calldata");
     assert_eq!(
         decoded.config.orders.len(),
@@ -1154,7 +1154,7 @@ async fn test_single_order_take_calldata_encoding_buy_mode() {
 
     assert!(result.is_ready());
     let result = result.take_orders_info().unwrap();
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(config.IOIsInput, "IOIsInput should be true for buy mode");
@@ -1368,7 +1368,7 @@ async fn test_single_order_take_spend_exact_mode() {
 
     assert!(result.is_ready());
     let result = result.take_orders_info().unwrap();
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -1686,7 +1686,7 @@ async fn test_single_order_take_calldata_encoding_spend_mode() {
 
     assert!(result.is_ready());
     let result = result.take_orders_info().unwrap();
-    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
+    let decoded = takeOrders5Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(

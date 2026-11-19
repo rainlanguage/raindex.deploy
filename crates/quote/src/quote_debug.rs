@@ -7,7 +7,7 @@ use rain_interpreter_eval::{
     fork::{Forker, NewForkedEvm},
     trace::{RainEvalResult, RainEvalResultFromRawCallResultError},
 };
-use raindex_bindings::IRaindexV6::quote2Call;
+use raindex_bindings::IRaindexV7::quote3Call;
 use url::Url;
 
 pub struct NewQuoteDebugger {
@@ -61,7 +61,7 @@ impl QuoteDebugger {
     > {
         quote_target.validate()?;
 
-        let quote_call = quote2Call {
+        let quote_call = quote3Call {
             quoteConfig: quote_target.quote_config.clone(),
         };
 
@@ -89,7 +89,7 @@ mod tests {
     use alloy::sol_types::{SolCall, SolValue};
     use httpmock::MockServer;
     use raindex_app_settings::spec_version::SpecVersion;
-    use raindex_bindings::IRaindexV6::{OrderV4, QuoteV2};
+    use raindex_bindings::IRaindexV7::{OrderV4, QuoteV3};
     use raindex_common::add_order::AddOrderArgs;
     use raindex_common::dotrain_order::DotrainOrder;
     use raindex_test_fixtures::LocalEvm;
@@ -206,7 +206,7 @@ amount price: 16 52;
 
         let quote_target = QuoteTarget {
             raindex: *raindex.address(),
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order,
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
@@ -336,7 +336,7 @@ _: 1;
 
         let quote_target = QuoteTarget {
             raindex: *raindex.address(),
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order,
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
@@ -473,7 +473,7 @@ _: 1;
 
         let quote_target = QuoteTarget {
             raindex: *raindex.address(),
-            quote_config: QuoteV2 {
+            quote_config: QuoteV3 {
                 order,
                 inputIOIndex: U256::from(1),
                 outputIOIndex: U256::from(2),

@@ -1,11 +1,16 @@
 name: Package Release
+# Released by a manual `sol-v*` tag via rainix-tag-release: the tag re-runs the
+# fork suite, runs release-guard ([external.package].version == tag, the frozen
+# src/generated/<tag>/ snapshot present and byte-identical to candidate/, clean
+# tree after regeneration, no later tag frozen), then publishes to Soldeer and
+# cuts the GitHub release. Merges to main no longer publish.
 on:
   push:
-    branches:
-      - main
+    tags:
+      - sol-v*
 jobs:
   release:
-    uses: rainlanguage/rainix/.github/workflows/rainix-autopublish.yaml@main
+    uses: rainlanguage/rainix/.github/workflows/rainix-tag-release.yaml@main
     with:
-      soldeer-package: raindex
+      soldeer-package: raindex-deploy
     secrets: inherit

@@ -44,6 +44,8 @@ pub enum Error {
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
     #[error("Invalid quote target: index {0} is out of bounds for this Order")]
     InvalidQuoteTarget(U256),
+    #[error("Quote pair selections must align with orders: expected {expected}, got {actual}")]
+    PairSelectionLengthMismatch { expected: usize, actual: usize },
     #[error(transparent)]
     ReadProviderError(#[from] ReadProviderError),
     #[error("Multicall failed: {0}")]

@@ -7,6 +7,8 @@ query SgOrderTradesListQuery($first: Int, $id: Bytes!, $skip: Int, $timestampGte
   trades(skip: $skip, first: $first, orderBy: timestamp, orderDirection: desc, where: {order_: {id: $id}, timestamp_gte: $timestampGte, timestamp_lte: $timestampLte}) {
     id
     tradeEvent {
+      id
+      __typename
       transaction {
         id
         from

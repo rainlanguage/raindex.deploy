@@ -31,7 +31,7 @@ pub async fn fetch_vaults<E: LocalDbQueryExecutor + ?Sized>(
     args: FetchVaultsArgs,
 ) -> Result<Vec<LocalDbVault>, LocalDbQueryError> {
     let stmt = build_fetch_vaults_stmt(&args)?;
-    exec.query_json(&stmt).await
+    exec.query_json_retryable(&stmt).await
 }
 
 pub async fn fetch_vaults_count<E: LocalDbQueryExecutor + ?Sized>(
@@ -39,7 +39,7 @@ pub async fn fetch_vaults_count<E: LocalDbQueryExecutor + ?Sized>(
     args: FetchVaultsArgs,
 ) -> Result<u32, LocalDbQueryError> {
     let stmt = build_fetch_vaults_count_stmt(&args)?;
-    let rows: Vec<LocalDbVaultsCountRow> = exec.query_json(&stmt).await?;
+    let rows: Vec<LocalDbVaultsCountRow> = exec.query_json_retryable(&stmt).await?;
     Ok(extract_vaults_count(&rows))
 }
 

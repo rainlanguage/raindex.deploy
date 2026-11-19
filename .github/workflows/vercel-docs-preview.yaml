@@ -18,24 +18,35 @@ jobs:
     env:
       COMMIT_SHA: ${{ github.sha }}
     steps:
-      - uses: rainlanguage/rainix/.github/actions/checkout@main
+      - uses: actions/checkout@v4
       - name: Free disk space
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
-      # Shared nix + cachix preamble (nix-quick-install, Cachix,
-      # cache-nix-action). The third-party action SHAs are pinned once in the
-      # rainix composite. checkout: false because free-disk-space runs between
-      # the checkout above and nix-quick-install.
-      - uses: rainlanguage/rainix/.github/actions/nix-cachix-setup@main
+        uses: jlumbroso/free-disk-space@v1.3.1
+      - uses: nixbuild/nix-quick-install-action@v30
         with:
-          checkout: false
-          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - uses: rainlanguage/rainix/.github/actions/rust-cache@main
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+      - uses: cachix/cachix-action@v15
+        continue-on-error: true
+        with:
+          name: rainlanguage
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: false
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          gc-max-store-size-linux: 8G
+      - uses: Swatinem/rust-cache@v2
         with:
           # Restore this branch's own cache if it has one, else fall back to the
-          # cache the prod run saves on main (shared prefix-key).
+          # cache the prod run saves on main (shared prefix-key). save-if keeps
+          # this branch's cache warm across re-runs.
           prefix-key: rust-vercel-docs
+          save-if: true
       - name: Cache npm
-        uses: rainlanguage/rainix/.github/actions/cache@main
+        uses: actions/cache@v4
         with:
           path: ~/.npm
           key: npm-${{ runner.os }}-${{ github.workflow }}-${{ hashFiles('**/package-lock.json') }}

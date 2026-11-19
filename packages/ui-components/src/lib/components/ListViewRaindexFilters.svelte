@@ -6,7 +6,7 @@
 	import { page } from '$app/stores';
 	import { isEmpty } from 'lodash';
 	import { Alert } from 'flowbite-svelte';
-	import type { Address, RaindexVaultToken } from '@rainlanguage/raindex';
+	import type { Address, NetworkSyncStatus, RaindexVaultToken } from '@rainlanguage/raindex';
 	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
 	import DropdownTokensFilter from './dropdown/DropdownTokensFilter.svelte';
 	import DropdownRaindexesFilter from './dropdown/DropdownRaindexesFilter.svelte';
@@ -27,6 +27,7 @@
 	export let activeRaindexAddresses: AppStoresInterface['activeRaindexAddresses'];
 	export let selectedRaindexAddresses: Address[];
 	export let ownerFilter: AppStoresInterface['ownerFilter'];
+	export let localDbStatuses: Map<number, NetworkSyncStatus> | undefined = undefined;
 
 	$: isVaultsPage = $page.url.pathname === '/vaults';
 	$: isOrdersPage = $page.url.pathname === '/orders';
@@ -34,6 +35,7 @@
 	const raindexClient = useRaindexClient();
 
 	$: networks = raindexClient.getAllNetworks();
+	$: configuredNetworks = Array.from(networks.value?.values() ?? []);
 </script>
 
 <div
@@ -61,13 +63,20 @@
 			</div>
 		{/if}
 		<InputOwnerFilter {ownerFilter} />
-		<DropdownTokensFilter {tokensQuery} {activeTokens} {selectedTokens} label="Tokens" />
+		<DropdownTokensFilter
+			{tokensQuery}
+			{activeTokens}
+			{selectedTokens}
+			{configuredNetworks}
+			label="Tokens"
+		/>
 		<DropdownRaindexesFilter
 			{activeRaindexAddresses}
 			{selectedRaindexAddresses}
 			selectedChainIds={$selectedChainIds}
+			{configuredNetworks}
 			label="Raindexes"
 		/>
-		<DropdownActiveNetworks {selectedChainIds} />
+		<DropdownActiveNetworks {selectedChainIds} {localDbStatuses} />
 	{/if}
 </div>

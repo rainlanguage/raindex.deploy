@@ -12,7 +12,7 @@
 	"hideGenerator": true,
 	"theme": "default",
 	"navigationLinks": {
-		"GitHub": "https://github.com/rainlanguage/raindex",
+		"GitHub": "https://github.com/rainlanguage/raindex.deploy",
 		"NPM": "https://www.npmjs.com/package/@rainlanguage/raindex"
 	},
 	"kindSortOrder": [

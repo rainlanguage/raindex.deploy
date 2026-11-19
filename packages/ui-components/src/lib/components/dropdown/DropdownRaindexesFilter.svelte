@@ -2,7 +2,7 @@
 	import { Button, Dropdown, Label, Checkbox, Input } from 'flowbite-svelte';
 	import { ChevronDownSolid, SearchSolid } from 'flowbite-svelte-icons';
 	import { isEmpty } from 'lodash';
-	import type { Address, RaindexCfg } from '@rainlanguage/raindex';
+	import type { Address, NetworkCfg, RaindexCfg } from '@rainlanguage/raindex';
 	import type { AppStoresInterface } from '../../types/appStores';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
@@ -10,6 +10,7 @@
 	export let activeRaindexAddresses: AppStoresInterface['activeRaindexAddresses'];
 	export let selectedRaindexAddresses: Address[];
 	export let selectedChainIds: number[];
+	export let configuredNetworks: NetworkCfg[] = [];
 
 	export let label: string = 'Filter by raindex';
 	export let allLabel: string = 'All raindexes';
@@ -197,7 +198,8 @@
 							<div class="ml-2 flex w-full">
 								<div class="flex-1 text-sm font-medium">{getDisplayName(raindex)}</div>
 								<div class="text-xs text-gray-500">
-									{getNetworkName(raindex.chainId)}
+									{getNetworkName(raindex.chainId, configuredNetworks) ??
+										`Chain ${raindex.chainId}`}
 								</div>
 							</div>
 						</Checkbox>

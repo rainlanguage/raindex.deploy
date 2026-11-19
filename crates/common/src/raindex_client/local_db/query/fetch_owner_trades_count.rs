@@ -8,7 +8,7 @@ pub async fn fetch_owner_trades_count<E: LocalDbQueryExecutor + ?Sized>(
     args: FetchOwnerTradesCountArgs,
 ) -> Result<Vec<LocalDbTradeCountRow>, LocalDbQueryError> {
     let stmt = build_fetch_owner_trades_count_stmt(&args)?;
-    exec.query_json(&stmt).await
+    exec.query_json_retryable(&stmt).await
 }
 
 #[cfg(all(test, target_family = "wasm"))]

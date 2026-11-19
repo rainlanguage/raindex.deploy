@@ -28,9 +28,13 @@
 	let cursorX = 0;
 	let cursorY = 0;
 
-	$: id = shorten ? `hash-${value}` : undefined;
-	$: displayValue =
-		value && shorten ? `${value.slice(0, sliceLen)}...${value.slice(-1 * sliceLen)}` : value;
+	// Ellipsis truncation of an already-short id (e.g. vault `0xfab`) duplicates it as
+	// `0xfab...0xfab`. Only shorten when the full value is longer than both slices.
+	$: isTruncated = Boolean(shorten && value && value.length > sliceLen * 2);
+	$: id = isTruncated ? `hash-${value}` : undefined;
+	$: displayValue = isTruncated
+		? `${value.slice(0, sliceLen)}...${value.slice(-1 * sliceLen)}`
+		: value;
 
 	function copy(e: MouseEvent) {
 		if (copyOnClick) {
@@ -74,7 +78,7 @@
 	</div>
 {/if}
 
-{#if shorten}
+{#if isTruncated}
 	<Tooltip triggeredBy={`#${id}`}>
 		<div class="flex items-center justify-start space-x-2">
 			{#if type === HashType.Wallet}

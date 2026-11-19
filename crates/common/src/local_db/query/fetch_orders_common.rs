@@ -321,12 +321,13 @@ mod tests {
     // When input_tokens equals output_tokens, ONE EXISTS with OR-logic is
     // emitted (not two EXISTS), and the OUTPUT_TOKENS marker is removed.
     #[test]
-    fn identical_input_output_tokens_use_single_combined_exists() {
-        let t = address!("0x00000000000000000000000000000000000000aa");
+    fn canonical_equal_input_output_tokens_use_single_combined_exists() {
+        let a = address!("0x00000000000000000000000000000000000000aa");
+        let b = address!("0x00000000000000000000000000000000000000bb");
         let args = FetchOrdersArgs {
             tokens: FetchOrdersTokensFilter {
-                inputs: vec![t],
-                outputs: vec![t],
+                inputs: vec![b, a, a],
+                outputs: vec![a, b, b],
             },
             ..FetchOrdersArgs::default()
         };
@@ -343,12 +344,19 @@ mod tests {
         assert!(stmt.sql().contains("\n          OR\n"));
         assert!(!stmt.sql().contains(OUTPUT_TOKENS_CLAUSE));
         assert!(!stmt.sql().contains(INPUT_TOKENS_CLAUSE));
-        // Token bound twice (once per side of the OR).
-        let bound = text_params(&stmt)
-            .into_iter()
-            .filter(|s| s == "0x00000000000000000000000000000000000000aa")
-            .count();
-        assert_eq!(bound, 2);
+        // Each canonical token is bound once per side of the OR.
+        for token in [
+            "0x00000000000000000000000000000000000000aa",
+            "0x00000000000000000000000000000000000000bb",
+        ] {
+            assert_eq!(
+                text_params(&stmt)
+                    .into_iter()
+                    .filter(|bound| bound == token)
+                    .count(),
+                2
+            );
+        }
     }
 
     // Differing input/output token sets produce TWO separate directional EXISTS

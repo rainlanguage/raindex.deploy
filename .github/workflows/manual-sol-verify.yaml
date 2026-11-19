@@ -1,0 +1,25 @@
+name: Manual sol verify
+# Re-dispatching the idempotent deploy broadcasts nothing, so `--verify` cannot repair an unverified suite; this can.
+on:
+  workflow_dispatch:
+    inputs:
+      contract:
+        type: string
+        required: true
+        description: |
+          `path:Contract` to submit: a suite's `artifactPath` in
+          `src/abstract/RaindexDeploySuites.sol`, also printed on the
+          `manual verification command:` line of `script/Deploy.sol`.
+      address:
+        type: string
+        required: true
+        description: |
+          The suite's deployed address, the same on every network (Zoltu).
+          Networks come from `[etherscan]` in `foundry.toml`.
+jobs:
+  verify:
+    uses: rainlanguage/rainix/.github/workflows/rainix-manual-sol-verify.yaml@main
+    with:
+      contract: ${{ inputs.contract }}
+      address: ${{ inputs.address }}
+    secrets: inherit

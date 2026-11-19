@@ -188,7 +188,7 @@ amount price: 2 1;
 
         let amount = Float::parse("10".to_string()).unwrap().get_inner();
         let tx_req = raindex
-            .deposit4(
+            .deposit5(
                 *token1.address(),
                 B256::from(U256::from(0x01)),
                 amount,
@@ -214,8 +214,8 @@ amount price: 2 1;
         .unwrap()
         .get_inner();
         let one_float = Float::parse("1".to_string()).unwrap().get_inner();
-        let config = Raindex::TakeOrdersConfigV5 {
-            orders: vec![Raindex::TakeOrderConfigV4 {
+        let config = Raindex::TakeOrdersConfigV6 {
+            orders: vec![Raindex::TakeOrderConfigV5 {
                 order,
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
@@ -229,7 +229,7 @@ amount price: 2 1;
         };
 
         let tx_req = raindex
-            .takeOrders4(config)
+            .takeOrders5(config)
             .from(token2_holder)
             .into_transaction_request();
 

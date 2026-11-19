@@ -80,6 +80,8 @@ mod tests {
                 id: SgBytes("0xraindex_default".to_string()),
             },
             trade_event: SgTradeEvent {
+                id: SgBytes("0xevent_default".to_string()),
+                __typename: "TakeOrder".to_string(),
                 transaction: SgTransaction {
                     id: SgBytes("0xtx_default".to_string()),
                     from: SgBytes("0xfrom_default".to_string()),

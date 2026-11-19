@@ -2,7 +2,7 @@ use crate::allowance::read_allowance;
 use crate::transaction::{TransactionArgs, TransactionArgsError, WritableTransactionExecuteError};
 use alloy::primitives::{Address, B256, U256};
 use rain_math_float::{Float, FloatError};
-use raindex_bindings::IRaindexV6::deposit4Call;
+use raindex_bindings::IRaindexV7::deposit5Call;
 #[cfg(not(target_family = "wasm"))]
 use raindex_bindings::IERC20::approveCall;
 use serde::{Deserialize, Serialize};
@@ -35,11 +35,11 @@ pub struct DepositArgs {
     pub decimals: u8,
 }
 
-impl TryFrom<DepositArgs> for deposit4Call {
+impl TryFrom<DepositArgs> for deposit5Call {
     type Error = FloatError;
 
     fn try_from(val: DepositArgs) -> Result<Self, Self::Error> {
-        Ok(deposit4Call {
+        Ok(deposit5Call {
             token: val.token,
             vaultId: val.vault_id,
             depositAmount: val.amount.get_inner(),
@@ -99,7 +99,7 @@ impl DepositArgs {
     ) -> Result<(), DepositError> {
         let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
-        let deposit_call: deposit4Call = self.clone().try_into()?;
+        let deposit_call: deposit5Call = self.clone().try_into()?;
         let tx_request = transaction_args
             .try_into_transaction_request(deposit_call, transaction_args.raindex_address)?;
 

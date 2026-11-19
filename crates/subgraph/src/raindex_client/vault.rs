@@ -24,12 +24,8 @@ impl RaindexSubgraphClient {
 
         let or = if filter_args.only_active_orders {
             let active_order_filter = SgOrdersListQueryFilters {
-                owner_in: vec![],
                 active: Some(true),
-                order_hash: None,
-                inputs_: None,
-                outputs_: None,
-                raindex_in: vec![],
+                ..Default::default()
             };
             Some(vec![
                 SgVaultsListQueryFilters {

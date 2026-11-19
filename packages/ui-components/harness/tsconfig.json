@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"target": "es2022",
+		"module": "es2022",
+		"moduleResolution": "bundler",
+		"allowJs": true,
+		"checkJs": false,
+		"esModuleInterop": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"isolatedModules": true,
+		"types": []
+	},
+	"include": ["**/*.ts", "**/*.svelte"]
+}

@@ -5,19 +5,77 @@
     rainix.url = "github:rainlanguage/rainix";
     rain.url = "github:rainlanguage/rain.cli";
     flake-utils.url = "github:numtide/flake-utils";
+    ragenix.url = "github:yaxitech/ragenix";
+    deploy-rs.url = "github:serokell/deploy-rs";
+    crane.url = "github:ipetkov/crane";
+
+    # Pinned separately so the API host can take a newer CA bundle
+    # (cacert >= 3.131.1) without moving the rainix nixpkgs input.
+    nixpkgs-cacert.url = "github:NixOS/nixpkgs/f903b88037954e42a165c27b686201c2f242ae28";
+
+    disko.url = "github:nix-community/disko";
+    disko.inputs.nixpkgs.follows = "rainix/nixpkgs";
+
+    nixos-anywhere.url = "github:nix-community/nixos-anywhere";
+    nixos-anywhere.inputs.nixpkgs.follows = "rainix/nixpkgs";
   };
 
   outputs =
     {
+      self,
       flake-utils,
       rainix,
       rain,
+      ragenix,
+      deploy-rs,
+      crane,
+      disko,
+      nixos-anywhere,
+      nixpkgs-cacert,
       ...
     }:
-    flake-utils.lib.eachDefaultSystem (
+    let
+      configuredHostname = builtins.getEnv "RAINDEX_API_HOSTNAME";
+      apiHostname = if configuredHostname == "" then "api.raindex.finance" else configuredHostname;
+    in
+    {
+      nixosConfigurations.raindex-api = rainix.inputs.nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs.cacert = nixpkgs-cacert.legacyPackages.x86_64-linux.cacert;
+        specialArgs.raindexEnv = {
+          name = "prod";
+          virtualHost = apiHostname;
+          dataDir = "/mnt/data/raindex-api";
+          dataVolumeName = "raindex-api-data";
+        };
+        modules = [
+          disko.nixosModules.disko
+          ragenix.nixosModules.default
+          ./os.nix
+        ];
+      };
+
+      deploy = (import ./deploy.nix { inherit deploy-rs self; }).config;
+      checks.x86_64-linux = deploy-rs.lib.x86_64-linux.deployChecks self.deploy;
+    }
+    // flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = rainix.pkgs.${system};
+        craneLib = (crane.mkLib pkgs).overrideToolchain rainix.rust-toolchain.${system};
+        infraPkgs = import ./infra {
+          inherit
+            pkgs
+            ragenix
+            rainix
+            system
+            ;
+        };
+        deployPkgs = (import ./deploy.nix { inherit deploy-rs self; }).wrappers {
+          inherit pkgs infraPkgs;
+          localSystem = system;
+        };
+        apiRust = pkgs.callPackage ./rust.nix { inherit craneLib; };
       in
       rec {
         packages = rec {
@@ -30,12 +88,12 @@
               mkdir -p meta;
               forge script --silent ./script/BuildAuthoringMeta.sol;
               rain meta build \
-                -i <(cat ./meta/RaindexV6SubParserAuthoringMeta.rain.meta) \
+                -i <(cat ./meta/RaindexV7SubParserAuthoringMeta.rain.meta) \
                 -m authoring-meta-v2 \
                 -t cbor \
                 -e deflate \
                 -l none \
-                -o meta/RaindexV6SubParser.rain.meta \
+                -o meta/RaindexV7SubParser.rain.meta \
                 ;
             '';
           };
@@ -166,7 +224,83 @@
           # so a rain.cli main move can't race the cache push.
           rain-cli = rain.defaultPackage.${system};
 
+          # Terraform-compatible infrastructure tooling from the flake-pinned
+          # nixpkgs used by rainix.
+          inherit (pkgs) opentofu actionlint;
+
+          raindex-api = apiRust.package;
+          raindex-api-clippy = apiRust.clippy;
+
+          inherit (infraPkgs)
+            tfInit
+            tfPlan
+            tfApply
+            tfImport
+            tfDestroy
+            tfEditVars
+            ;
+
+          bootstrap = rainix.mkTask.${system} {
+            name = "bootstrap-raindex-api-nixos";
+            additionalBuildInputs = infraPkgs.buildInputs ++ [
+              nixos-anywhere.packages.${system}.default
+              pkgs.openssh
+              pkgs.gnused
+            ];
+            body = ''
+              ${infraPkgs.resolveIp}
+              ssh_opts="-o IgnoreUnknown=UseKeychain -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i $identity"
+
+              nixos-anywhere --flake ".#raindex-api" \
+                --option pure-eval false \
+                --ssh-option "IgnoreUnknown=UseKeychain" \
+                --ssh-option "IdentityFile=$identity" \
+                --target-host "root@$host_ip" "$@"
+
+              echo "Waiting for the NixOS host to return..."
+              retries=0
+              until ssh $ssh_opts "root@$host_ip" true 2>/dev/null; do
+                retries=$((retries + 1))
+                if [ "$retries" -ge 60 ]; then
+                  echo "Host did not return after 5 minutes" >&2
+                  exit 1
+                fi
+                sleep 5
+              done
+
+              new_key=$(ssh $ssh_opts "root@$host_ip" \
+                cat /etc/ssh/ssh_host_ed25519_key.pub | awk '{print $1 " " $2}')
+              if ! echo "$new_key" | grep -qE '^ssh-ed25519 [A-Za-z0-9+/=]+$'; then
+                echo "Invalid SSH host key returned by provisioned host" >&2
+                exit 1
+              fi
+
+              sed -i.bak -E '/host =/s|"ssh-ed25519 [A-Za-z0-9+/=_-]+"|"'"$new_key"'"|' keys.nix
+              rm -f keys.nix.bak
+              echo "Updated keys.nix with the provisioned host key; commit it before deploying."
+            '';
+          };
+
+          resolveIp = pkgs.writeShellApplication {
+            name = "resolve-ip";
+            runtimeInputs = infraPkgs.buildInputs;
+            text = ''
+              ${infraPkgs.resolveIp}
+              echo "$host_ip"
+            '';
+          };
+
+          remote = pkgs.writeShellApplication {
+            name = "raindex-api-remote";
+            runtimeInputs = infraPkgs.buildInputs ++ [ pkgs.openssh ];
+            text = ''
+              ${infraPkgs.resolveIp}
+              exec ssh -i "$identity" "root@$host_ip" "$@"
+            '';
+          };
+
         }
+        // deployPkgs
         // rainix.packages.${system};
 
         devShells.default = pkgs.mkShell {
@@ -182,12 +316,14 @@
             rain.defaultPackage.${system}
             packages.raindex-ui-components-prelude
             packages.raindex-cli-artifact
+            packages.opentofu
+            packages.actionlint
           ];
 
           inherit (rainix.devShells.${system}.default) shellHook buildInputs nativeBuildInputs;
         };
         devShells.webapp-shell = pkgs.mkShell {
-          packages = with pkgs; [ nodejs_20 ];
+          packages = with pkgs; [ nodejs_22 ];
           inherit (rainix.devShells.${system}.default) buildInputs nativeBuildInputs;
         };
 

@@ -154,7 +154,7 @@ mod tests {
     use clap::CommandFactory;
     use httpmock::{Method::POST, MockServer};
     use rain_math_float::Float;
-    use raindex_bindings::IRaindexV6::{quote2Call, quote2Return, OrderV4, IOV2};
+    use raindex_bindings::IRaindexV7::{quote3Call, quote3Return, OrderV4, IOV2};
     use serde_json::json;
     use std::{fs::read_to_string, str::FromStr};
     use tempfile::NamedTempFile;
@@ -296,7 +296,7 @@ mod tests {
         // spec is missing from the subgraph → yields `NonExistent` before
         // any RPC call), so the raindex-native multicall response carries
         // a single element.
-        let exists_true: alloy::primitives::Bytes = quote2Call::abi_encode_returns(&quote2Return {
+        let exists_true: alloy::primitives::Bytes = quote3Call::abi_encode_returns(&quote3Return {
             exists: true,
             outputMax: Float::default().get_inner(),
             ioRatio: Float::default().get_inner(),
@@ -500,8 +500,8 @@ mod tests {
 
         // The CLI `--target` flag here is parsed into a single QuoteTarget
         // (four arg tokens per target), so the raindex's multicall carries
-        // a single inner `quote2` return.
-        let exists_true: alloy::primitives::Bytes = quote2Call::abi_encode_returns(&quote2Return {
+        // a single inner `quote3` return.
+        let exists_true: alloy::primitives::Bytes = quote3Call::abi_encode_returns(&quote3Return {
             exists: true,
             outputMax: Float::default().get_inner(),
             ioRatio: Float::default().get_inner(),

@@ -22,7 +22,10 @@ pub async fn fetch_trades<E: LocalDbQueryExecutor + ?Sized>(
     let page = args.pagination.page;
     let page_size = args.pagination.page_size;
     let stmt = build_fetch_trades_stmt(&args)?;
-    match exec.query_json::<Vec<LocalDbOrderTrade>>(&stmt).await {
+    match exec
+        .query_json_retryable::<Vec<LocalDbOrderTrade>>(&stmt)
+        .await
+    {
         Ok(trades) => {
             tracing::info!(
                 chain_ids_count,
@@ -78,7 +81,10 @@ pub async fn fetch_trades_count<E: LocalDbQueryExecutor + ?Sized>(
     let has_order_hash = args.order_hash.is_some();
     let has_time_filter = args.time_filter.start.is_some() || args.time_filter.end.is_some();
     let stmt = build_fetch_trades_count_stmt(&args)?;
-    match exec.query_json::<Vec<LocalDbTradeCountRow>>(&stmt).await {
+    match exec
+        .query_json_retryable::<Vec<LocalDbTradeCountRow>>(&stmt)
+        .await
+    {
         Ok(rows) => {
             tracing::info!(
                 chain_ids_count,

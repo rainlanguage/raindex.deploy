@@ -22,6 +22,7 @@
 	import type { RaindexOrder } from '@rainlanguage/raindex';
 	import type { Hex } from 'viem';
 	import LocalDbSyncGate from '$lib/components/LocalDbSyncGate.svelte';
+	import { networkStatuses } from '$lib/stores/localDbStatus';
 
 	const { hideZeroBalanceVaults, hideInactiveOrdersVaults }: AppStoresInterface = $page.data.stores;
 
@@ -29,6 +30,7 @@
 	const { account } = useAccount();
 	const { errToast, addToast } = useToasts();
 	const raindexClient = useRaindexClient();
+	let localDbRefreshVersion = 0;
 
 	const onTakeOrderCallback = (item: RaindexOrder) => {
 		handleTakeOrder({
@@ -46,7 +48,13 @@
 
 <PageHeader title={'Orders'} pathname={$page.url.pathname} />
 
-<LocalDbSyncGate>
+<LocalDbSyncGate
+	nonBlocking
+	{selectedChainIds}
+	emptyMessage="No Orders Found"
+	on:synccomplete={() => (localDbRefreshVersion += 1)}
+	let:emptyMessage
+>
 	<OrdersListTable
 		{selectedChainIds}
 		{showInactiveOrders}
@@ -56,6 +64,9 @@
 		{activeTokens}
 		{activeRaindexAddresses}
 		{ownerFilter}
+		{emptyMessage}
+		refreshVersion={localDbRefreshVersion}
+		localDbStatuses={$networkStatuses}
 		handleTakeOrderModal={onTakeOrderCallback}
 	/>
 </LocalDbSyncGate>

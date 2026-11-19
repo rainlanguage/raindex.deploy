@@ -2,11 +2,11 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Vm} from "forge-std-1.16.1/src/Vm.sol";
+import {Vm} from "forge-std-1.17.0/src/Vm.sol";
 import {LibRaindexDeploy} from "../../../src/lib/deploy/LibRaindexDeploy.sol";
-import {RUNTIME_CODE as RAINDEX_RUNTIME_CODE} from "../../../src/generated/RaindexV6.pointers.sol";
-import {RUNTIME_CODE as SUB_PARSER_RUNTIME_CODE} from "../../../src/generated/RaindexV6SubParser.pointers.sol";
-import {RUNTIME_CODE as ROUTE_PROCESSOR_RUNTIME_CODE} from "../../../src/generated/RouteProcessor4.pointers.sol";
+import {RUNTIME_CODE as RAINDEX_RUNTIME_CODE} from "../../../src/generated/candidate/RaindexV7.sol";
+import {RUNTIME_CODE as SUB_PARSER_RUNTIME_CODE} from "../../../src/generated/candidate/RaindexV7SubParser.sol";
+import {RUNTIME_CODE as ROUTE_PROCESSOR_RUNTIME_CODE} from "../../../src/generated/candidate/RouteProcessor4.sol";
 
 /// @title LibEtchRaindex
 /// @notice Etches the runtime bytecode of the raindex, sub parser, and

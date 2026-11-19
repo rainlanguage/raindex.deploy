@@ -8,7 +8,7 @@ pub async fn fetch_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
     raindex_id: &RaindexIdentifier,
 ) -> Result<Vec<SyncStatusResponse>, LocalDbQueryError> {
-    exec.query_json(&fetch_last_synced_block_stmt(raindex_id))
+    exec.query_json_retryable(&fetch_last_synced_block_stmt(raindex_id))
         .await
 }
 

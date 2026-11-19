@@ -15,7 +15,7 @@ pub async fn fetch_order_trades_count<E: LocalDbQueryExecutor + ?Sized>(
 ) -> Result<u64, LocalDbQueryError> {
     let stmt =
         build_fetch_trade_count_stmt(raindex_id, order_hash, start_timestamp, end_timestamp)?;
-    let rows: Vec<LocalDbTradeCountRow> = exec.query_json(&stmt).await?;
+    let rows: Vec<LocalDbTradeCountRow> = exec.query_json_retryable(&stmt).await?;
     Ok(extract_trade_count(&rows))
 }
 

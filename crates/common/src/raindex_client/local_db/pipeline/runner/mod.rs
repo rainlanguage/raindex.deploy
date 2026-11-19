@@ -1,8 +1,12 @@
+#[cfg(target_family = "wasm")]
+pub(crate) mod bootstrap;
 pub mod config;
 pub mod environment;
 pub mod leadership;
 pub mod scheduler;
 
+#[cfg(target_family = "wasm")]
+use crate::local_db::query::SqlStatement;
 use crate::local_db::{
     pipeline::runner::TargetStage,
     pipeline::{
@@ -38,6 +42,11 @@ use environment::default_environment;
 use futures::future::join_all;
 use leadership::{DefaultLeadership, Leadership, LeadershipGuard};
 use raindex_app_settings::remote::manifest::ManifestMap;
+use std::collections::HashMap;
+
+/// After this many failed dump imports for a target, stop re-downloading its
+/// dump and let that target sync from RPC instead.
+const MAX_DUMP_IMPORT_ATTEMPTS: u32 = 3;
 
 pub struct ClientRunner<B, W, E, T, A, S, L> {
     network_key: Option<String>,
@@ -47,6 +56,7 @@ pub struct ClientRunner<B, W, E, T, A, S, L> {
     manifest_map: ManifestMap,
     manifests_loaded: bool,
     has_provisioned_dumps: bool,
+    failed_dump_imports: HashMap<RaindexIdentifier, u32>,
     environment: RunnerEnvironment<B, W, E, T, A, S>,
     leadership: L,
     leadership_guard: Option<LeadershipGuard>,
@@ -78,6 +88,7 @@ where
             manifest_map: ManifestMap::new(),
             manifests_loaded: false,
             has_provisioned_dumps: false,
+            failed_dump_imports: HashMap::new(),
             environment,
             leadership,
             leadership_guard: None,
@@ -99,6 +110,7 @@ where
             manifest_map: ManifestMap::new(),
             manifests_loaded: false,
             has_provisioned_dumps: false,
+            failed_dump_imports: HashMap::new(),
             environment,
             leadership,
             leadership_guard: None,
@@ -122,6 +134,13 @@ where
 
     pub fn needs_initial_provisioning(&self) -> bool {
         !self.manifests_loaded || !self.has_provisioned_dumps
+    }
+
+    /// Keep the coordinator's network ownership for the runner's lifetime.
+    #[cfg(any(target_family = "wasm", test))]
+    pub(crate) fn with_initial_leadership(mut self, guard: Option<LeadershipGuard>) -> Self {
+        self.leadership_guard = guard;
+        self
     }
 
     pub async fn run<DB>(&mut self, db: &DB) -> Result<RunOutcome, LocalDbError>
@@ -191,6 +210,18 @@ where
             let (provisioned, mut provisioning_failures) =
                 self.provision_dumps(db, targets, &on_phase).await;
             let had_provisioning_failures = !provisioning_failures.is_empty();
+            #[cfg(target_family = "wasm")]
+            let mut provisioned = provisioned;
+            #[cfg(target_family = "wasm")]
+            let had_downloaded_dump = provisioned
+                .iter()
+                .any(|target| target.inputs.dump_str.is_some());
+            #[cfg(target_family = "wasm")]
+            if had_downloaded_dump {
+                for target in &mut provisioned {
+                    target.inputs.defer_analyze = true;
+                }
+            }
             targets = provisioned;
 
             let RunReport {
@@ -198,9 +229,30 @@ where
                 failures: mut run_failures,
             } = self.execute_targets(db, targets).await?;
 
+            let mut had_retryable_import_failure = false;
+            for failure in &run_failures {
+                if matches!(failure.error, LocalDbError::DumpImportFailed(_)) {
+                    let attempts = self
+                        .failed_dump_imports
+                        .entry(failure.raindex_id.clone())
+                        .or_default();
+                    *attempts += 1;
+                    had_retryable_import_failure |= *attempts < MAX_DUMP_IMPORT_ATTEMPTS;
+                }
+            }
+
             provisioning_failures.append(&mut run_failures);
 
-            if !had_provisioning_failures {
+            // Imports already rebuilt indexes atomically. Analyze the final
+            // combined database once, after all targets have finished.
+            #[cfg(target_family = "wasm")]
+            if had_downloaded_dump {
+                if let Err(error) = db.query_text(&SqlStatement::new("ANALYZE")).await {
+                    tracing::warn!(%error, "Deferred bootstrap ANALYZE failed");
+                }
+            }
+
+            if !had_provisioning_failures && !had_retryable_import_failure {
                 self.has_provisioned_dumps = true;
             }
 
@@ -243,8 +295,12 @@ where
                             }
                         };
                     target.inputs.manifest_end_block = entry.end_block;
+                    let import_retries_exhausted = self
+                        .failed_dump_imports
+                        .get(&target.inputs.raindex_id)
+                        .is_some_and(|attempts| *attempts >= MAX_DUMP_IMPORT_ATTEMPTS);
 
-                    if !should_download_dump {
+                    if !should_download_dump || import_retries_exhausted {
                         return Ok(target);
                     }
 
@@ -252,7 +308,7 @@ where
                     let dump_sql = environment.download_dump(&entry.dump_url).await;
                     return match dump_sql {
                         Ok(sql) => {
-                            target.inputs.dump_str = Some(sql);
+                            target.inputs.dump_str = Some(std::sync::Arc::new(sql));
                             Ok(target)
                         }
                         Err(error) => Err(TargetFailure {
@@ -290,7 +346,7 @@ where
         DB: LocalDbQueryExecutor + ?Sized,
     {
         let rows: Vec<TargetWatermarkRow> = db
-            .query_json(&fetch_target_watermark_stmt(&target.inputs.raindex_id))
+            .query_json_retryable(&fetch_target_watermark_stmt(&target.inputs.raindex_id))
             .await?;
 
         Ok(rows.first().is_none_or(|row| {
@@ -430,7 +486,7 @@ mod tests {
     use raindex_app_settings::spec_version::SpecVersion;
     use serde::Serialize;
     use serde_json::{json, Value};
-    use std::collections::{HashMap, VecDeque};
+    use std::collections::VecDeque;
     use std::str::FromStr;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Mutex};
@@ -619,6 +675,8 @@ mod tests {
     enum EngineBehavior {
         Success,
         ApplyFail,
+        ImportFailOnce,
+        ImportFailAlways,
     }
 
     #[derive(Clone, Default)]
@@ -723,6 +781,8 @@ mod tests {
     struct StubBootstrap {
         telemetry: Telemetry,
         raindex_key: String,
+        fail_import_once: bool,
+        fail_import_always: bool,
     }
 
     impl StubBootstrap {
@@ -730,6 +790,8 @@ mod tests {
             Self {
                 telemetry,
                 raindex_key,
+                fail_import_once: false,
+                fail_import_always: false,
             }
         }
     }
@@ -791,12 +853,31 @@ mod tests {
         where
             DB: LocalDbQueryExecutor + ?Sized,
         {
-            let dump_sql = config.dump_stmt.as_ref().map(dump_sql);
+            let dump_sql = config
+                .dump_sql
+                .as_ref()
+                .map(|sql| sql.as_str().to_owned())
+                .or_else(|| config.dump_stmt.as_ref().map(dump_sql));
+            let has_dump = dump_sql.is_some();
             self.telemetry.record_bootstrap(
                 self.raindex_key.clone(),
                 dump_sql,
                 config.latest_block,
             );
+            if (self.fail_import_always && has_dump)
+                || self.fail_import_once
+                    && self
+                        .telemetry
+                        .bootstrap_records()
+                        .iter()
+                        .filter(|record| record.raindex_key == self.raindex_key)
+                        .count()
+                        == 1
+            {
+                return Err(LocalDbError::DumpImportFailed(LocalDbQueryError::database(
+                    "test import failure",
+                )));
+            }
             Ok(())
         }
 
@@ -1221,7 +1302,9 @@ raindexes:
             let telemetry = telemetry.clone();
             telemetry.record_builder_init();
             let fail_apply = behavior == EngineBehavior::ApplyFail;
-            let bootstrap = StubBootstrap::new(telemetry.clone(), target.raindex_key.clone());
+            let mut bootstrap = StubBootstrap::new(telemetry.clone(), target.raindex_key.clone());
+            bootstrap.fail_import_once = behavior == EngineBehavior::ImportFailOnce;
+            bootstrap.fail_import_always = behavior == EngineBehavior::ImportFailAlways;
             let window = StubWindow::new(0, target.inputs.cfg.deployment_block);
             let events = StubEvents::new(target.inputs.cfg.deployment_block);
             let apply = StubApply::new(telemetry.clone(), target.raindex_key.clone(), fail_apply);
@@ -1380,6 +1463,45 @@ raindexes:
         assert_eq!(db.batch_calls().len(), 2);
     }
 
+    #[cfg(target_family = "wasm")]
+    #[wasm_bindgen_test::wasm_bindgen_test]
+    async fn analyze_failure_preserves_import_report_and_skips_redownload() {
+        let telemetry = Telemetry::default();
+        let environment =
+            build_environment(manifest_for_a(), HashMap::new(), 1, 1, telemetry.clone());
+        let mut runner = ClientRunner::with_environment(
+            single_raindex_settings_yaml(),
+            environment,
+            AlwaysLeadership,
+        )
+        .unwrap();
+        let db = RecordingDb::default();
+        prepare_db_for_targets(&db, &runner.base_targets);
+        db.inner.text_map.lock().unwrap().insert(
+            "ANALYZE".to_string(),
+            Err(LocalDbQueryError::database("planner stats unavailable")),
+        );
+
+        let report = unwrap_report(runner.run(&db).await.unwrap());
+        assert_eq!(report.successes.len(), 1);
+        assert!(report.failures.is_empty());
+        assert!(runner.has_provisioned_dumps);
+        assert_eq!(
+            db.inner
+                .text_calls
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|sql| sql.as_str() == "ANALYZE")
+                .count(),
+            1
+        );
+
+        let report = unwrap_report(runner.run(&db).await.unwrap());
+        assert_eq!(report.successes.len(), 1);
+        assert_eq!(telemetry.dump_requests().len(), 1);
+    }
+
     #[tokio::test]
     async fn second_run_reuses_cached_manifest_and_skips_downloads() {
         let telemetry = Telemetry::default();
@@ -1403,6 +1525,29 @@ raindexes:
         assert_eq!(telemetry.manifest_fetch_count(), 1);
         assert_eq!(telemetry.dump_requests().len(), 2);
         assert_eq!(telemetry.builder_inits(), 4);
+    }
+
+    #[tokio::test]
+    async fn transferred_leadership_skips_reacquisition() {
+        let telemetry = Telemetry::default();
+        let environment = build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry);
+        // No acquire is allowed: the coordinator already owns this network,
+        // even if one of its seed downloads failed and the runner must retry.
+        let leadership = SequenceLeadership::new(Vec::new());
+        let mut runner =
+            ClientRunner::with_environment(two_raindexes_settings_yaml(), environment, leadership)
+                .unwrap()
+                .with_initial_leadership(Some(LeadershipGuard::new_noop()));
+        let db = RecordingDb::default();
+        prepare_db_for_targets(&db, &runner.base_targets);
+        assert!(matches!(
+            runner.run(&db).await.unwrap(),
+            RunOutcome::Report(_)
+        ));
+        assert!(matches!(
+            runner.run(&db).await.unwrap(),
+            RunOutcome::Report(_)
+        ));
     }
 
     #[tokio::test]
@@ -1940,6 +2085,136 @@ raindexes:
     }
 
     #[tokio::test]
+    async fn failed_dump_import_is_retried_on_next_run() {
+        let telemetry = Telemetry::default();
+        let behaviors =
+            HashMap::from([(RAINDEX_KEY_A.to_string(), EngineBehavior::ImportFailOnce)]);
+        let environment = build_environment(manifest_for_a(), behaviors, 1, 2, telemetry.clone());
+        let mut runner = ClientRunner::with_environment(
+            single_raindex_settings_yaml(),
+            environment,
+            AlwaysLeadership,
+        )
+        .unwrap();
+        let db = RecordingDb::default();
+        prepare_db_for_targets(&db, &runner.base_targets);
+
+        let first = unwrap_report(runner.run(&db).await.unwrap());
+        assert_eq!(first.failures.len(), 1);
+        assert!(matches!(
+            first.failures[0].error,
+            LocalDbError::DumpImportFailed(_)
+        ));
+        assert!(!runner.has_provisioned_dumps);
+
+        let second = unwrap_report(runner.run(&db).await.unwrap());
+        assert_eq!(second.successes.len(), 1);
+        assert!(second.failures.is_empty());
+        assert!(runner.has_provisioned_dumps);
+        assert_eq!(telemetry.dump_requests().len(), 2);
+        assert_eq!(telemetry.manifest_fetch_count(), 1);
+    }
+
+    #[tokio::test]
+    async fn repeated_dump_import_failures_fall_back_to_rpc_sync() {
+        let telemetry = Telemetry::default();
+        let behaviors =
+            HashMap::from([(RAINDEX_KEY_A.to_string(), EngineBehavior::ImportFailAlways)]);
+        let environment = build_environment(
+            manifest_for_a(),
+            behaviors,
+            1,
+            MAX_DUMP_IMPORT_ATTEMPTS as usize,
+            telemetry.clone(),
+        );
+        let mut runner = ClientRunner::with_environment(
+            single_raindex_settings_yaml(),
+            environment,
+            AlwaysLeadership,
+        )
+        .unwrap();
+        let db = RecordingDb::default();
+        prepare_db_for_targets(&db, &runner.base_targets);
+
+        for attempt in 1..=MAX_DUMP_IMPORT_ATTEMPTS {
+            let report = unwrap_report(runner.run(&db).await.unwrap());
+            assert!(matches!(
+                report.failures[0].error,
+                LocalDbError::DumpImportFailed(_)
+            ));
+            assert_eq!(
+                runner.has_provisioned_dumps,
+                attempt == MAX_DUMP_IMPORT_ATTEMPTS
+            );
+        }
+
+        let report = unwrap_report(runner.run(&db).await.unwrap());
+        assert_eq!(report.successes.len(), 1);
+        assert!(report.failures.is_empty());
+        assert_eq!(
+            telemetry.dump_requests().len(),
+            MAX_DUMP_IMPORT_ATTEMPTS as usize
+        );
+    }
+
+    #[tokio::test]
+    async fn import_retry_limit_applies_per_target_despite_other_download_failures() {
+        let telemetry = Telemetry::default();
+        let manifest_arc = Arc::new(manifest_for_both());
+        let manifest_fetcher = {
+            let telemetry = telemetry.clone();
+            Arc::new(move |_raindexes: &HashMap<String, RaindexCfg>| {
+                let telemetry = telemetry.clone();
+                let manifest_arc = Arc::clone(&manifest_arc);
+                Box::pin(async move {
+                    telemetry.record_manifest_fetch();
+                    Ok((*manifest_arc).clone())
+                }) as ManifestFuture
+            })
+        };
+        let dump_downloader = {
+            let telemetry = telemetry.clone();
+            Arc::new(move |url: &Url| {
+                let telemetry = telemetry.clone();
+                let url = url.clone();
+                Box::pin(async move {
+                    if url == dump_url_b() {
+                        return Err(LocalDbError::CustomError("download failed".into()));
+                    }
+                    telemetry.record_dump(url.clone());
+                    Ok(format!("-- dump for {}", url))
+                }) as DumpFuture
+            })
+        };
+        let behaviors =
+            HashMap::from([(RAINDEX_KEY_A.to_string(), EngineBehavior::ImportFailAlways)]);
+        let engine_builder = engine_builder_for_behaviors(telemetry.clone(), behaviors);
+        let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
+        let mut runner = ClientRunner::with_environment(
+            two_raindexes_settings_yaml(),
+            environment,
+            AlwaysLeadership,
+        )
+        .unwrap();
+        let db = RecordingDb::default();
+        prepare_db_for_targets(&db, &runner.base_targets);
+
+        for _ in 0..MAX_DUMP_IMPORT_ATTEMPTS + 2 {
+            let report = unwrap_report(runner.run(&db).await.unwrap());
+            assert!(report
+                .failures
+                .iter()
+                .any(|failure| failure.stage == TargetStage::DumpDownload));
+            assert!(!runner.has_provisioned_dumps);
+        }
+
+        assert_eq!(
+            telemetry.dump_requests().len(),
+            MAX_DUMP_IMPORT_ATTEMPTS as usize
+        );
+    }
+
+    #[tokio::test]
     async fn engine_build_and_run_failures_are_both_reported() {
         let telemetry = Telemetry::default();
         let manifest = manifest_for_both();
@@ -2009,7 +2284,8 @@ raindexes:
             ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
 
         assert_eq!(runner.base_targets.len(), 1);
-        runner.base_targets[0].inputs.dump_str = Some("-- preloaded dump".to_string());
+        runner.base_targets[0].inputs.dump_str =
+            Some(std::sync::Arc::new("-- preloaded dump".to_string()));
 
         let db = RecordingDb::default();
         prepare_db_for_targets(&db, &runner.base_targets);

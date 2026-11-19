@@ -10,7 +10,15 @@ use thiserror::Error;
 
 use super::RaindexIdentifier;
 
-const SKIPPED_TABLES: &[&str] = &["db_metadata", "sync_status"];
+const SKIPPED_TABLES: &[&str] = &[
+    "db_metadata",
+    "sync_status",
+    "raw_events",
+    "take_order_contexts",
+    "context_values",
+];
+const MAX_INSERT_ROWS: usize = 256;
+const MAX_INSERT_BYTES: usize = 256 * 1024;
 
 #[derive(Debug, Deserialize)]
 struct TableInfoRow {
@@ -152,18 +160,50 @@ fn build_insert_statements(
     columns: &[TableInfoRow],
     rows: &[Value],
 ) -> Result<String, LocalDbError> {
+    build_insert_statements_bounded(table, columns, rows, MAX_INSERT_ROWS, MAX_INSERT_BYTES)
+}
+
+fn build_insert_statements_bounded(
+    table: &str,
+    columns: &[TableInfoRow],
+    rows: &[Value],
+    max_rows: usize,
+    max_bytes: usize,
+) -> Result<String, LocalDbError> {
     let mut output = String::new();
     let column_names: Vec<&str> = columns.iter().map(|c| c.name.as_str()).collect();
     let quoted_columns = column_names
         .iter()
         .map(|name| format!("\"{}\"", name))
         .join(", ");
+    let prefix = format!("INSERT INTO \"{table}\" ({quoted_columns}) VALUES ");
+    let mut statement = String::new();
+    let mut statement_rows = 0;
 
     for row in rows {
         let values_sql = format_row_values(row, &column_names).map_err(LocalDbError::from)?;
-        output.push_str(&format!(
-            "INSERT INTO \"{table}\" ({quoted_columns}) VALUES ({values_sql});\n"
-        ));
+        let tuple = format!("({values_sql})");
+        // A single oversized row still needs its own statement to preserve the dump.
+        if statement_rows > 0
+            && (statement_rows == max_rows || statement.len() + 2 + tuple.len() + 2 > max_bytes)
+        {
+            statement.push_str(";\n");
+            output.push_str(&statement);
+            statement.clear();
+            statement_rows = 0;
+        }
+        if statement_rows == 0 {
+            statement.push_str(&prefix);
+        } else {
+            statement.push_str(", ");
+        }
+        statement.push_str(&tuple);
+        statement_rows += 1;
+    }
+
+    if statement_rows > 0 {
+        statement.push_str(";\n");
+        output.push_str(&statement);
     }
 
     Ok(output)
@@ -1230,6 +1270,52 @@ mod tests {
         }
     }
 
+    #[test]
+    fn grouped_inserts_preserve_rows_and_bound_statement_size() {
+        let rows = vec![
+            json!({"value": "first"}),
+            json!({"value": "O'Malley"}),
+            json!({"value": "third"}),
+            json!({"value": "fourth"}),
+            json!({"value": "last"}),
+        ];
+        let columns = [column("value")];
+        let by_rows = build_insert_statements_bounded("items", &columns, &rows, 2, usize::MAX)
+            .expect("group rows");
+        assert_eq!(by_rows.lines().count(), 3);
+        assert_eq!(by_rows.matches("INSERT INTO").count(), 3);
+
+        let by_bytes = build_insert_statements_bounded("items", &columns, &rows, 256, 75)
+            .expect("bound statement bytes");
+        assert!(by_bytes.lines().count() > 1);
+        assert!(by_bytes.lines().all(|line| line.len() < 75));
+
+        for sql in [by_rows, by_bytes] {
+            let conn = Connection::open_in_memory().expect("open database");
+            conn.execute_batch("CREATE TABLE items (value TEXT NOT NULL);")
+                .expect("create table");
+            conn.execute_batch(&sql).expect("import grouped inserts");
+            let values: Vec<String> = conn
+                .prepare("SELECT value FROM items ORDER BY rowid")
+                .unwrap()
+                .query_map([], |row| row.get(0))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap();
+            assert_eq!(values, ["first", "O'Malley", "third", "fourth", "last"]);
+        }
+    }
+
+    #[test]
+    fn exported_inserts_split_at_default_row_limit() {
+        let rows = (0..=MAX_INSERT_ROWS)
+            .map(|value| json!({"value": value}))
+            .collect::<Vec<_>>();
+        let sql = build_insert_statements("items", &[column("value")], &rows).expect("export rows");
+        assert_eq!(sql.lines().count(), 2);
+        assert_eq!(sql.lines().next().unwrap().matches("), (").count(), 255);
+    }
+
     fn expected_dump(chain_id: u32, raindex: Address, label: &str, base_idx: i64) -> String {
         let base = base_idx;
         let dep_idx = base + 1;
@@ -1258,20 +1344,6 @@ mod tests {
             watermark_block,
             label,
             watermark_ms
-        ));
-
-        out.push_str(&format!(
-            "INSERT INTO \"raw_events\" (\"chain_id\", \"raindex_address\", \"transaction_hash\", \"log_index\", \"block_number\", \"block_timestamp\", \"address\", \"topics\", \"data\", \"raw_json\") VALUES ({}, '{}', 'raw_tx_{}', {}, {}, {}, 'address_{}', '[\"topic_{}\"]', 'data_{}', '{{\"event\":\"raw_{}\"}}');\n",
-            chain_id,
-            raindex,
-            label,
-            base,
-            block(base),
-            ts(base),
-            label,
-            label,
-            label,
-            label
         ));
 
         out.push_str(&format!(
@@ -1346,24 +1418,6 @@ mod tests {
             label,
             label,
             label,
-            label
-        ));
-
-        out.push_str(&format!(
-            "INSERT INTO \"take_order_contexts\" (\"chain_id\", \"raindex_address\", \"transaction_hash\", \"log_index\", \"context_index\", \"context_value\") VALUES ({}, '{}', 'take_tx_{}', {}, 0, 'context_entry_{}');\n",
-            chain_id,
-            raindex,
-            label,
-            take_idx,
-            label
-        ));
-
-        out.push_str(&format!(
-            "INSERT INTO \"context_values\" (\"chain_id\", \"raindex_address\", \"transaction_hash\", \"log_index\", \"context_index\", \"value_index\", \"value\") VALUES ({}, '{}', 'take_tx_{}', {}, 0, 0, 'context_value_{}');\n",
-            chain_id,
-            raindex,
-            label,
-            take_idx,
             label
         ));
 

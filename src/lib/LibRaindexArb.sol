@@ -2,12 +2,12 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {TaskV2} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {IERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/IERC20.sol";
+import {TaskV3} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {LibRaindex} from "./LibRaindex.sol";
-import {Address} from "@openzeppelin-contracts-5.6.1/utils/Address.sol";
-import {SafeERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/utils/SafeERC20.sol";
-import {LibDecimalFloat, Float} from "rain-math-float-0.1.1/src/lib/LibDecimalFloat.sol";
+import {Address} from "@openzeppelin-contracts-5.7.0/utils/Address.sol";
+import {SafeERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/utils/SafeERC20.sol";
+import {LibDecimalFloat, Float} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
 
 /// @title LibRaindexArb
 library LibRaindexArb {
@@ -21,7 +21,7 @@ library LibRaindexArb {
     /// so for fee-on-transfer tokens they can exceed the amount actually
     /// received by `msg.sender`.
     function finalizeArb(
-        TaskV2 memory task,
+        TaskV3 memory task,
         address ordersInputToken,
         uint8 inputDecimals,
         address ordersOutputToken,
@@ -74,7 +74,7 @@ library LibRaindexArb {
 
         context[0] = col;
 
-        TaskV2[] memory post = new TaskV2[](1);
+        TaskV3[] memory post = new TaskV3[](1);
         post[0] = task;
         LibRaindex.doPost(context, post);
     }

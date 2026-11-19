@@ -7,7 +7,7 @@ use crate::utils::timing::Timing;
 use alloy::primitives::{keccak256, Address, B256};
 use alloy::sol_types::SolValue;
 use rain_math_float::Float;
-use raindex_bindings::IRaindexV6::{OrderV4, SignedContextV1};
+use raindex_bindings::IRaindexV7::{OrderV4, SignedContextV2};
 use raindex_quote::SignedContextInjector;
 #[cfg(target_family = "wasm")]
 use std::str::FromStr;
@@ -77,7 +77,7 @@ pub struct TakeOrderCandidate {
     /// from the order's oracle endpoint come first, followed by entries
     /// contributed by a caller-supplied [`SignedContextInjector`]. Strategies
     /// that verify signed context by index must be aware of this ordering.
-    pub signed_context: Vec<SignedContextV1>,
+    pub signed_context: Vec<SignedContextV2>,
 }
 
 #[derive(Default)]
@@ -208,7 +208,7 @@ pub async fn build_take_order_candidates_for_pair(
     let started_at = Timing::now();
     // Oracle fetch and injector invocation both happen inside the quote
     // pipeline now: `get_order_quotes_batch_with_injector` composes them into
-    // `QuoteV2.signedContext` before issuing the quote RPC, so gated orders
+    // `QuoteV3.signedContext` before issuing the quote RPC, so gated orders
     // whose `calculate-io` asserts on signed context do not revert during
     // quoting. Each returned quote carries the exact composed context that
     // the quote call saw, which we propagate straight into the candidate.
@@ -633,13 +633,15 @@ mod tests {
 
         // A candidate built from a quote that already carries signed context
         // (as produced by the quote pipeline) should inherit that exact list.
-        let oracle_entry = SignedContextV1 {
+        let oracle_entry = SignedContextV2 {
             signer: Address::from([0xAAu8; 20]),
+            domainSeparator: alloy::primitives::B256::repeat_byte(0xd5),
             context: vec![FixedBytes::<32>::from(U256::from(1u64).to_be_bytes::<32>())],
             signature: alloy::primitives::Bytes::from(vec![0x01]),
         };
-        let injected_entry = SignedContextV1 {
+        let injected_entry = SignedContextV2 {
             signer: Address::from([0xBBu8; 20]),
+            domainSeparator: alloy::primitives::B256::repeat_byte(0xd5),
             context: vec![FixedBytes::<32>::from(U256::from(2u64).to_be_bytes::<32>())],
             signature: alloy::primitives::Bytes::from(vec![0x02]),
         };

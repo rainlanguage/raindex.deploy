@@ -4,7 +4,7 @@ use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 pub async fn fetch_all_tables<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
 ) -> Result<Vec<TableResponse>, LocalDbQueryError> {
-    exec.query_json(&fetch_tables_stmt()).await
+    exec.query_json_retryable(&fetch_tables_stmt()).await
 }
 
 #[cfg(all(test, target_family = "wasm"))]

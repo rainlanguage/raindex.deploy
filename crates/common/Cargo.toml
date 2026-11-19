@@ -43,6 +43,7 @@ csv = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 rain-error-decoding = { workspace = true }
+rain-erc = { workspace = true }
 rain-interpreter-eval = { workspace = true }
 wasm-bindgen = { workspace = true }
 wasm-bindgen-utils = { workspace = true }

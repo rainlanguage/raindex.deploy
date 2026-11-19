@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Test} from "forge-std-1.16.1/src/Test.sol";
+import {Test} from "forge-std-1.17.0/src/Test.sol";
 import {LibTestArb, ArbResult} from "test/util/lib/LibTestArb.sol";
 
 contract LibRaindexArbFinalizeArbNativeGasTest is Test {
@@ -11,7 +11,7 @@ contract LibRaindexArbFinalizeArbNativeGasTest is Test {
         uint256 senderBalanceBefore = address(this).balance;
 
         // Raindex has 100e18 output, pulls 100e18 input. Exchange has 100e18 input.
-        // No token profit. 1 ether sent with arb5, returned by exchange, swept.
+        // No token profit. 1 ether sent with arb6, returned by exchange, swept.
         ArbResult memory result =
             LibTestArb.setupAndArb(vm, 100e18, 100e18, 100e18, 100e18, LibTestArb.noopTask(), 1 ether);
 

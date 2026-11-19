@@ -133,6 +133,7 @@ mod tests {
             fetch,
             finality: FinalityConfig { depth: 12 },
             window_overrides: WindowOverrides::default(),
+            max_blocks_per_cycle: None,
         };
 
         let raindex_id = RaindexIdentifier {
@@ -149,6 +150,7 @@ mod tests {
                 metadata_rpcs: Vec::new(),
                 cfg: sync_config,
                 dump_str: None,
+                defer_analyze: false,
                 block_number_threshold: 10000,
                 manifest_end_block: 1,
             },
@@ -160,6 +162,7 @@ mod tests {
             target_block: 1000,
             fetched_logs: 1,
             decoded_events: 1,
+            caught_up: true,
         };
 
         let metadata = export_dump(&executor, &target, &outcome, temp_dir.path())
@@ -195,8 +198,8 @@ mod tests {
         decoder.read_to_string(&mut sql).expect("decode gzip");
 
         assert!(
-            sql.contains("INSERT INTO \"raw_events\""),
-            "export should include raw_events data"
+            !sql.contains("INSERT INTO \"raw_events\""),
+            "export should omit raw_events data"
         );
         assert!(sql.starts_with("BEGIN;"));
         assert!(sql.ends_with("COMMIT;\n"));
@@ -220,6 +223,7 @@ mod tests {
             fetch,
             finality: FinalityConfig { depth: 1 },
             window_overrides: WindowOverrides::default(),
+            max_blocks_per_cycle: None,
         };
 
         let raindex_id = RaindexIdentifier {
@@ -236,6 +240,7 @@ mod tests {
                 metadata_rpcs: Vec::new(),
                 cfg: sync_config,
                 dump_str: None,
+                defer_analyze: false,
                 block_number_threshold: 10000,
                 manifest_end_block: 1,
             },
@@ -247,6 +252,7 @@ mod tests {
             target_block: 0,
             fetched_logs: 0,
             decoded_events: 0,
+            caught_up: true,
         };
 
         let result = export_dump(&executor, &target, &outcome, temp_dir.path())

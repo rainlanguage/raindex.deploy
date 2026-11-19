@@ -4,6 +4,7 @@ use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
 use crate::local_db::{LocalDbError, RaindexIdentifier};
 use itertools::Itertools;
 use raindex_app_settings::local_db_sync::LocalDbSyncCfg;
+use raindex_app_settings::network::NetworkCfg;
 use raindex_app_settings::raindex::RaindexCfg;
 use raindex_app_settings::yaml::raindex::{RaindexYaml, RaindexYamlValidation};
 use raindex_app_settings::yaml::YamlParsable;
@@ -24,6 +25,20 @@ pub struct RunnerTarget {
     pub manifest_url: Url,
     pub network_key: String,
     pub inputs: SyncInputs,
+}
+
+/// Returns the networks that have local DB sync configured.
+pub(crate) fn configured_sync_networks(settings: &ParsedRunnerSettings) -> Vec<NetworkCfg> {
+    let mut networks = settings
+        .raindexes
+        .values()
+        .filter(|raindex| settings.syncs.contains_key(&raindex.network.key))
+        .map(|raindex| (raindex.network.key.clone(), (*raindex.network).clone()))
+        .collect::<HashMap<_, _>>()
+        .into_values()
+        .collect::<Vec<_>>();
+    networks.sort_by(|a, b| a.key.cmp(&b.key));
+    networks
 }
 
 /// Parses the provided YAML string into raindexes and per-network sync settings.
@@ -83,8 +98,10 @@ pub fn build_runner_targets(
                 fetch,
                 finality,
                 window_overrides: WindowOverrides::default(),
+                max_blocks_per_cycle: None,
             },
             dump_str: None,
+            defer_analyze: false,
             block_number_threshold: sync_cfg.bootstrap_block_threshold,
             manifest_end_block: 0,
         };
@@ -244,6 +261,18 @@ raindexes:
         assert_eq!(parsed.syncs.len(), 2);
         assert!(parsed.raindexes.contains_key("raindex-a"));
         assert!(parsed.syncs.contains_key("network-a"));
+    }
+
+    #[test]
+    fn configured_sync_networks_excludes_subgraph_only_networks() {
+        let mut parsed = parsed_settings();
+        parsed.syncs.remove("network-b");
+
+        let networks = configured_sync_networks(&parsed);
+
+        assert_eq!(networks.len(), 1);
+        assert_eq!(networks[0].key, "network-a");
+        assert_eq!(networks[0].chain_id, 1);
     }
 
     #[test]

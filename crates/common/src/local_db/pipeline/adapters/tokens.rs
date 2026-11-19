@@ -44,7 +44,7 @@ impl TokensPipeline for DefaultTokensPipeline {
         let Some(stmt) = build_fetch_stmt(raindex_id, token_addrs_lower)? else {
             return Ok(vec![]);
         };
-        let rows: Vec<Erc20TokenRow> = db.query_json(&stmt).await?;
+        let rows: Vec<Erc20TokenRow> = db.query_json_retryable(&stmt).await?;
         Ok(rows)
     }
 

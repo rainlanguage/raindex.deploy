@@ -5,13 +5,13 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/rainlanguage/raindex.git"
+    "url": "https://github.com/rainlanguage/raindex.deploy.git"
   },
   "keywords": [],
   "bugs": {
-    "url": "https://github.com/rainlanguage/raindex/issues"
+    "url": "https://github.com/rainlanguage/raindex.deploy/issues"
   },
-  "homepage": "https://github.com/rainlanguage/raindex#readme",
+  "homepage": "https://github.com/rainlanguage/raindex.deploy#readme",
   "engines": {
     "node": ">=18"
   },
@@ -72,7 +72,7 @@
   "dependencies": {
     "@fast-check/vitest": "0.2.0",
     "@rainlanguage/raindex": "workspace:*",
-    "@rainlanguage/sqlite-web": "^0.0.3",
+    "@rainlanguage/sqlite-web": "0.0.4",
     "@rainlanguage/ui-components": "workspace:*",
     "@reown/appkit": "1.6.4",
     "@reown/appkit-adapter-wagmi": "1.6.4",

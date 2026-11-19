@@ -59,20 +59,20 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: nixbuild/nix-quick-install-action@5bb6a3b3abe66fd09bbf250dce8ada94f856a703 # v30
+      - uses: actions/checkout@v4
+      - uses: nixbuild/nix-quick-install-action@v30
         with:
           nix_conf: |
             keep-env-derivations = true
             keep-outputs = true
-      - uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15
+      - uses: cachix/cachix-action@v15
         continue-on-error: true
         with:
           name: rainlanguage
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           useDaemon: false
       - name: Restore and save Nix store
-        uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7
+        uses: nix-community/cache-nix-action@v7
         with:
           primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-

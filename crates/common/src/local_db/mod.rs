@@ -140,6 +140,9 @@ pub enum LocalDbError {
     #[error(transparent)]
     LocalDbQueryError(#[from] LocalDbQueryError),
 
+    #[error("SQL dump import failed: {0}")]
+    DumpImportFailed(#[source] LocalDbQueryError),
+
     #[error(transparent)]
     IoError(#[from] std::io::Error),
 
@@ -292,6 +295,7 @@ impl LocalDbError {
             LocalDbError::ManifestFetch(err) => format!("Failed to fetch manifest: {}", err),
             LocalDbError::TaskJoin(err) => format!("Task join error: {}", err),
             LocalDbError::LocalDbQueryError(err) => format!("Database query error: {}", err),
+            LocalDbError::DumpImportFailed(err) => format!("SQL dump import failed: {}", err),
             LocalDbError::IoError(err) => format!("I/O error: {}", err),
             LocalDbError::FromHexError(err) => format!("Hex decoding error: {}", err),
             LocalDbError::SqlBuildError(err) => format!("SQL build error: {}", err),

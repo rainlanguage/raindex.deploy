@@ -13,13 +13,19 @@ path = "src/main.rs"
 
 [dependencies]
 raindex_common = { workspace = true }
+async-trait = "0.1"
+moka = { version = "0.12", features = ["future"] }
 rocket = { version = "0.5.1", features = ["json"] }
 rocket_cors = "0.6"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-appender = "0.2"
+tracing-subscriber = { workspace = true, features = ["env-filter", "json"] }
 utoipa = { version = "5", features = ["rocket_extras"] }
-utoipa-swagger-ui = { version = "9", features = ["rocket"] }
+utoipa-swagger-ui = { version = "9", features = ["rocket", "vendored"] }
+uuid = { version = "1", features = ["v4"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }
@@ -27,3 +33,4 @@ tokio = { workspace = true, features = ["full"] }
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "macros"] }
 alloy = { workspace = true }
+tempfile = "3"

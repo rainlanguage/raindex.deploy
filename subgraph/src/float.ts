@@ -1,9 +1,9 @@
-import { Address, Bytes, dataSource } from "@graphprotocol/graph-ts";
+import { Address, Bytes, dataSource, log } from "@graphprotocol/graph-ts";
 import { DecimalFloat } from "../generated/Raindex/DecimalFloat";
 
 export type Float = Bytes;
 
-const FALLBACK_DECIMAL_FLOAT_ADDRESS = Address.fromString(
+const UNKNOWN_NETWORK_ADDRESS = Address.fromString(
   "0x0000000000000000000000000000000000000001"
 );
 
@@ -27,7 +27,16 @@ export function getDecimalFloatAddress(): Address {
     return Address.fromString("0x83e4c7732e715b5E7310796A4A2a21d89f3FB59A");
   } else if (network == "mainnet") {
     return Address.fromString("0x83e4c7732e715b5E7310796A4A2a21d89f3FB59A");
+  } else if (network == "robinhood") {
+    return Address.fromString("0x799632d282178e770C7465cad54aDA1021A913D6");
   }
 
-  return FALLBACK_DECIMAL_FLOAT_ADDRESS;
+  // Every network in networks.json needs an entry above. Every Float value the
+  // subgraph stores comes from an `eth_call` against this contract, so a
+  // network that falls through here has no working mapping at all: the first
+  // event that touches a Float reverts the call, the handler traps, and the
+  // whole subgraph stops with an opaque indexing error. Name the missing
+  // network instead of leaving that to be worked out from the outside.
+  log.critical("No DecimalFloat deployment known for network: {}", [network]);
+  return UNKNOWN_NETWORK_ADDRESS;
 }

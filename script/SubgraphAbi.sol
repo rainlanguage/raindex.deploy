@@ -6,4 +6,4 @@ pragma solidity =0.8.25;
 // only imports LibDecimalFloat (not the concrete contract), so forge would not
 // otherwise emit that ABI. Importing the concrete contract here forces forge to
 // compile it.
-import {DecimalFloat} from "rain-math-float-0.1.1/src/concrete/DecimalFloat.sol";
+import {DecimalFloat} from "rain-math-float-deploy-0.1.10/src/concrete/DecimalFloat.sol";

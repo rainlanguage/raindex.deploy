@@ -5,7 +5,7 @@ import {
   DepositV2,
   MetaV1_2,
   RemoveOrderV3,
-  TakeOrderV3
+  TakeOrderV4
 } from "../generated/Raindex/Raindex";
 import { WithdrawV2 } from "../generated/Raindex/Raindex";
 import { handleDeposit as _handleDeposit } from "./deposit";
@@ -47,7 +47,7 @@ export function handleRemoveOrder(event: RemoveOrderV3): void {
   _handleRemoveOrder(event);
 }
 
-export function handleTakeOrder(event: TakeOrderV3): void {
+export function handleTakeOrder(event: TakeOrderV4): void {
   createTransactionEntity(event);
   createRaindexEntity(event);
   _handleTakeOrder(event);

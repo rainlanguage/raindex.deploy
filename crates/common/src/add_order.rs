@@ -31,7 +31,7 @@ use rain_metadata::{
 use rain_metadata_bindings::MetaBoard::emitMetaCall;
 use raindex_app_settings::deployment::DeploymentCfg;
 use raindex_bindings::provider::{mk_read_provider, ReadProviderError};
-use raindex_bindings::IRaindexV6::{addOrder4Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2};
+use raindex_bindings::IRaindexV7::{addOrder5Call, EvaluableV4, OrderConfigV4, TaskV3, IOV2};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use std::collections::HashMap;
@@ -251,7 +251,7 @@ impl AddOrderArgs {
     pub async fn try_into_call(
         &self,
         rpcs: Vec<String>,
-    ) -> Result<addOrder4Call, AddOrderArgsError> {
+    ) -> Result<addOrder5Call, AddOrderArgsError> {
         let rainlang = self.compose_to_rainlang()?;
         let bytecode = self
             .try_parse_rainlang(rpcs.clone(), rainlang.clone())
@@ -273,12 +273,12 @@ impl AddOrderArgs {
             bytecode: post_bytecode.into(),
         };
 
-        let post_task = TaskV2 {
+        let post_task = TaskV3 {
             evaluable: post_evaluable,
             signedContext: vec![],
         };
 
-        Ok(addOrder4Call {
+        Ok(addOrder5Call {
             config: OrderConfigV4 {
                 validInputs: self.inputs.clone(),
                 validOutputs: self.outputs.clone(),
@@ -1656,7 +1656,7 @@ _ _: 0 0;
             additional_meta: None,
         };
 
-        let add_order_call = addOrder4Call {
+        let add_order_call = addOrder5Call {
             config: OrderConfigV4 {
                 evaluable: EvaluableV4 {
                     interpreter: *local_evm.interpreter.address(),
@@ -1679,7 +1679,7 @@ _ _: 0 0;
                 meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
             },
             tasks: vec![
-                TaskV2 {
+                TaskV3 {
                     evaluable: EvaluableV4 {
                         interpreter: *local_evm.interpreter.address(),
                         store: *local_evm.store.address(),
@@ -1702,7 +1702,7 @@ _ _: 0 0;
             .unwrap();
 
         let input = res.input.input.expect("tx request has no input");
-        let decoded = addOrder4Call::abi_decode(&input).unwrap();
+        let decoded = addOrder5Call::abi_decode(&input).unwrap();
 
         assert_eq!(decoded.config.evaluable, add_order_call.config.evaluable);
         assert_eq!(
@@ -1749,7 +1749,7 @@ _ _: 0 0;
             .unwrap()
             .into();
 
-        let expected_bytes: Bytes = addOrder4Call {
+        let expected_bytes: Bytes = addOrder5Call {
             config: OrderConfigV4 {
                 evaluable: EvaluableV4 {
                     interpreter: *local_evm.interpreter.address(),
@@ -1774,7 +1774,7 @@ _ _: 0 0;
                 secret: U256::from(0).into(),
                 meta: Bytes::from_str("0xff0a89c674ee7874a30058382f2a20302e2063616c63756c6174652d696f202a2f200a5f205f3a203020303b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a3b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d").unwrap(),
             },
-            tasks: vec![TaskV2 {
+            tasks: vec![TaskV3 {
                 evaluable: EvaluableV4 {
                     interpreter: *local_evm.interpreter.address(),
                     store: *local_evm.store.address(),

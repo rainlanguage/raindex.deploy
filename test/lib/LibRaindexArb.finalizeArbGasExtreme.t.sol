@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Test} from "forge-std-1.16.1/src/Test.sol";
+import {Test} from "forge-std-1.17.0/src/Test.sol";
 import {LibTestArb, ArbResult} from "test/util/lib/LibTestArb.sol";
 
 contract LibRaindexArbFinalizeArbGasExtremeTest is Test {
@@ -16,7 +16,7 @@ contract LibRaindexArbFinalizeArbGasExtremeTest is Test {
         uint256 hugeGas = 1e70;
         vm.deal(address(this), hugeGas);
 
-        // No token profit; hugeGas is sent with arb5, returned by the exchange,
+        // No token profit; hugeGas is sent with arb6, returned by the exchange,
         // and swept by finalizeArb. The arb completes (no revert on the pack).
         ArbResult memory result =
             LibTestArb.setupAndArb(vm, 100e18, 100e18, 100e18, 100e18, LibTestArb.noopTask(), hugeGas);

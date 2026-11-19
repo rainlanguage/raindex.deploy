@@ -13,7 +13,7 @@ mod tests {
     use raindex_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
     use raindex_test_fixtures::{
         LocalEvm,
-        Raindex::{self, ClearConfigV2, OrderV4, QuoteV2, TakeOrderConfigV4, TakeOrdersConfigV5},
+        Raindex::{self, ClearConfigV2, OrderV4, QuoteV3, TakeOrderConfigV5, TakeOrdersConfigV6},
     };
 
     #[tokio::test]
@@ -118,7 +118,7 @@ amount price: get("amount") 52;
             .order;
 
         let quote = local_evm
-            .call_contract(raindex.quote2(QuoteV2 {
+            .call_contract(raindex.quote3(QuoteV3 {
                 order,
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
@@ -231,7 +231,7 @@ amount price: get("amount") 52;
     /// (`token2`) at a fixed `outputMax = 2`, `IORatio = 1`. The output vault is
     /// funded with 10 `dai` so the order is fully takeable when live. The owner
     /// is `from`, which lets us add a second order from a distinct owner for the
-    /// `clear3` two-party path.
+    /// `clear4` two-party path.
     ///
     /// Returns the on-chain `OrderV4` and its hash (the `AddOrderV3` event's
     /// `orderHash`, which is exactly what the contract keys `sOrders` on, hence
@@ -335,7 +335,7 @@ amount price: 2 1;
         (event.order, event.orderHash)
     }
 
-    /// Counts the `OrderNotFound`, `TakeOrderV3`, `ClearV3` and `AfterClearV2`
+    /// Counts the `OrderNotFound`, `TakeOrderV4`, `ClearV3` and `AfterClearV2`
     /// logs emitted by a single transaction receipt. These are the events that
     /// discriminate the best-effort no-op behaviour: a dead order is announced
     /// with `OrderNotFound` and contributes no settlement event.
@@ -349,7 +349,7 @@ amount price: 2 1;
             .count();
         let take_order = logs
             .iter()
-            .filter(|l| l.log_decode::<Raindex::TakeOrderV3>().is_ok())
+            .filter(|l| l.log_decode::<Raindex::TakeOrderV4>().is_ok())
             .count();
         let clear = logs
             .iter()
@@ -378,9 +378,9 @@ amount price: 2 1;
         found.remove(0)
     }
 
-    /// `takeOrders4` against a single dead order is a best-effort no-op: the
+    /// `takeOrders5` against a single dead order is a best-effort no-op: the
     /// transaction succeeds, the contract emits `OrderNotFound` (caller, owner,
-    /// orderHash) instead of reverting, no `TakeOrderV3` is emitted, and the
+    /// orderHash) instead of reverting, no `TakeOrderV4` is emitted, and the
     /// returned `(totalTakerInput, totalTakerOutput)` are both zero.
     #[tokio::test]
     async fn test_take_orders_dead_order_is_noop() {
@@ -405,12 +405,12 @@ amount price: 2 1;
         local_evm
             .send_transaction(
                 raindex
-                    .removeOrder3(order.clone(), vec![])
+                    .removeOrder4(order.clone(), vec![])
                     .from(owner)
                     .into_transaction_request(),
             )
             .await
-            .expect("removeOrder3 should succeed");
+            .expect("removeOrder4 should succeed");
 
         assert!(
             !raindex
@@ -418,16 +418,16 @@ amount price: 2 1;
                 .call()
                 .await
                 .expect("orderExists call should succeed"),
-            "order must be dead before takeOrders4"
+            "order must be dead before takeOrders5"
         );
 
         let max_io = Float::parse("1000".to_string()).unwrap().get_inner();
-        let config = TakeOrdersConfigV5 {
+        let config = TakeOrdersConfigV6 {
             minimumIO: Float::parse("0".to_string()).unwrap().get_inner(),
             maximumIO: max_io,
             maximumIORatio: max_io,
             IOIsInput: true,
-            orders: vec![TakeOrderConfigV4 {
+            orders: vec![TakeOrderConfigV5 {
                 order: order.clone(),
                 inputIOIndex: U256::from(0),
                 outputIOIndex: U256::from(0),
@@ -438,10 +438,10 @@ amount price: 2 1;
 
         // Static call to read the returned totals: both must be zero.
         let returns = local_evm
-            .call_contract(raindex.takeOrders4(config.clone()).from(taker))
+            .call_contract(raindex.takeOrders5(config.clone()).from(taker))
             .await
             .expect("rpc should succeed")
-            .expect("takeOrders4 should not revert against a dead order");
+            .expect("takeOrders5 should not revert against a dead order");
         let total_input = Float::from_raw(returns.totalTakerInput);
         let total_output = Float::from_raw(returns.totalTakerOutput);
         assert!(
@@ -461,18 +461,18 @@ amount price: 2 1;
         let receipt = local_evm
             .send_transaction(
                 raindex
-                    .takeOrders4(config)
+                    .takeOrders5(config)
                     .from(taker)
                     .into_transaction_request(),
             )
             .await
-            .expect("takeOrders4 against a dead order must succeed, not revert");
+            .expect("takeOrders5 against a dead order must succeed, not revert");
 
         let (order_not_found, take_order, _clear, _after_clear) = count_outcome_events(&receipt);
         assert_eq!(order_not_found, 1, "exactly one OrderNotFound expected");
         assert_eq!(
             take_order, 0,
-            "no TakeOrderV3 must be emitted for a dead order"
+            "no TakeOrderV4 must be emitted for a dead order"
         );
 
         let event = expect_single_order_not_found(&receipt);
@@ -490,10 +490,10 @@ amount price: 2 1;
         );
     }
 
-    /// In a `takeOrders4` batch of [dead, live] orders the dead order is skipped
+    /// In a `takeOrders5` batch of [dead, live] orders the dead order is skipped
     /// (best-effort) while the live order is still taken: the receipt carries
     /// exactly one `OrderNotFound` (for the dead order) AND exactly one
-    /// `TakeOrderV3` (for the live order), and the returned totals reflect the
+    /// `TakeOrderV4` (for the live order), and the returned totals reflect the
     /// live fill only (taker buys the live order's full `outputMax = 2`).
     #[tokio::test]
     async fn test_take_orders_dead_order_skipped_live_order_taken() {
@@ -527,12 +527,12 @@ amount price: 2 1;
         local_evm
             .send_transaction(
                 raindex
-                    .removeOrder3(dead_order.clone(), vec![])
+                    .removeOrder4(dead_order.clone(), vec![])
                     .from(owner)
                     .into_transaction_request(),
             )
             .await
-            .expect("removeOrder3 should succeed");
+            .expect("removeOrder4 should succeed");
 
         // The taker pays `eth` (token2); approve raindex to pull it.
         local_evm
@@ -546,19 +546,19 @@ amount price: 2 1;
             .expect("approve should succeed");
 
         let max_io = Float::parse("1000".to_string()).unwrap().get_inner();
-        let config = TakeOrdersConfigV5 {
+        let config = TakeOrdersConfigV6 {
             minimumIO: Float::parse("0".to_string()).unwrap().get_inner(),
             maximumIO: max_io,
             maximumIORatio: max_io,
             IOIsInput: true,
             orders: vec![
-                TakeOrderConfigV4 {
+                TakeOrderConfigV5 {
                     order: dead_order,
                     inputIOIndex: U256::from(0),
                     outputIOIndex: U256::from(0),
                     signedContext: vec![],
                 },
-                TakeOrderConfigV4 {
+                TakeOrderConfigV5 {
                     order: live_order,
                     inputIOIndex: U256::from(0),
                     outputIOIndex: U256::from(0),
@@ -571,12 +571,12 @@ amount price: 2 1;
         let receipt = local_evm
             .send_transaction(
                 raindex
-                    .takeOrders4(config)
+                    .takeOrders5(config)
                     .from(taker)
                     .into_transaction_request(),
             )
             .await
-            .expect("mixed dead/live takeOrders4 must succeed");
+            .expect("mixed dead/live takeOrders5 must succeed");
 
         let (order_not_found, take_order, _clear, _after_clear) = count_outcome_events(&receipt);
         assert_eq!(
@@ -585,7 +585,7 @@ amount price: 2 1;
         );
         assert_eq!(
             take_order, 1,
-            "the live order must still be taken (one TakeOrderV3)"
+            "the live order must still be taken (one TakeOrderV4)"
         );
 
         // The dead order is the one announced, not the live one.
@@ -601,8 +601,8 @@ amount price: 2 1;
             .inner
             .logs()
             .iter()
-            .find_map(|l| l.log_decode::<Raindex::TakeOrderV3>().ok())
-            .expect("a TakeOrderV3 must be present")
+            .find_map(|l| l.log_decode::<Raindex::TakeOrderV4>().ok())
+            .expect("a TakeOrderV4 must be present")
             .inner
             .data;
         let taker_input = Float::from_raw(taken.input);
@@ -621,7 +621,7 @@ amount price: 2 1;
         );
     }
 
-    /// `clear3` where one side is a dead order is a best-effort no-op: the
+    /// `clear4` where one side is a dead order is a best-effort no-op: the
     /// transaction succeeds, the contract emits `OrderNotFound` for the dead
     /// side and returns early, so neither `ClearV3` nor `AfterClearV2` is
     /// emitted. This mirrors the on-chain early-return that makes bulk clearing
@@ -648,7 +648,7 @@ amount price: 2 1;
 
         // Bob's order is the complementary side: he sells eth (token2) for dai
         // (token1). Built directly so the input/output token pair is the mirror
-        // of Alice's, satisfying clear3's TokenMismatch check.
+        // of Alice's, satisfying clear4's TokenMismatch check.
         let bob_order = OrderV4 {
             owner: bob,
             evaluable: alice_order.evaluable.clone(),
@@ -661,12 +661,12 @@ amount price: 2 1;
         local_evm
             .send_transaction(
                 raindex
-                    .removeOrder3(alice_order.clone(), vec![])
+                    .removeOrder4(alice_order.clone(), vec![])
                     .from(alice)
                     .into_transaction_request(),
             )
             .await
-            .expect("removeOrder3 should succeed");
+            .expect("removeOrder4 should succeed");
 
         assert!(
             !raindex
@@ -674,7 +674,7 @@ amount price: 2 1;
                 .call()
                 .await
                 .expect("orderExists call should succeed"),
-            "alice's order must be dead before clear3"
+            "alice's order must be dead before clear4"
         );
 
         let clear_config = ClearConfigV2 {
@@ -689,12 +689,12 @@ amount price: 2 1;
         let receipt = local_evm
             .send_transaction(
                 raindex
-                    .clear3(alice_order, bob_order, clear_config, vec![], vec![])
+                    .clear4(alice_order, bob_order, clear_config, vec![], vec![])
                     .from(bob)
                     .into_transaction_request(),
             )
             .await
-            .expect("clear3 against a dead order must succeed, not revert");
+            .expect("clear4 against a dead order must succeed, not revert");
 
         let (order_not_found, _take_order, clear, after_clear) = count_outcome_events(&receipt);
         assert_eq!(order_not_found, 1, "exactly one OrderNotFound expected");

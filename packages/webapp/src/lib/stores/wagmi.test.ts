@@ -20,6 +20,7 @@ import {
 	type GetAccountReturnType
 } from '@wagmi/core';
 import { mainnet, type Chain } from '@wagmi/core/chains';
+import { createAppKit } from '@reown/appkit';
 
 vi.mock('@wagmi/core', async (importOriginal) => ({
 	...(await importOriginal()),
@@ -66,6 +67,27 @@ describe('wagmi store', () => {
 
 			expect(result).toHaveProperty('init');
 			expect(get(wagmiLoaded)).toBe(true);
+		});
+
+		it('registers Robinhood Chain (4663) with wagmi and AppKit', () => {
+			const mockConfig = { chains: [mainnet], subscribe: vi.fn() };
+			vi.mocked(createConfig).mockReturnValue(mockConfig as unknown as Config);
+
+			defaultConfig({
+				appName: 'Test App',
+				projectId: 'test-project-id',
+				connectors: []
+			});
+
+			const createConfigArg = vi.mocked(createConfig).mock.calls[0]?.[0] as unknown as {
+				chains: readonly { id: number }[];
+			};
+			expect(createConfigArg.chains.map((chain) => chain.id)).toContain(4663);
+
+			const createAppKitArg = vi.mocked(createAppKit).mock.calls[0]?.[0] as unknown as {
+				networks: readonly { id: number }[];
+			};
+			expect(createAppKitArg.networks.map((network) => network.id)).toContain(4663);
 		});
 	});
 

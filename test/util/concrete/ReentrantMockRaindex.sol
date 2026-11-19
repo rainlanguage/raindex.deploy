@@ -2,28 +2,28 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {IERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/utils/SafeERC20.sol";
-import {GenericPoolRaindexV6ArbOrderTaker} from "../../../src/concrete/arb/GenericPoolRaindexV6ArbOrderTaker.sol";
+import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/utils/SafeERC20.sol";
+import {GenericPoolRaindexV7ArbOrderTaker} from "../../../src/concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol";
 import {
-    IRaindexV6,
-    TakeOrdersConfigV5,
-    TaskV2,
+    IRaindexV7,
+    TakeOrdersConfigV6,
+    TaskV3,
     EvaluableV4,
-    SignedContextV1,
+    SignedContextV2,
     Float
-} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {IInterpreterV4} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterV4.sol";
-import {IInterpreterStoreV3} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterStoreV3.sol";
+} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {IInterpreterV4} from "rainlang-0.2.36/src/interface/IInterpreterV4.sol";
+import {IInterpreterStoreV3} from "rainlang-0.2.36/src/interface/IInterpreterStoreV3.sol";
 import {MockRaindexBase} from "test/util/abstract/MockRaindexBase.sol";
 
-/// @dev Mock Raindex whose takeOrders4 callback re-enters arb5 on the taker.
+/// @dev Mock Raindex whose takeOrders5 callback re-enters arb6 on the taker.
 contract ReentrantMockRaindex is MockRaindexBase {
     using SafeERC20 for IERC20;
 
     bool internal sReentered;
 
-    function takeOrders4(TakeOrdersConfigV5 calldata config) external override returns (Float, Float) {
+    function takeOrders5(TakeOrdersConfigV6 calldata config) external override returns (Float, Float) {
         address ordersOutputToken = config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token;
 
         // Send output token to taker so callback has tokens to work with.
@@ -32,14 +32,14 @@ contract ReentrantMockRaindex is MockRaindexBase {
 
         if (!sReentered) {
             sReentered = true;
-            // Re-enter arb5 from the Raindex callback.
-            GenericPoolRaindexV6ArbOrderTaker(payable(msg.sender))
-                .arb5(
-                    IRaindexV6(address(this)),
+            // Re-enter arb6 from the Raindex callback.
+            GenericPoolRaindexV7ArbOrderTaker(payable(msg.sender))
+                .arb6(
+                    IRaindexV7(address(this)),
                     config,
-                    TaskV2({
+                    TaskV3({
                     evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
-                    signedContext: new SignedContextV1[](0)
+                    signedContext: new SignedContextV2[](0)
                 })
                 );
         }

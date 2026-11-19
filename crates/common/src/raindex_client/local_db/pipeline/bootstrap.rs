@@ -11,8 +11,12 @@ use crate::local_db::{
     LocalDbError, RaindexIdentifier,
 };
 use std::collections::HashSet;
+use std::sync::Arc;
 
 const BOOTSTRAP_CACHE_SIZE_SQL: &str = "PRAGMA cache_size = -25000";
+#[cfg(target_family = "wasm")]
+pub(super) const BOOTSTRAP_CACHE_SIZE_QUERY_SQL: &str =
+    "PRAGMA cache_size = -25000; SELECT 1 WHERE 0;";
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ClientBootstrapAdapter;
@@ -26,7 +30,7 @@ impl ClientBootstrapAdapter {
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        let existing: Vec<TableResponse> = db.query_json(&fetch_tables_stmt()).await?;
+        let existing: Vec<TableResponse> = db.query_json_retryable(&fetch_tables_stmt()).await?;
         Ok(existing
             .into_iter()
             .map(|t| t.name.to_ascii_lowercase())
@@ -53,7 +57,7 @@ impl ClientBootstrapAdapter {
             }
 
             let actual_columns: Vec<TableColumnResponse> = db
-                .query_json(&fetch_table_columns_stmt(&required_table.name))
+                .query_json_retryable(&fetch_table_columns_stmt(&required_table.name))
                 .await?;
             let actual_column_names: HashSet<String> = actual_columns
                 .into_iter()
@@ -98,7 +102,7 @@ impl ClientBootstrapAdapter {
         raindex_id: &RaindexIdentifier,
     ) -> Result<bool, LocalDbError> {
         let rows: Vec<TargetWatermarkRow> = db
-            .query_json(&fetch_target_watermark_stmt(raindex_id))
+            .query_json_retryable(&fetch_target_watermark_stmt(raindex_id))
             .await?;
         Ok(rows.is_empty())
     }
@@ -106,14 +110,33 @@ impl ClientBootstrapAdapter {
     async fn apply_dump<DB>(
         &self,
         db: &DB,
-        dump_stmt: &SqlStatementBatch,
+        dump_sql: Option<&Arc<String>>,
+        dump_stmt: Option<&SqlStatementBatch>,
     ) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
+        #[cfg(target_family = "wasm")]
+        if let Some(dump_sql) = dump_sql {
+            // The setter is idempotent, so a follower timeout can be retried.
+            // The empty SELECT makes sqlite-web return JSON rather than its
+            // text response for statements without result columns. The final
+            // semicolon selects the SDK's multi-statement execution path.
+            let _: Vec<serde_json::Value> = db
+                .query_json_retryable(&SqlStatement::new(BOOTSTRAP_CACHE_SIZE_QUERY_SQL))
+                .await?;
+            db.execute_sql_dump(Arc::clone(dump_sql))
+                .await
+                .map_err(LocalDbError::DumpImportFailed)?;
+            return Ok(());
+        }
+        #[cfg(not(target_family = "wasm"))]
+        let _ = dump_sql;
         db.query_text(&SqlStatement::new(BOOTSTRAP_CACHE_SIZE_SQL))
             .await?;
-        db.execute_batch(dump_stmt).await?;
+        if let Some(dump_stmt) = dump_stmt {
+            db.execute_batch(dump_stmt).await?;
+        }
         Ok(())
     }
 }
@@ -128,9 +151,10 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
             last_synced_block, ..
         } = self.inspect_state(db, &config.raindex_id).await?;
 
-        if let Some(dump_stmt) = config.dump_stmt.as_ref() {
+        if config.dump_sql.is_some() || config.dump_stmt.is_some() {
             if self.is_fresh_db(db, &config.raindex_id).await? {
-                self.apply_dump(db, dump_stmt).await?;
+                self.apply_dump(db, config.dump_sql.as_ref(), config.dump_stmt.as_ref())
+                    .await?;
                 return Ok(());
             }
 
@@ -142,7 +166,8 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
                 Ok(_) => {}
                 Err(_) => {
                     self.clear_raindex_data(db, &config.raindex_id).await?;
-                    self.apply_dump(db, dump_stmt).await?;
+                    self.apply_dump(db, config.dump_sql.as_ref(), config.dump_stmt.as_ref())
+                        .await?;
                 }
             }
         }
@@ -158,7 +183,13 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        let is_healthy = self.check_integrity(db).await.unwrap_or(false);
+        let is_healthy = match self.check_integrity(db).await {
+            Ok(is_healthy) => is_healthy,
+            Err(LocalDbError::LocalDbQueryError(err)) if err.is_worker_unavailable() => {
+                return Err(err.into());
+            }
+            Err(_) => false,
+        };
         if !is_healthy {
             db.wipe_and_recreate().await?;
             self.reset_db(db, db_schema_version).await?;
@@ -198,6 +229,67 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_family = "wasm")]
+    #[wasm_bindgen_test::wasm_bindgen_test]
+    async fn dump_preflight_retries_follower_timeouts() {
+        use crate::raindex_client::local_db::executor::JsCallbackExecutor;
+        use wasm_bindgen::JsValue;
+        use wasm_bindgen_utils::prelude::js_sys::{Function, Object, Reflect};
+
+        let local_db = Function::new_no_args(
+            r#"return {
+                calls: {},
+                query(sql) {
+                    this.calls[sql] = (this.calls[sql] || 0) + 1;
+                    if (this.calls[sql] === 1) {
+                        return {value: undefined, error: {msg: 'timeout', readableMsg: 'Query timeout'}};
+                    }
+                    if (sql.startsWith('PRAGMA cache_size') &&
+                        !(sql.includes('SELECT 1 WHERE 0;') && sql.endsWith(';'))) {
+                        return {value: 'Query executed successfully. Rows affected: 0', error: null};
+                    }
+                    return {value: '[]', error: null};
+                },
+                transaction() { return {value: '', error: null}; },
+                wipeAndRecreate() { throw new Error('must not wipe'); },
+                beginSqlDumpImport() { return {value: 'session', error: null}; },
+                appendSqlDumpChunk() { return {value: '', error: null}; },
+                finishSqlDumpImport() { this.finished = true; return {value: '', error: null}; },
+                cancelSqlDumpImport() { throw new Error('must not cancel'); }
+            };"#,
+        )
+        .call0(&JsValue::UNDEFINED)
+        .unwrap();
+        let db = JsCallbackExecutor::new(local_db.clone()).unwrap();
+        let dump = Arc::new("BEGIN; INSERT INTO t VALUES (1); COMMIT;".to_string());
+
+        ClientBootstrapAdapter::new()
+            .apply_dump(&db, Some(&dump), None)
+            .await
+            .unwrap();
+
+        let calls = Reflect::get(&local_db, &JsValue::from_str("calls")).unwrap();
+        assert_eq!(Object::keys(&calls.clone().into()).length(), 3);
+        for sql in [
+            BOOTSTRAP_CACHE_SIZE_QUERY_SQL,
+            "SELECT 1 AS present FROM target_watermarks LIMIT 1",
+            "SELECT m.name, m.sql FROM sqlite_master AS m JOIN pragma_index_list(m.tbl_name) AS i ON i.name = m.name WHERE m.type = 'index' AND m.sql IS NOT NULL AND i.\"unique\" = 0 ORDER BY m.name",
+        ] {
+            assert_eq!(
+                Reflect::get(&calls, &JsValue::from_str(sql))
+                    .unwrap()
+                    .as_f64(),
+                Some(2.0)
+            );
+        }
+        assert_eq!(
+            Reflect::get(&local_db, &JsValue::from_str("finished"))
+                .unwrap()
+                .as_bool(),
+            Some(true)
+        );
+    }
+
     use std::collections::HashMap;
     use std::sync::Mutex;
 
@@ -354,6 +446,7 @@ mod tests {
     fn cfg_with_dump(latest_block: u64) -> BootstrapConfig {
         BootstrapConfig {
             raindex_id: sample_ob_id(),
+            dump_sql: None,
             dump_stmt: Some(SqlStatementBatch::from(vec![SqlStatement::new(
                 "--dump-sql",
             )])),
@@ -764,6 +857,7 @@ mod tests {
         let dump_stmt = SqlStatement::new("--dump-sql");
         let cfg = BootstrapConfig {
             raindex_id: sample_ob_id(),
+            dump_sql: None,
             dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: 100,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -796,6 +890,7 @@ mod tests {
         let dump_stmt = SqlStatement::new("--dump-sql");
         let cfg = BootstrapConfig {
             raindex_id: sample_ob_id(),
+            dump_sql: None,
             dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -877,6 +972,7 @@ mod tests {
         let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD) + 5;
         let cfg = BootstrapConfig {
             raindex_id: sample_ob_id(),
+            dump_sql: None,
             dump_stmt: None,
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -904,6 +1000,7 @@ mod tests {
         let dump_stmt = SqlStatement::new("--dump-sql");
         let cfg = BootstrapConfig {
             raindex_id: sample_ob_id(),
+            dump_sql: None,
             dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -1037,6 +1134,7 @@ mod tests {
     }
 
     struct IntegrityCheckFailsDb {
+        query_error: &'static str,
         text_map: HashMap<String, String>,
         calls_text: Mutex<Vec<String>>,
         wipe_called: Mutex<bool>,
@@ -1045,6 +1143,7 @@ mod tests {
     impl IntegrityCheckFailsDb {
         fn new() -> Self {
             let mut db = Self {
+                query_error: "malformed database schema (db_metadata)",
                 text_map: HashMap::new(),
                 calls_text: Mutex::new(Vec::new()),
                 wipe_called: Mutex::new(false),
@@ -1083,9 +1182,7 @@ mod tests {
         where
             T: FromDbJson,
         {
-            Err(LocalDbQueryError::database(
-                "malformed database schema (db_metadata)",
-            ))
+            Err(LocalDbQueryError::database(self.query_error))
         }
 
         async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
@@ -1120,6 +1217,32 @@ mod tests {
 
         let calls = db.calls();
         assert_reset_batches_were_called(&calls);
+    }
+
+    #[tokio::test]
+    async fn runner_run_keeps_database_when_worker_is_unavailable() {
+        let adapter = ClientBootstrapAdapter::new();
+        for query_error in [
+            "JavaScript error: JsValue(\"SQL dump import is in progress.\")",
+            "JavaScript error: JsValue(\"Query timeout\")",
+            "Initialization pending",
+        ] {
+            let mut db = IntegrityCheckFailsDb::new();
+            db.query_error = query_error;
+
+            let err = adapter
+                .runner_run(&db, Some(DB_SCHEMA_VERSION))
+                .await
+                .unwrap_err();
+
+            assert!(matches!(
+                err,
+                LocalDbError::LocalDbQueryError(ref query_err)
+                    if query_err.is_worker_unavailable()
+            ));
+            assert!(!db.was_wipe_called(), "wiped on {query_error}");
+            assert!(db.calls().is_empty());
+        }
     }
 
     struct WipeFailsDb;
