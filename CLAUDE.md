@@ -41,10 +41,14 @@ changed artifacts or `git-clean` drifts red. Nothing is deployed.
 
 1. Deploy each changed suite:
    `gh workflow run manual-sol-artifacts.yaml --ref main -f suite=<x>`. One
-   dispatch deploys all seven chains. **Never run two deploys concurrently** —
-   they share one deployer EOA and race the nonce; serialize dispatches. A
-   `completed/failure` run still deployed if the log has
-   `ONCHAIN EXECUTION COMPLETE & SUCCESSFUL` (only `--verify` failed).
+   dispatch deploys every declared network. **Never run two deploys
+   concurrently** — they share one deployer EOA and race the nonce; serialize
+   dispatches. A `completed/failure` run still deployed if the log has
+   `ONCHAIN EXECUTION COMPLETE & SUCCESSFUL` (only `--verify` failed). **0G:**
+   `0_1_16`–`0_1_18` are not required on `zerog`, but every release cut after
+   `LAST_RELEASE_BEFORE_ZEROG` (`0_1_18`) is. Before the first such cut,
+   dispatch every bare suite key, unchanged suites too, or the tag's fork suite
+   fails on `zerog`.
 2. One PR: bump `foundry.toml [external.package].version`, run
    `forge script ./script/Build.sol --sig 'cutRelease()'` (freezes `candidate/`
    as `src/generated/<tag>/`), and if RaindexV7 moved run

@@ -17,7 +17,7 @@ import {
 import {IInterpreterV4} from "rainlang-0.2.40/src/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rainlang-0.2.40/src/interface/IInterpreterStoreV3.sol";
 import {LibDecimalFloat} from "rain-math-float-0.3.13/src/lib/LibDecimalFloat.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.37/src/lib/LibRainDeploy.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.38/src/lib/LibRainDeploy.sol";
 import {
     TEST_INTERPRETER_ADDRESS,
     TEST_STORE_ADDRESS

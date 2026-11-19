@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {Test} from "forge-std-1.17.0/src/Test.sol";
-import {DeploySuite} from "rain-deploy-0.1.37/src/abstract/RainDeploySuitesBase.sol";
+import {DeploySuite} from "rain-deploy-0.1.38/src/abstract/RainDeploySuitesBase.sol";
 import {LibRaindexLegacyDeployments, RaindexLegacyDeployment} from "../../src/lib/LibRaindexLegacyDeployments.sol";
 import {LibReleasedSuites} from "../../src/lib/LibReleasedSuites.sol";
 
