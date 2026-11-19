@@ -14,8 +14,8 @@ import {
     TaskV3,
     QuoteV3,
     Float
-} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
-import {IERC3156FlashBorrower} from "raindex-interface-0.1.14/src/interface/ierc3156/IERC3156FlashBorrower.sol";
+} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
+import {IERC3156FlashBorrower} from "raindex-interface-0.1.17/src/interface/ierc3156/IERC3156FlashBorrower.sol";
 
 /// @dev Base for mock raindex contracts that stub all IRaindexV7 functions.
 /// Inheritors override flashLoan and/or takeOrders5 with real token transfers.

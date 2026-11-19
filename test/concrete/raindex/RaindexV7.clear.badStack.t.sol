@@ -11,7 +11,7 @@ import {
     ClearConfigV2,
     SignedContextV2,
     TaskV3
-} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 import {UnsupportedCalculateOutputs} from "../../../src/error/ErrRaindexV7.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
 

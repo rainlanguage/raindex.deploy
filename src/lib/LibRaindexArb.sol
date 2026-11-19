@@ -2,12 +2,12 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {TaskV3} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {TaskV3} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {LibRaindex} from "./LibRaindex.sol";
 import {Address} from "@openzeppelin-contracts-5.7.0/utils/Address.sol";
 import {SafeERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/utils/SafeERC20.sol";
-import {LibDecimalFloat, Float} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat, Float} from "rain-math-float-0.3.13/src/lib/LibDecimalFloat.sol";
 
 /// @title LibRaindexArb
 library LibRaindexArb {

@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {LibRaindex} from "src/lib/LibRaindex.sol";
-import {TaskV3} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {TaskV3} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 
 /// @dev Exposes the internal `LibRaindex.doPost` for direct testing.
 contract LibRaindexDoPostHarness {

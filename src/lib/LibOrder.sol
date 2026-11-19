@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {OrderV4} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {OrderV4} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 
 /// @title LibOrder
 /// @notice Consistent handling of `OrderV4` for where it matters w.r.t.

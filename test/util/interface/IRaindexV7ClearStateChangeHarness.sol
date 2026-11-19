@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.25;
 
-import {IRaindexV7, ClearStateChangeV2, Float} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {IRaindexV7, ClearStateChangeV2, Float} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 import {OrderIOCalculationV4} from "src/struct/OrderIOCalculationV4.sol";
 
 interface IRaindexV7ClearStateChangeHarness is IRaindexV7 {

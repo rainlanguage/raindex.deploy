@@ -9,9 +9,9 @@ import {
     DeploySuite,
     ExternalDeployment,
     RainDeploySuitesBase
-} from "rain-deploy-0.1.33/src/abstract/RainDeploySuitesBase.sol";
-import {LibRainDeployDeclaration} from "rain-deploy-0.1.33/src/lib/LibRainDeployDeclaration.sol";
-import {LibRainDeployZoltuMechanism} from "rain-deploy-0.1.33/src/lib/LibRainDeployZoltuMechanism.sol";
+} from "rain-deploy-0.1.37/src/abstract/RainDeploySuitesBase.sol";
+import {LibRainDeployDeclaration} from "rain-deploy-0.1.37/src/lib/LibRainDeployDeclaration.sol";
+import {LibRainDeployZoltuMechanism} from "rain-deploy-0.1.37/src/lib/LibRainDeployZoltuMechanism.sol";
 import {Vm} from "forge-std-1.17.0/src/Vm.sol";
 import {RaindexV7SubParser} from "../concrete/parser/RaindexV7SubParser.sol";
 import {GenericPoolRaindexV7ArbOrderTaker} from "../concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol";
@@ -24,7 +24,7 @@ import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTO
 import {
     DEPLOYED_ADDRESS as TOFU_DECIMALS_ADDRESS,
     RUNTIME_CODE as TOFU_DECIMALS_RUNTIME_CODE
-} from "rain-tofu-erc20-decimals-deploy-0.1.6/src/generated/0_1_0/TOFUTokenDecimals.sol";
+} from "rain-tofu-erc20-decimals-deploy-0.1.9/src/generated/0_1_0/TOFUTokenDecimals.sol";
 import {
     CREATION_CODE as RAINDEX_CREATION_CODE_CANDIDATE,
     RUNTIME_CODE as RAINDEX_RUNTIME_CODE_CANDIDATE
