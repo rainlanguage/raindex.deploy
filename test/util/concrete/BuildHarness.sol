@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 
 import {Build, GeneratedContract, RetiredContract} from "script/Build.sol";
 import {DeployCandidate} from "src/abstract/RainDeploySuitesBase.sol";
-import {DeployDeclaration} from "rain-deploy-0.1.37/src/abstract/RainDeploySuitesBase.sol";
+import {DeployDeclaration} from "rain-deploy-0.1.38/src/abstract/RainDeploySuitesBase.sol";
 
 /// @title BuildHarness
 /// @notice An external seam onto the internal declarations `BuildTest`
