@@ -23,6 +23,14 @@ import {
     DEPENDENCIES as RaindexV7_0_1_17_DEPENDENCIES
 } from "../generated/0_1_17/RaindexV7.sol";
 
+import {
+    DEPLOYED_ADDRESS as RaindexV7_0_1_18_DEPLOYED_ADDRESS,
+    BYTECODE_HASH as RaindexV7_0_1_18_BYTECODE_HASH,
+    CREATION_CODE as RaindexV7_0_1_18_CREATION_CODE,
+    RUNTIME_CODE as RaindexV7_0_1_18_RUNTIME_CODE,
+    DEPENDENCIES as RaindexV7_0_1_18_DEPENDENCIES
+} from "../generated/0_1_18/RaindexV7.sol";
+
 /// @title LibRaindexV7Released
 /// @notice Every frozen release of `RaindexV7`: one entry per file in
 /// the append-only `src/generated/<tag>/` record, in tag order.
@@ -43,7 +51,7 @@ library LibRaindexV7Released {
     /// Every frozen release, in tag order.
     /// @return The released suites.
     function releasedSuites() internal pure returns (DeploySuite[] memory) {
-        DeploySuite[] memory suites = new DeploySuite[](2);
+        DeploySuite[] memory suites = new DeploySuite[](3);
         suites[0] = DeploySuite({
             suite: "raindex@0_1_16",
             creationCode: RaindexV7_0_1_16_CREATION_CODE,
@@ -64,6 +72,18 @@ library LibRaindexV7Released {
             storedRuntimeCode: RaindexV7_0_1_17_RUNTIME_CODE,
             artifactPath: "src/concrete/raindex/RaindexV7.sol:RaindexV7",
             dependencies: abi.decode(RaindexV7_0_1_17_DEPENDENCIES, (DeployDependency[])),
+            mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
+            networks: new string[](0),
+            describedByMeta: ""
+        });
+        suites[2] = DeploySuite({
+            suite: "raindex@0_1_18",
+            creationCode: RaindexV7_0_1_18_CREATION_CODE,
+            storedDeployedAddress: RaindexV7_0_1_18_DEPLOYED_ADDRESS,
+            storedBytecodeHash: RaindexV7_0_1_18_BYTECODE_HASH,
+            storedRuntimeCode: RaindexV7_0_1_18_RUNTIME_CODE,
+            artifactPath: "src/concrete/raindex/RaindexV7.sol:RaindexV7",
+            dependencies: abi.decode(RaindexV7_0_1_18_DEPENDENCIES, (DeployDependency[])),
             mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
             networks: new string[](0),
             describedByMeta: ""

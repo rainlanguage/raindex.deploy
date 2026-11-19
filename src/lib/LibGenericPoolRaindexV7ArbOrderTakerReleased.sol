@@ -23,6 +23,14 @@ import {
     DEPENDENCIES as GenericPoolRaindexV7ArbOrderTaker_0_1_17_DEPENDENCIES
 } from "../generated/0_1_17/GenericPoolRaindexV7ArbOrderTaker.sol";
 
+import {
+    DEPLOYED_ADDRESS as GenericPoolRaindexV7ArbOrderTaker_0_1_18_DEPLOYED_ADDRESS,
+    BYTECODE_HASH as GenericPoolRaindexV7ArbOrderTaker_0_1_18_BYTECODE_HASH,
+    CREATION_CODE as GenericPoolRaindexV7ArbOrderTaker_0_1_18_CREATION_CODE,
+    RUNTIME_CODE as GenericPoolRaindexV7ArbOrderTaker_0_1_18_RUNTIME_CODE,
+    DEPENDENCIES as GenericPoolRaindexV7ArbOrderTaker_0_1_18_DEPENDENCIES
+} from "../generated/0_1_18/GenericPoolRaindexV7ArbOrderTaker.sol";
+
 /// @title LibGenericPoolRaindexV7ArbOrderTakerReleased
 /// @notice Every frozen release of `GenericPoolRaindexV7ArbOrderTaker`: one entry per file in
 /// the append-only `src/generated/<tag>/` record, in tag order.
@@ -43,7 +51,7 @@ library LibGenericPoolRaindexV7ArbOrderTakerReleased {
     /// Every frozen release, in tag order.
     /// @return The released suites.
     function releasedSuites() internal pure returns (DeploySuite[] memory) {
-        DeploySuite[] memory suites = new DeploySuite[](2);
+        DeploySuite[] memory suites = new DeploySuite[](3);
         suites[0] = DeploySuite({
             suite: "arb-generic-pool-order-taker@0_1_16",
             creationCode: GenericPoolRaindexV7ArbOrderTaker_0_1_16_CREATION_CODE,
@@ -64,6 +72,18 @@ library LibGenericPoolRaindexV7ArbOrderTakerReleased {
             storedRuntimeCode: GenericPoolRaindexV7ArbOrderTaker_0_1_17_RUNTIME_CODE,
             artifactPath: "src/concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol:GenericPoolRaindexV7ArbOrderTaker",
             dependencies: abi.decode(GenericPoolRaindexV7ArbOrderTaker_0_1_17_DEPENDENCIES, (DeployDependency[])),
+            mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
+            networks: new string[](0),
+            describedByMeta: ""
+        });
+        suites[2] = DeploySuite({
+            suite: "arb-generic-pool-order-taker@0_1_18",
+            creationCode: GenericPoolRaindexV7ArbOrderTaker_0_1_18_CREATION_CODE,
+            storedDeployedAddress: GenericPoolRaindexV7ArbOrderTaker_0_1_18_DEPLOYED_ADDRESS,
+            storedBytecodeHash: GenericPoolRaindexV7ArbOrderTaker_0_1_18_BYTECODE_HASH,
+            storedRuntimeCode: GenericPoolRaindexV7ArbOrderTaker_0_1_18_RUNTIME_CODE,
+            artifactPath: "src/concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol:GenericPoolRaindexV7ArbOrderTaker",
+            dependencies: abi.decode(GenericPoolRaindexV7ArbOrderTaker_0_1_18_DEPENDENCIES, (DeployDependency[])),
             mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
             networks: new string[](0),
             describedByMeta: ""
