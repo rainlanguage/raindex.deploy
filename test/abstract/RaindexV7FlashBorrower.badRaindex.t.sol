@@ -3,8 +3,8 @@
 pragma solidity =0.8.25;
 
 import {Test} from "forge-std-1.17.0/src/Test.sol";
-import {IERC3156FlashLender} from "raindex-interface-0.1.14/src/interface/ierc3156/IERC3156FlashLender.sol";
-import {IRaindexV7} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {IERC3156FlashLender} from "raindex-interface-0.1.16/src/interface/ierc3156/IERC3156FlashLender.sol";
+import {IRaindexV7} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
 import {BadRaindex} from "../../src/abstract/RaindexV7ArbCommon.sol";
 import {LibRaindexDeploy} from "../../src/lib/deploy/LibRaindexDeploy.sol";
 import {LibTestFlashBorrowerArb, FlashBorrowerSetup} from "test/util/lib/LibTestFlashBorrowerArb.sol";

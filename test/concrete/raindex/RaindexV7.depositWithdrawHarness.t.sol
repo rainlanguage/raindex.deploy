@@ -3,12 +3,12 @@
 pragma solidity =0.8.25;
 
 import {Test} from "forge-std-1.17.0/src/Test.sol";
-import {Float, LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {Float, LibDecimalFloat} from "rain-math-float-0.3.13/src/lib/LibDecimalFloat.sol";
 import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.33/src/lib/LibRainDeploy.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.36/src/lib/LibRainDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
-import {TaskV3, IRaindexV7} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {TaskV3, IRaindexV7} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
 import {IRaindexV7Stub} from "test/util/abstract/IRaindexV7Stub.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
 import {TOFUOutcome} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";

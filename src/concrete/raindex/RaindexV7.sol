@@ -9,24 +9,24 @@ import {SafeERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/utils/SafeERC
 import {ReentrancyGuard} from "@openzeppelin-contracts-5.7.0/utils/ReentrancyGuard.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {LibContext} from "rainlang-0.2.36/src/lib/caller/LibContext.sol";
-import {LibBytecode} from "rainlang-0.2.36/src/lib/bytecode/LibBytecode.sol";
-import {LibInterpreterStateDataContract} from "rainlang-0.2.36/src/lib/state/LibInterpreterStateDataContract.sol";
+import {LibContext} from "rainlang-0.2.39/src/lib/caller/LibContext.sol";
+import {LibBytecode} from "rainlang-0.2.39/src/lib/bytecode/LibBytecode.sol";
+import {LibInterpreterStateDataContract} from "rainlang-0.2.39/src/lib/state/LibInterpreterStateDataContract.sol";
 import {
     SourceIndexV2,
     StateNamespace,
     IInterpreterV4,
     StackItem,
     EvalV4
-} from "rainlang-0.2.36/src/interface/IInterpreterV4.sol";
+} from "rainlang-0.2.39/src/interface/IInterpreterV4.sol";
 import {LibUint256Array} from "rain-solmem-0.1.28/src/lib/LibUint256Array.sol";
 import {LibUint256Matrix} from "rain-solmem-0.1.28/src/lib/LibUint256Matrix.sol";
-import {IInterpreterStoreV3} from "rainlang-0.2.36/src/interface/IInterpreterStoreV3.sol";
-import {LibNamespace} from "rainlang-0.2.36/src/lib/ns/LibNamespace.sol";
+import {IInterpreterStoreV3} from "rainlang-0.2.39/src/interface/IInterpreterStoreV3.sol";
+import {LibNamespace} from "rainlang-0.2.39/src/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain-metadata-0.1.46/src/lib/LibMeta.sol";
 import {IMetaV1_2} from "rain-metadata-0.1.46/src/interface/unstable/IMetaV1_2.sol";
 import {LibRaindex} from "../../lib/LibRaindex.sol";
-import {LibDecimalFloat} from "rain-math-float-0.3.12/src/lib/LibDecimalFloat.sol";
+import {LibDecimalFloat} from "rain-math-float-0.3.13/src/lib/LibDecimalFloat.sol";
 import {LibTOFUTokenDecimals, TOFUOutcome} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
 import {ITOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/interface/ITOFUTokenDecimals.sol";
 
@@ -46,8 +46,8 @@ import {
     QuoteV3,
     Float,
     IOV2
-} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
-import {IRaindexV7OrderTaker} from "raindex-interface-0.1.14/src/interface/IRaindexV7OrderTaker.sol";
+} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
+import {IRaindexV7OrderTaker} from "raindex-interface-0.1.16/src/interface/IRaindexV7OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
 import {
     CALLING_CONTEXT_COLUMNS,
@@ -65,7 +65,7 @@ import {
 import {RaindexV7FlashLender} from "../../abstract/RaindexV7FlashLender.sol";
 import {LibBytes32Array} from "rain-solmem-0.1.28/src/lib/LibBytes32Array.sol";
 
-import {LibFormatDecimalFloat} from "rain-math-float-0.3.12/src/lib/format/LibFormatDecimalFloat.sol";
+import {LibFormatDecimalFloat} from "rain-math-float-0.3.13/src/lib/format/LibFormatDecimalFloat.sol";
 import {
     NotOrderOwner,
     TokenMismatch,

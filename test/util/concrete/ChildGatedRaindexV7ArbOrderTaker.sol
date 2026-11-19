@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 
 import {RaindexV7ArbOrderTaker} from "../../../src/abstract/RaindexV7ArbOrderTaker.sol";
 import {RaindexV7ArbTaskGated, RaindexV7ArbConfig} from "../../../src/abstract/RaindexV7ArbTaskGated.sol";
-import {TaskV3} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {TaskV3} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
 
 /// @dev A task-gated arb order taker: combines the `arb6` entrypoint from
 /// `RaindexV7ArbOrderTaker` with the task-hash gating mixin

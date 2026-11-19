@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {EvalV4, StackItem} from "rainlang-0.2.36/src/interface/IInterpreterV4.sol";
+import {EvalV4, StackItem} from "rainlang-0.2.39/src/interface/IInterpreterV4.sol";
 
 /// @dev A fixed-stack interpreter: `eval4` returns the configured stack and no
 /// KVs. Used to drive `calculateOrderIO`'s read-back of (IORatio, outputMax)
