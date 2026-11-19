@@ -11,7 +11,7 @@ import {
     ClearConfigV2,
     SignedContextV2,
     TaskV3
-} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 
 contract RaindexV7ClearSameTokenTest is RaindexV7ExternalRealTest {

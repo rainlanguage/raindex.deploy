@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 
 import {RaindexV7ArbCommon, RaindexV7ArbConfig, WrongTask} from "./RaindexV7ArbCommon.sol";
-import {TaskV3} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {TaskV3} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
 
 /// @title RaindexV7ArbTaskGated
 /// @notice Mixin that adds task-hash gating to arb contracts. Stores a task

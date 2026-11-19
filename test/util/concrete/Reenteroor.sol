@@ -6,7 +6,7 @@ import {Address} from "@openzeppelin-contracts-5.7.0/utils/Address.sol";
 import {
     IERC3156FlashBorrower,
     ON_FLASH_LOAN_CALLBACK_SUCCESS
-} from "raindex-interface-0.1.14/src/interface/ierc3156/IERC3156FlashBorrower.sol";
+} from "raindex-interface-0.1.16/src/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 
 /// @title Reenteroor

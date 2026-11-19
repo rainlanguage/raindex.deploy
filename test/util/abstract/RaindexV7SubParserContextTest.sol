@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {StackAllocationMismatch} from "rainlang-0.2.36/src/error/ErrIntegrity.sol";
-import {OpTest, StackItem} from "rainlang-0.2.36/src/../test/abstract/OpTest.sol";
+import {StackAllocationMismatch} from "rainlang-0.2.39/src/error/ErrIntegrity.sol";
+import {OpTest, StackItem} from "rainlang-0.2.39/src/../test/abstract/OpTest.sol";
 import {Strings} from "@openzeppelin-contracts-5.7.0/utils/Strings.sol";
 import {LibRaindexSubParserContextFixture} from "test/util/fixture/LibRaindexSubParserContextFixture.sol";
 import {LibRaindexDeploy} from "../../../src/lib/deploy/LibRaindexDeploy.sol";
