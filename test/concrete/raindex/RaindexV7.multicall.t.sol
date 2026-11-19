@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 
 import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {RaindexV7ExternalRealTest} from "test/util/abstract/RaindexV7ExternalRealTest.sol";
-import {IRaindexV7, TaskV3} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
+import {IRaindexV7, TaskV3} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 import {Float, LibDecimalFloat} from "rain-math-float-0.3.13/src/lib/LibDecimalFloat.sol";
 
 /// `multicall` is inherited from OpenZeppelin and not declared on the Raindex

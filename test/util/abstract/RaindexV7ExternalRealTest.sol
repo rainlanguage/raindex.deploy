@@ -5,15 +5,15 @@ pragma solidity =0.8.25;
 import {Test, Vm, console2} from "forge-std-1.17.0/src/Test.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IRaindexV7Stub} from "test/util/abstract/IRaindexV7Stub.sol";
-import {IInterpreterStoreV3} from "rainlang-0.2.39/src/interface/IInterpreterStoreV3.sol";
-import {IParserV2} from "rainlang-0.2.39/src/interface/IParserV2.sol";
+import {IInterpreterStoreV3} from "rainlang-0.2.40/src/interface/IInterpreterStoreV3.sol";
+import {IParserV2} from "rainlang-0.2.40/src/interface/IParserV2.sol";
 import {
     IRaindexV7,
     IInterpreterV4,
     TaskV3,
     EvaluableV4,
     SignedContextV2
-} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
+} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {RaindexV7SubParser} from "../../../src/concrete/parser/RaindexV7SubParser.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
@@ -25,11 +25,11 @@ import {
     TEST_STORE_ADDRESS,
     TEST_COMPILER_ADDRESS,
     TEST_PARSER_ADDRESS
-} from "rainlang-0.2.39/test/lib/deploy/LibTestInterpreterDeploy.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.36/src/lib/LibRainDeploy.sol";
+} from "rainlang-0.2.40/test/lib/deploy/LibTestInterpreterDeploy.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.37/src/lib/LibRainDeploy.sol";
 import {
     CREATION_CODE as DECIMAL_FLOAT_CREATION_CODE
-} from "rain-math-float-deploy-0.1.12/src/generated/0_1_5/DecimalFloat.sol";
+} from "rain-math-float-deploy-0.1.13/src/generated/0_1_5/DecimalFloat.sol";
 import {LibRaindexDeploy} from "../../../src/lib/deploy/LibRaindexDeploy.sol";
 import {LibEtchRaindex} from "test/util/lib/LibEtchRaindex.sol";
 

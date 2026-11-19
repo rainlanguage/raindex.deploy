@@ -5,8 +5,8 @@ pragma solidity =0.8.25;
 import {Test} from "forge-std-1.17.0/src/Test.sol";
 
 import {LibOrder, OrderV4} from "../../src/lib/LibOrder.sol";
-import {EvaluableV4} from "rainlang-0.2.39/src/interface/IInterpreterCallerV5.sol";
-import {IOV2} from "raindex-interface-0.1.16/src/interface/deprecated/v5/IOrderBookV5.sol";
+import {EvaluableV4} from "rainlang-0.2.40/src/interface/IInterpreterCallerV5.sol";
+import {IOV2} from "raindex-interface-0.1.17/src/interface/deprecated/v5/IOrderBookV5.sol";
 
 /// @title LibOrderTest
 /// Exercises the LibOrder library.

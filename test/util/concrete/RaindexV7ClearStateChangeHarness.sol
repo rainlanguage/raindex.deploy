@@ -5,7 +5,7 @@ pragma solidity =0.8.25;
 import {RaindexV7} from "src/concrete/raindex/RaindexV7.sol";
 import {IRaindexV7ClearStateChangeHarness} from "test/util/interface/IRaindexV7ClearStateChangeHarness.sol";
 import {OrderIOCalculationV4} from "src/struct/OrderIOCalculationV4.sol";
-import {ClearStateChangeV2} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
+import {ClearStateChangeV2} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 import {Float} from "rain-math-float-0.3.13/src/lib/LibDecimalFloat.sol";
 
 /// @dev Exposes RaindexV7's internal pure clear-state-change math so it can be

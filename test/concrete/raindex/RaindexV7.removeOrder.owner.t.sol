@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {RaindexV7ExternalRealTest} from "test/util/abstract/RaindexV7ExternalRealTest.sol";
-import {OrderConfigV4, OrderV4, EvaluableV4, TaskV3} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
+import {OrderConfigV4, OrderV4, EvaluableV4, TaskV3} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibOrder} from "../../../src/lib/LibOrder.sol";
 import {NotOrderOwner} from "../../../src/error/ErrRaindexV7.sol";

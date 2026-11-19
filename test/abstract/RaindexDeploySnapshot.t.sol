@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {RainDeployVerifySnapshot} from "rain-deploy-0.1.36/src/abstract/RainDeployVerifySnapshot.sol";
+import {RainDeployVerifySnapshot} from "rain-deploy-0.1.37/src/abstract/RainDeployVerifySnapshot.sol";
 import {RaindexDeploySuites} from "../../src/abstract/RaindexDeploySuites.sol";
 
 /// @title RaindexDeploySnapshotTest

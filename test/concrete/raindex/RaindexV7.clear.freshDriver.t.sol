@@ -16,27 +16,27 @@ import {
     IInterpreterV4,
     IInterpreterStoreV3,
     TaskV3
-} from "raindex-interface-0.1.16/src/interface/IRaindexV7.sol";
+} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 import {Float, LibDecimalFloat} from "rain-math-float-0.3.13/src/lib/LibDecimalFloat.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.36/src/lib/LibRainDeploy.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.37/src/lib/LibRainDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 import {CalcInterpreter} from "test/util/concrete/CalcInterpreter.sol";
 import {IRaindexV7ClearDriverHarness} from "test/util/interface/IRaindexV7ClearDriverHarness.sol";
-import {IParserV2} from "rainlang-0.2.39/src/interface/IParserV2.sol";
-import {FullyQualifiedNamespace} from "rainlang-0.2.39/src/interface/IInterpreterStoreV3.sol";
-import {StateNamespace} from "rainlang-0.2.39/src/interface/IInterpreterV4.sol";
-import {LibNamespace} from "rainlang-0.2.39/src/lib/ns/LibNamespace.sol";
+import {IParserV2} from "rainlang-0.2.40/src/interface/IParserV2.sol";
+import {FullyQualifiedNamespace} from "rainlang-0.2.40/src/interface/IInterpreterStoreV3.sol";
+import {StateNamespace} from "rainlang-0.2.40/src/interface/IInterpreterV4.sol";
+import {LibNamespace} from "rainlang-0.2.40/src/lib/ns/LibNamespace.sol";
 import {
     LibTestInterpreterDeploy,
     TEST_INTERPRETER_ADDRESS,
     TEST_STORE_ADDRESS,
     TEST_COMPILER_ADDRESS
-} from "rainlang-0.2.39/test/lib/deploy/LibTestInterpreterDeploy.sol";
+} from "rainlang-0.2.40/test/lib/deploy/LibTestInterpreterDeploy.sol";
 import {
     CREATION_CODE as DECIMAL_FLOAT_CREATION_CODE
-} from "rain-math-float-deploy-0.1.12/src/generated/0_1_5/DecimalFloat.sol";
+} from "rain-math-float-deploy-0.1.13/src/generated/0_1_5/DecimalFloat.sol";
 
 /// @title RaindexV7ClearFreshDriverTest
 /// @notice Drives the FULL `clear4` against fresh-compiled RaindexV7 bytecode so
