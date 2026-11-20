@@ -6,4 +6,6 @@ jobs:
     # artifacts are still current. The meta hook is `script/build-meta.sh`;
     # pointers + abis use the upstream Build.sol convention.
     uses: rainlanguage/rainix/.github/workflows/rainix-copy-artifacts.yaml@main
+    with:
+      regenerate-command: ./script/build.sh
     secrets: inherit
