@@ -4,8 +4,8 @@ result
 target
 .DS_Store
 .env
-subgraph/tests/.docker
-subgraph/tests/.latest.json
+subgraph/*/tests/.docker
+subgraph/*/tests/.latest.json
 node_modules
 temp
 dist
