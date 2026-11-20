@@ -26,7 +26,7 @@
 	import type { RaindexClient } from '@rainlanguage/raindex';
 	import { seedLocalDbSyncSnapshot } from '$lib/stores/localDbStatus';
 
-	const { errorMessage, localDb, raindexClient, registry } = $page.data;
+	const { errorMessage, registryWarning, localDb, raindexClient, registry } = $page.data;
 	const registryManager = new RegistryManager(REGISTRY_URL);
 
 	const queryClient = new QueryClient({
@@ -72,6 +72,15 @@
 		class="fixed bottom-4 left-1/2 z-[100] -translate-x-1/2 transform rounded-lg bg-red-500 px-6 py-3 text-white shadow-md"
 	>
 		{walletInitError}
+	</div>
+{/if}
+
+{#if registryWarning}
+	<div
+		data-testid="registry-warning"
+		class="fixed bottom-4 left-1/2 z-[100] -translate-x-1/2 transform rounded-lg bg-yellow-500 px-6 py-3 text-white shadow-md"
+	>
+		{registryWarning}
 	</div>
 {/if}
 
