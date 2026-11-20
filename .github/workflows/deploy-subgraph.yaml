@@ -2,21 +2,30 @@ name: Deploy subgraph
 on:
   workflow_dispatch:
 jobs:
-  deploy:
+  deploy-v6:
     uses: rainlanguage/rainix/.github/workflows/rainix-subgraph-deploy.yaml@main
     with:
+      subgraph-dir: subgraph/v6
+      subgraph-name: raindex-v6
+      ormi-query-base: https://subgraph.api.ormilabs.com/api/public/9f4fc2fa-4a15-44f7-a7c1-66fdaa518a71
+      goldsky-query-base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg
+    secrets: inherit
+  deploy-v7:
+    uses: rainlanguage/rainix/.github/workflows/rainix-subgraph-deploy.yaml@main
+    with:
+      subgraph-dir: subgraph/v7
       subgraph-name: raindex
       ormi-query-base: https://subgraph.api.ormilabs.com/api/public/9f4fc2fa-4a15-44f7-a7c1-66fdaa518a71
     secrets: inherit
   # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
   status:
-    needs: deploy
+    needs: [deploy-v6, deploy-v7]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Forward CI Status
         uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
         with:
-          status: ${{ needs.deploy.result }}
+          status: ${{ contains(needs.*.result, 'failure') && 'failure' || contains(needs.*.result, 'cancelled') && 'cancelled' || 'success' }}
           telegram-bot-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}

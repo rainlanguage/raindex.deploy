@@ -9,8 +9,8 @@
 # `eth_getCode` over an archive RPC, then rewrites the new per-chain blocks +
 # that address into:
 #   - the RAINDEX_START_BLOCK_* constants in src/lib/deploy/LibRaindexV7StartBlock.sol
-#   - subgraph/networks.json (address + startBlock per network)
-#   - subgraph/subgraph.yaml (data source address)
+#   - subgraph/v7/networks.json (address + startBlock per network)
+#   - subgraph/v7/subgraph.yaml (data source address)
 #
 # RaindexV7 is CREATE2-deployed, so its address only ever holds the one bytecode
 # it was created with: the first block with code at that address IS the deploy
@@ -21,8 +21,8 @@
 set -euo pipefail
 
 LIB="src/lib/deploy/LibRaindexV7StartBlock.sol"
-NET="subgraph/networks.json"
-YAML="subgraph/subgraph.yaml"
+NET="subgraph/v7/networks.json"
+YAML="subgraph/v7/subgraph.yaml"
 # Releases cut before the rename are recorded as RaindexV6.
 for NAME in RaindexV7 RaindexV6; do
   RELEASED="src/lib/Lib${NAME}Released.sol"
