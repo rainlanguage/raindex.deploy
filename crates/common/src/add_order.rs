@@ -704,17 +704,20 @@ price: 2e18;
                 OrderIOCfg {
                     token_key: token1_arc.key.clone(),
                     token: Some(token1_arc.clone()),
+                    vaultless: false,
                     vault_id: None,
                 },
                 OrderIOCfg {
                     token_key: token2_arc.key.clone(),
                     token: Some(token2_arc.clone()),
+                    vaultless: false,
                     vault_id: Some(known_vault_id),
                 },
             ],
             outputs: vec![OrderIOCfg {
                 token_key: token3_arc.key.clone(),
                 token: Some(token3_arc.clone()),
+                vaultless: false,
                 vault_id: None,
             }],
             network: network_arc.clone(),
@@ -828,17 +831,20 @@ _ _: 0 0;
                 OrderIOCfg {
                     token_key: token1_arc.key.clone(),
                     token: Some(token1_arc.clone()),
+                    vaultless: false,
                     vault_id: Some(U256::from(2)),
                 },
                 OrderIOCfg {
                     token_key: token2_arc.key.clone(),
                     token: Some(token2_arc.clone()),
+                    vaultless: false,
                     vault_id: Some(U256::from(1)),
                 },
             ],
             outputs: vec![OrderIOCfg {
                 token_key: token3_arc.key.clone(),
                 token: Some(token3_arc.clone()),
+                vaultless: false,
                 vault_id: Some(U256::from(4)),
             }],
             network: network_arc.clone(),
@@ -995,17 +1001,20 @@ _ _: 0 0;
                 OrderIOCfg {
                     token_key: token1_arc.key.clone(),
                     token: Some(token1_arc.clone()),
+                    vaultless: false,
                     vault_id: None,
                 },
                 OrderIOCfg {
                     token_key: token2_arc.key.clone(),
                     token: Some(token2_arc.clone()),
+                    vaultless: false,
                     vault_id: Some(known_vault_id),
                 },
             ],
             outputs: vec![OrderIOCfg {
                 token_key: token3_arc.key.clone(),
                 token: Some(token3_arc.clone()),
+                vaultless: false,
                 vault_id: None,
             }],
             network: network_arc.clone(),
@@ -1340,17 +1349,20 @@ _ _: 16 52;
                 OrderIOCfg {
                     token_key: token1_arc.key.clone(),
                     token: Some(token1_arc.clone()),
+                    vaultless: false,
                     vault_id: Some(U256::from(2)),
                 },
                 OrderIOCfg {
                     token_key: token2_arc.key.clone(),
                     token: Some(token2_arc.clone()),
+                    vaultless: false,
                     vault_id: Some(U256::from(1)),
                 },
             ],
             outputs: vec![OrderIOCfg {
                 token_key: token3_arc.key.clone(),
                 token: Some(token3_arc.clone()),
+                vaultless: false,
                 vault_id: Some(U256::from(4)),
             }],
             network: network_arc.clone(),
