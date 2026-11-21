@@ -9,9 +9,12 @@ import {
     DeploySuite,
     ExternalDeployment,
     RainDeploySuitesBase
-} from "rain-deploy-0.1.37/src/abstract/RainDeploySuitesBase.sol";
-import {LibRainDeployDeclaration} from "rain-deploy-0.1.37/src/lib/LibRainDeployDeclaration.sol";
-import {LibRainDeployZoltuMechanism} from "rain-deploy-0.1.37/src/lib/LibRainDeployZoltuMechanism.sol";
+} from "rain-deploy-0.1.38/src/abstract/RainDeploySuitesBase.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.38/src/lib/LibRainDeploy.sol";
+import {LibRainDeployDeclaration} from "rain-deploy-0.1.38/src/lib/LibRainDeployDeclaration.sol";
+import {LibRainDeploySnapshot, UnreleasableVersion} from "rain-deploy-0.1.38/src/lib/LibRainDeploySnapshot.sol";
+import {LibRainDeployZoltuMechanism} from "rain-deploy-0.1.38/src/lib/LibRainDeployZoltuMechanism.sol";
+import {StdConstants} from "forge-std-1.17.0/src/StdConstants.sol";
 import {Vm} from "forge-std-1.17.0/src/Vm.sol";
 import {RaindexV7SubParser} from "../concrete/parser/RaindexV7SubParser.sol";
 import {GenericPoolRaindexV7ArbOrderTaker} from "../concrete/arb/GenericPoolRaindexV7ArbOrderTaker.sol";
@@ -76,11 +79,14 @@ string constant RAINDEX_ARTIFACT_PATH = "src/concrete/raindex/RaindexV7.sol:Rain
 /// the product.
 abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     /// @inheritdoc RainDeploySuitesBase
+    /// @dev The releases pass through `narrowReleasedNetworks` first, so only
+    /// the audited `RaindexV6` releases and the releases cut after `zerog`
+    /// joined are required on `zerog`.
     function declaration() internal pure override returns (DeployDeclaration memory) {
         DeployDeclaration memory declared;
         LibRainDeployDeclaration.extend(declared);
         LibRainDeployZoltuMechanism.extend(declared);
-        LibRainDeployDeclaration.addReleased(declared, LibReleasedSuites.releasedSuites());
+        LibRainDeployDeclaration.addReleased(declared, narrowReleasedNetworks(LibReleasedSuites.releasedSuites()));
         DeployCandidate[] memory candidates = new DeployCandidate[](6);
         candidates[0] = raindexCandidate();
         candidates[1] = subParserCandidate();
@@ -92,6 +98,73 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
         declared.sourceCreationCode = sourceCreationCode;
         declared.externalDeployments = externalDeployments();
         return declared;
+    }
+
+    /// The newest `RaindexV6` release. `0_1_14` and `0_1_15` freeze the audited
+    /// `RaindexV6` set consumers pin, so they keep the declaration's networks
+    /// and are required on `zerog` too.
+    string constant LAST_RAINDEX_V6_RELEASE = "0_1_15";
+
+    /// The newest release cut before `zerog` joined the roster. The releases
+    /// after `LAST_RAINDEX_V6_RELEASE` and up to it are `RaindexV7` builds 0G
+    /// never ran, so they are required only on `networksBeforeZerog()`. A
+    /// release cut after it is required on `zerog`, so before that cut every
+    /// suite it freezes MUST be live on `zerog`, unchanged ones included.
+    string constant LAST_RELEASE_BEFORE_ZEROG = "0_1_18";
+
+    /// The roster the releases after `LAST_RAINDEX_V6_RELEASE` and up to
+    /// `LAST_RELEASE_BEFORE_ZEROG` were cut and deployed for. Frozen: a network
+    /// added to the catalogue later does not join it.
+    /// @return The network names.
+    function networksBeforeZerog() internal pure returns (string[] memory) {
+        string[] memory networks = new string[](9);
+        networks[0] = LibRainDeploy.ARBITRUM_ONE;
+        networks[1] = LibRainDeploy.BASE;
+        networks[2] = LibRainDeploy.BASE_SEPOLIA;
+        networks[3] = LibRainDeploy.BSC;
+        networks[4] = LibRainDeploy.ETHEREUM;
+        networks[5] = LibRainDeploy.FLARE;
+        networks[6] = LibRainDeploy.HYPEREVM;
+        networks[7] = LibRainDeploy.POLYGON;
+        networks[8] = LibRainDeploy.ROBINHOOD;
+        return networks;
+    }
+
+    /// Sets the networks of each release `notRequiredOnZerog` selects to
+    /// `networksBeforeZerog()`, and leaves every other release to the
+    /// declaration's networks.
+    /// @param released The releases, mutated.
+    /// @return `released`.
+    function narrowReleasedNetworks(DeploySuite[] memory released) internal pure returns (DeploySuite[] memory) {
+        for (uint256 i = 0; i < released.length; i++) {
+            if (notRequiredOnZerog(released[i].suite)) {
+                released[i].networks = networksBeforeZerog();
+            }
+        }
+        return released;
+    }
+
+    /// Whether a suite key's tag is after `LAST_RAINDEX_V6_RELEASE` and at or
+    /// before `LAST_RELEASE_BEFORE_ZEROG`, ordered by
+    /// `LibRainDeploySnapshot.tagPrecedes`. A key with no tag is not, and a tag
+    /// that is not `LibRainDeploySnapshot.isTag` is refused.
+    /// @param suite The suite key.
+    /// @return True if the release is not required on `zerog`.
+    function notRequiredOnZerog(string memory suite) internal pure returns (bool) {
+        bytes memory key = bytes(suite);
+        uint256 start = bytes(suiteKeyName(suite)).length + 1;
+        if (start > key.length) {
+            return false;
+        }
+        bytes memory tag = new bytes(key.length - start);
+        for (uint256 i = 0; i < tag.length; i++) {
+            tag[i] = key[start + i];
+        }
+        if (!LibRainDeploySnapshot.isTag(string(tag))) {
+            revert UnreleasableVersion(string(tag));
+        }
+        return LibRainDeploySnapshot.tagPrecedes(StdConstants.VM, LAST_RAINDEX_V6_RELEASE, string(tag))
+            && !LibRainDeploySnapshot.tagPrecedes(StdConstants.VM, LAST_RELEASE_BEFORE_ZEROG, string(tag));
     }
 
     function sourceCreationCode(string memory suite) internal view returns (bytes memory) {

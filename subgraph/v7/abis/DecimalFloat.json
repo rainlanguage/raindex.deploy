@@ -1,0 +1,1140 @@
+{
+  "abi": [
+    {
+      "type": "function",
+      "name": "abs",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "add",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "agree",
+      "inputs": [
+        {
+          "name": "absolute",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "proportional",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "lowest",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "highest",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "ceil",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "div",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "e",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "eq",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "floor",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "format",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "scientific",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "frac",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "fromFixedDecimalLossless",
+      "inputs": [
+        {
+          "name": "value",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "decimals",
+          "type": "uint8",
+          "internalType": "uint8"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "fromFixedDecimalLossy",
+      "inputs": [
+        {
+          "name": "value",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "decimals",
+          "type": "uint8",
+          "internalType": "uint8"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "gt",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "gte",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "integer",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "inv",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "isZero",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "log10",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "lt",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "lte",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "max",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "maxNegativeValue",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "maxPositiveValue",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "min",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "minNegativeValue",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "minPositiveValue",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "minus",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "mul",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "parse",
+      "inputs": [
+        {
+          "name": "str",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes4",
+          "internalType": "bytes4"
+        },
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "pow",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "pow10",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "sqrt",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "sub",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "toFixedDecimalLossless",
+      "inputs": [
+        {
+          "name": "float",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "decimals",
+          "type": "uint8",
+          "internalType": "uint8"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "toFixedDecimalLossy",
+      "inputs": [
+        {
+          "name": "float",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "decimals",
+          "type": "uint8",
+          "internalType": "uint8"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "zero",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "error",
+      "name": "AbsCoefficientOverflow",
+      "inputs": [
+        {
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "AgreeNoPositiveTolerance",
+      "inputs": [
+        {
+          "name": "absolute",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "proportional",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "AgreeToleranceNegative",
+      "inputs": [
+        {
+          "name": "absolute",
+          "type": "bytes32",
+          "internalType": "Float"
+        },
+        {
+          "name": "proportional",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "DivisionByZero",
+      "inputs": [
+        {
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "Exp10FixedOutOfRange",
+      "inputs": [
+        {
+          "name": "x",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ExponentOverflow",
+      "inputs": [
+        {
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ExponentUnderflow",
+      "inputs": [
+        {
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "FixedDecimalOverflow",
+      "inputs": [
+        {
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "decimals",
+          "type": "uint8",
+          "internalType": "uint8"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "Log10Negative",
+      "inputs": [
+        {
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "Log10RatioOutOfRange",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "b",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "Log10RatioRelativeSumTooSmall",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "b",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "Log10ReduceOutOfRange",
+      "inputs": [
+        {
+          "name": "x",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "Log10Zero",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "LossyConversionFromFloat",
+      "inputs": [
+        {
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "LossyConversionToFloat",
+      "inputs": [
+        {
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "MulDivOverflow",
+      "inputs": [
+        {
+          "name": "x",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "y",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "denominator",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "NegativeFixedDecimalConversion",
+      "inputs": [
+        {
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ParseDecimalNoSignificantDigits",
+      "inputs": [
+        {
+          "name": "start",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "PowNegativeBase",
+      "inputs": [
+        {
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "SqrtOutOfRange",
+      "inputs": [
+        {
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "UnabsExponentOverflow",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "b",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "signedCoefficientAbs",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "UnformatableExponent",
+      "inputs": [
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "WithTargetExponentOverflow",
+      "inputs": [
+        {
+          "name": "signedCoefficient",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "targetExponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ZeroNegativePower",
+      "inputs": [
+        {
+          "name": "b",
+          "type": "bytes32",
+          "internalType": "Float"
+        }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "ZeroStringStartPointer",
+      "inputs": []
+    }
+  ]
+}

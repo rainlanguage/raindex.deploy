@@ -2,4 +2,5 @@ services:
   matchstick:
     image: rainprotocol/matchstick:main
     volumes:
-      - ..:/matchstick
+      - ../..:/matchstick
+    working_dir: /matchstick/subgraph/v7

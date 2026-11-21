@@ -19,7 +19,7 @@ import {LibEtchRaindex} from "test/util/lib/LibEtchRaindex.sol";
 import {EvaluableV4} from "rainlang-0.2.40/src/interface/IInterpreterCallerV5.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.37/src/lib/LibRainDeploy.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.38/src/lib/LibRainDeploy.sol";
 
 /// @title RaindexV7ExternalTest
 /// Abstract contract that performs common setup needed for testing a raindex

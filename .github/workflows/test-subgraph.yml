@@ -2,5 +2,11 @@ name: Subgraph unit tests
 on: [push]
 jobs:
   subgraph-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        subgraph-dir: [subgraph/v6, subgraph/v7]
     uses: rainlanguage/rainix/.github/workflows/rainix-subgraph-test.yaml@main
+    with:
+      subgraph-dir: ${{ matrix.subgraph-dir }}
     secrets: inherit

@@ -26,26 +26,32 @@ on:
           - raindex@0_1_15
           - raindex@0_1_16
           - raindex@0_1_17
+          - raindex@0_1_18
           - subparser@0_1_14
           - subparser@0_1_15
           - subparser@0_1_16
           - subparser@0_1_17
+          - subparser@0_1_18
           - route-processor@0_1_14
           - route-processor@0_1_15
           - route-processor@0_1_16
           - route-processor@0_1_17
+          - route-processor@0_1_18
           - arb-generic-pool-order-taker@0_1_14
           - arb-generic-pool-order-taker@0_1_15
           - arb-generic-pool-order-taker@0_1_16
           - arb-generic-pool-order-taker@0_1_17
+          - arb-generic-pool-order-taker@0_1_18
           - arb-route-processor-order-taker@0_1_14
           - arb-route-processor-order-taker@0_1_15
           - arb-route-processor-order-taker@0_1_16
           - arb-route-processor-order-taker@0_1_17
+          - arb-route-processor-order-taker@0_1_18
           - arb-generic-pool-flash-borrower@0_1_14
           - arb-generic-pool-flash-borrower@0_1_15
           - arb-generic-pool-flash-borrower@0_1_16
           - arb-generic-pool-flash-borrower@0_1_17
+          - arb-generic-pool-flash-borrower@0_1_18
       script:
         description: >-
           Forge script target to run. The default deploys the selected suite; script/DescribeSubParser.sol:DescribeSubParser emits the sub-parser's described-by meta on the network named by `network` (suite is ignored there).
