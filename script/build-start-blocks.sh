@@ -11,6 +11,8 @@
 #   - the RAINDEX_START_BLOCK_* constants in src/lib/deploy/LibRaindexV7StartBlock.sol
 #   - subgraph/v7/networks.json (address + startBlock per network)
 #   - subgraph/v7/subgraph.yaml (data source address)
+#   - deployments/released-start-blocks.json (this address on every network it
+#     is declared on, read by script/lib/LibRaindexDeploymentsRecord.sol)
 #
 # RaindexV7 is CREATE2-deployed, so its address only ever holds the one bytecode
 # it was created with: the first block with code at that address IS the deploy
@@ -37,6 +39,13 @@ ARB_RPC="${ARBITRUM_RPC_URL:-https://arbitrum.drpc.org}"
 BASE_RPC="${BASE_RPC_URL:-https://mainnet.base.org}"
 FLARE_RPC="${FLARE_RPC_URL:-https://flare-api.flare.network/ext/C/rpc}"
 POLY_RPC="${POLYGON_RPC_URL:-https://polygon.drpc.org}"
+BSC_RPC="${BSC_RPC_URL:-https://bsc-dataseed.bnbchain.org}"
+BASE_SEPOLIA_RPC="${BASE_SEPOLIA_RPC_URL:-https://sepolia.base.org}"
+ETH_RPC="${ETHEREUM_RPC_URL:-https://eth.drpc.org}"
+# rpc.hyperliquid.xyz answers historical eth_getCode with current code, so the
+# search needs an archive endpoint.
+HYPEREVM_RPC="${HYPEREVM_RPC_URL:-https://hyperliquid.drpc.org}"
+ROBINHOOD_RPC="${ROBINHOOD_RPC_URL:-https://rpc.mainnet.chain.robinhood.com}"
 
 ADDR=$(grep -aoE 'DEPLOYED_ADDRESS = address\(0x[0-9a-fA-F]{40}' "$PTR" | grep -aoE '0x[0-9a-fA-F]{40}')
 [ -n "$ADDR" ] || { echo "could not read RAINDEX_DEPLOYED_ADDRESS from $PTR" >&2; exit 1; }
@@ -112,7 +121,12 @@ else
     OUT="STARTBLOCK arbitrum $(find_deploy_block "$ARB_RPC" "$ADDR")
 STARTBLOCK base $(find_deploy_block "$BASE_RPC" "$ADDR")
 STARTBLOCK flare $(find_deploy_block "$FLARE_RPC" "$ADDR")
-STARTBLOCK polygon $(find_deploy_block "$POLY_RPC" "$ADDR")"
+STARTBLOCK polygon $(find_deploy_block "$POLY_RPC" "$ADDR")
+STARTBLOCK bsc $(find_deploy_block "$BSC_RPC" "$ADDR")
+STARTBLOCK base_sepolia $(find_deploy_block "$BASE_SEPOLIA_RPC" "$ADDR")
+STARTBLOCK ethereum $(find_deploy_block "$ETH_RPC" "$ADDR")
+STARTBLOCK hyperevm $(find_deploy_block "$HYPEREVM_RPC" "$ADDR")
+STARTBLOCK robinhood $(find_deploy_block "$ROBINHOOD_RPC" "$ADDR")"
 fi
 
 get() { printf '%s\n' "$OUT" | grep -aoE "STARTBLOCK $1 [0-9]+" | grep -aoE '[0-9]+$' | head -1; }
@@ -134,5 +148,17 @@ jq --arg addr "$ADDR" --argjson arb "$ARB" --argjson base "$BASE" --argjson flar
     | .base.Raindex = {address: $addr, startBlock: $base}
     | .flare.Raindex = {address: $addr, startBlock: $flare}
 ' "$NET" >"${NET}.tmp" && mv "${NET}.tmp" "$NET"
+
+# The released start-block record (read by LibRaindexDeploymentsRecord): this
+# address on every supported network, replacing any earlier entries for it, so
+# every release ever cut keeps its own blocks and this one adds its own.
+RECORD="deployments/released-start-blocks.json"
+for net in arbitrum base flare polygon bsc base_sepolia ethereum hyperevm robinhood; do
+    [ -n "$(get "$net")" ] || { echo "missing start block for $net; finder output:" >&2; printf '%s\n' "$OUT" >&2; exit 1; }
+done
+printf '%s\n' "$OUT" | grep -aoE 'STARTBLOCK [a-z_]+ [0-9]+' | jq -R -s --arg addr "$ADDR" '
+    [split("\n")[] | select(length > 0) | split(" ") | {deployedAddress: $addr, network: .[1], startBlock: (.[2] | tonumber)}]' \
+    | jq -S --slurpfile old "$RECORD" '($old[0] | map(select(.deployedAddress != ($ARGS.named.addr)))) + . | sort_by(.deployedAddress, .network)' --arg addr "$ADDR" >"${RECORD}.tmp" \
+    && mv "${RECORD}.tmp" "$RECORD"
 
 echo "start blocks: arbitrum=${ARB} base=${BASE} flare=${FLARE} polygon=${POLY}  address=${ADDR}"

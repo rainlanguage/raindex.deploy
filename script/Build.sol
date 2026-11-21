@@ -18,15 +18,23 @@ import {
     ROUTE_PROCESSOR_ARB_ORDER_TAKER_SUITE,
     GENERIC_POOL_FLASH_BORROWER_SUITE
 } from "../src/abstract/RaindexDeploySuites.sol";
+import {RaindexDeployment} from "../src/lib/LibRaindexLegacyDeployments.sol";
+import {LibRaindexDeploymentsRecord} from "./lib/LibRaindexDeploymentsRecord.sol";
+import {LibRaindexV6Released} from "../src/lib/LibRaindexV6Released.sol";
+import {LibRaindexV7Released} from "../src/lib/LibRaindexV7Released.sol";
 import {RaindexV7SubParser} from "../src/concrete/parser/RaindexV7SubParser.sol";
 import {LibRaindexSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "../src/lib/LibRaindexSubParser.sol";
+
+// Where `Build.buildDeploymentsJson` writes the deployment record.
+string constant DEPLOYMENTS_JSON = "deployments/raindex.json";
 
 /// @title Build
 /// @notice Generates the deploy pins for every contract this repo deploys.
 ///
 /// `run()` (what CI regenerates against) rewrites the rolling
-/// `src/generated/candidate/` snapshots, the sub-parser's non-deploy codegen
-/// and the released-suites libs. `cutRelease()` freezes the candidates into
+/// `src/generated/candidate/` snapshots, the sub-parser's non-deploy codegen,
+/// the released-suites libs and `deployments/raindex.json`. `cutRelease()`
+/// freezes the candidates into
 /// `src/generated/<tag>/` first. Frozen snapshots are append-only historical
 /// records, never regenerated here.
 ///
@@ -133,6 +141,7 @@ contract Build is BuildScript, RaindexDeploySuites {
             );
         }
         buildSubParserPointers();
+        buildDeploymentsJson();
     }
 
     /// The sub-parser's non-deploy codegen: parse meta, function pointers and
@@ -167,5 +176,34 @@ contract Build is BuildScript, RaindexDeploySuites {
                 LibCodeGen.literalParserFunctionPointersConstantString(vm, subParser)
             )
         );
+    }
+
+    /// The committed, machine-readable form of every raindex deployment
+    /// (`LibRaindexDeploymentsRecord.deployments`), so consumers (the tokens
+    /// subgraph, the org dashboard) never parse Solidity. One row per line, so a
+    /// new deployment is a one-line diff.
+    function buildDeploymentsJson() internal {
+        RaindexDeployment[] memory records = LibRaindexDeploymentsRecord.deployments(
+            vm,
+            narrowReleasedNetworks(LibRaindexV6Released.releasedSuites()),
+            narrowReleasedNetworks(LibRaindexV7Released.releasedSuites())
+        );
+        string memory rows = "";
+        for (uint256 i = 0; i < records.length; i++) {
+            rows = string.concat(
+                rows,
+                i == 0 ? "" : ",\n",
+                "  {\"network\": \"",
+                records[i].network,
+                "\", \"address\": \"",
+                vm.toString(records[i].deployedAddress),
+                "\", \"interfaceVersion\": ",
+                vm.toString(records[i].interfaceVersion),
+                ", \"startBlock\": ",
+                vm.toString(records[i].blockNumber),
+                "}"
+            );
+        }
+        vm.writeFile(DEPLOYMENTS_JSON, string.concat("[\n", rows, "\n]\n"));
     }
 }

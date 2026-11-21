@@ -19,6 +19,7 @@ path = [
   "remappings.txt",
   "soldeer.lock",
   "slither.config.json",
+  "deployments/**",
   "typeshare.toml",
   "REUSE.toml",
   "package.json",
