@@ -30,10 +30,10 @@ rm -rf "$staged"
 nix develop .#subgraph-shell -c bash -c '
 set -euxo pipefail
 
-mkdir -p subgraph/abis
-jq "{abi}" out/RaindexV7.sol/RaindexV7.json > subgraph/abis/Raindex.json
-jq "{abi}" out/ERC20.sol/ERC20.json > subgraph/abis/ERC20.json
-jq "{abi}" out/DecimalFloat.sol/DecimalFloat.json > subgraph/abis/DecimalFloat.json
+mkdir -p subgraph/v7/abis
+jq "{abi}" out/RaindexV7.sol/RaindexV7.json > subgraph/v7/abis/Raindex.json
+jq "{abi}" out/ERC20.sol/ERC20.json > subgraph/v7/abis/ERC20.json
+jq "{abi}" out/DecimalFloat.sol/DecimalFloat.json > subgraph/v7/abis/DecimalFloat.json
 
 (cd subgraph && npm ci && graph codegen)
 

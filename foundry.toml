@@ -12,7 +12,7 @@
 # anything publishes.
 [external.package]
 name = "raindex-deploy"
-version = "0.1.17"
+version = "0.1.18"
 
 [profile.default]
 src = 'src'
@@ -72,6 +72,11 @@ fs_permissions = [
 remappings = [
   # Custom remap so @openzeppelin packages' own internal imports resolve.
   "@openzeppelin/contracts/=dependencies/@openzeppelin-contracts-5.7.0/",
+  # rainlang 0.2.40's test `OpTest` (the sub-parser tests inherit it) imports
+  # `rain-deploy-0.1.37/` for `etchZoltuFactory` and `deployZoltu`. 0.1.38 only
+  # adds 0G to 0.1.37, so it serves that import. Remove this once rainlang pins
+  # rain-deploy 0.1.38.
+  "rain-deploy-0.1.37/=dependencies/rain-deploy-0.1.38/",
 ]
 
 [dependencies]
@@ -79,26 +84,26 @@ forge-std = "1.17.0"
 "@openzeppelin-contracts" = "5.7.0"
 # rainlanguage/rain.interpreter was renamed to rainlanguage/rainlang;
 # its Soldeer registry name follows.
-rainlang = "0.2.36"
+rainlang = "0.2.40"
 # rainlanguage/rain.raindex.interface was renamed to
 # rainlanguage/raindex.interface; Soldeer registry name follows.
-raindex-interface = "0.1.14"
+raindex-interface = "0.1.17"
 rain-metadata = "0.1.46"
 # The MetaBoard split out of `rain.metadata` into its own deploy repo. The
 # deploy pin lives there now; `rain-metadata` keeps the interfaces and libs.
-rain-metadata-deploy = "0.1.5"
-rain-intorastring = "0.1.4"
+rain-metadata-deploy = "0.1.8"
+rain-intorastring = "0.1.5"
 rain-sol-codegen = "0.1.39"
 rain-solmem = "0.1.28"
-rain-math-float = "0.3.12"
-rain-math-float-deploy = "0.1.10"
+rain-math-float = "0.3.13"
+rain-math-float-deploy = "0.1.13"
 rain-tofu-erc20-decimals = "0.1.5"
-rain-tofu-erc20-decimals-deploy = "0.1.6"
-rain-deploy = "0.1.33"
+rain-tofu-erc20-decimals-deploy = "0.1.9"
+rain-deploy = "0.1.38"
+rain-extrospection = "0.1.31"
 rain-lib-typecast = "0.1.4"
-rain-lib-hash = "0.1.27"
 rain-math-binary = "0.1.4"
-rain-string = "0.3.10"
+rain-string = "0.3.11"
 rain-lib-memkv = "0.2.0"
 
 [soldeer]
@@ -118,6 +123,7 @@ flare = "${FLARE_RPC_URL}"
 hyperevm = "${HYPEREVM_RPC_URL}"
 polygon = "${POLYGON_RPC_URL}"
 robinhood = "${ROBINHOOD_RPC_URL}"
+zerog = "${ZEROG_RPC_URL}"
 # rain-deploy:generated:rpc_endpoints:end
 
 # Robinhood Chain (4663) is not indexed by Etherscan V2. Its Blockscout speaks
@@ -136,4 +142,5 @@ flare = { key = "${CI_DEPLOY_FLARE_ETHERSCAN_API_KEY}", chain = 14 }
 hyperevm = { key = "${CI_DEPLOY_HYPEREVM_ETHERSCAN_API_KEY}", chain = 999 }
 polygon = { key = "${CI_DEPLOY_POLYGON_ETHERSCAN_API_KEY}", chain = 137 }
 robinhood = { key = "${CI_DEPLOY_ROBINHOOD_ETHERSCAN_API_KEY}", chain = 4663, url = "https://robinhoodchain.blockscout.com/api" }
+zerog = { key = "${CI_DEPLOY_ZEROG_ETHERSCAN_API_KEY}", chain = 16661, url = "https://chainscan.0g.ai/open/api" }
 # rain-deploy:generated:etherscan:end

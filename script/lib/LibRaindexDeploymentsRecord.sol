@@ -3,11 +3,9 @@
 pragma solidity ^0.8.25;
 
 import {Vm} from "forge-std-1.17.0/src/Vm.sol";
-import {DeploySuite} from "rain-deploy-0.1.33/src/abstract/RainDeploySuitesBase.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.33/src/lib/LibRainDeploy.sol";
+import {DeploySuite} from "rain-deploy-0.1.38/src/abstract/RainDeploySuitesBase.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.38/src/lib/LibRainDeploy.sol";
 import {LibRaindexLegacyDeployments, RaindexDeployment} from "../../src/lib/LibRaindexLegacyDeployments.sol";
-import {LibRaindexV6Released} from "../../src/lib/LibRaindexV6Released.sol";
-import {LibRaindexV7Released} from "../../src/lib/LibRaindexV7Released.sol";
 
 // Where the released raindexes' first blocks are recorded, one entry per
 // (address, network). `script/build-start-blocks.sh` adds the newly released
@@ -51,8 +49,22 @@ library LibRaindexDeploymentsRecord {
         revert NoReleasedStartBlock(addr, network);
     }
 
-    /// Every distinct released address of `suites`, at `version`, on every
-    /// supported network.
+    /// Whether a release of `addr` among `suites` is declared on `network`. A
+    /// suite with no networks of its own is declared on every supported one.
+    function declaredOn(DeploySuite[] memory suites, address addr, string memory network) internal pure returns (bool) {
+        for (uint256 i = 0; i < suites.length; i++) {
+            if (suites[i].storedDeployedAddress != addr) continue;
+            string[] memory nets = suites[i].networks;
+            if (nets.length == 0) return true;
+            for (uint256 j = 0; j < nets.length; j++) {
+                if (keccak256(bytes(nets[j])) == keccak256(bytes(network))) return true;
+            }
+        }
+        return false;
+    }
+
+    /// Every distinct released address of `suites`, at `version`, on each
+    /// supported network a release of it is declared on.
     function released(
         DeploySuite[] memory suites,
         uint256 version,
@@ -69,9 +81,11 @@ library LibRaindexDeploymentsRecord {
             if (!seen) addrs[n++] = suites[i].storedDeployedAddress;
         }
         out = new RaindexDeployment[](n * networks.length);
+        uint256 o = 0;
         for (uint256 i = 0; i < n; i++) {
             for (uint256 k = 0; k < networks.length; k++) {
-                out[i * networks.length + k] = RaindexDeployment({
+                if (!declaredOn(suites, addrs[i], networks[k])) continue;
+                out[o++] = RaindexDeployment({
                     network: networks[k],
                     deployedAddress: addrs[i],
                     interfaceVersion: version,
@@ -79,16 +93,24 @@ library LibRaindexDeploymentsRecord {
                 });
             }
         }
+        assembly ("memory-safe") {
+            mstore(out, o)
+        }
     }
 
     /// The legacy table, then every released RaindexV6, then every released
-    /// RaindexV7.
-    function deployments(Vm vm) internal view returns (RaindexDeployment[] memory all) {
+    /// RaindexV7. The released suites carry the networks each release is
+    /// declared on (`RaindexDeploySuites.narrowReleasedNetworks`).
+    function deployments(Vm vm, DeploySuite[] memory v6Suites, DeploySuite[] memory v7Suites)
+        internal
+        view
+        returns (RaindexDeployment[] memory all)
+    {
         RaindexDeployment[] memory legacy = LibRaindexLegacyDeployments.deployments();
         ReleasedStartBlock[] memory blocks = releasedStartBlocks(vm);
         string[] memory networks = LibRainDeploy.supportedNetworks();
-        RaindexDeployment[] memory v6 = released(LibRaindexV6Released.releasedSuites(), 6, networks, blocks);
-        RaindexDeployment[] memory v7 = released(LibRaindexV7Released.releasedSuites(), 7, networks, blocks);
+        RaindexDeployment[] memory v6 = released(v6Suites, 6, networks, blocks);
+        RaindexDeployment[] memory v7 = released(v7Suites, 7, networks, blocks);
         all = new RaindexDeployment[](legacy.length + v6.length + v7.length);
         uint256 o = 0;
         for (uint256 i = 0; i < legacy.length; i++) {

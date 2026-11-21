@@ -9,7 +9,7 @@ import {
     TaskV3,
     SignedContextV2,
     ClearConfigV2
-} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {ClearZeroAmount} from "../../../src/error/ErrRaindexV7.sol";
 

@@ -1,4 +1,4 @@
 # Forge-emitted ABIs are copied verbatim by script/build-subgraph.sh; keeping
 # them raw means rainix-copy-artifacts' regen + `git diff --exit-code` gate
 # matches what forge build produces.
-subgraph/abis/
+subgraph/*/abis/

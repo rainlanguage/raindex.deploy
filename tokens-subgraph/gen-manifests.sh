@@ -23,6 +23,7 @@ graph_network() {
     matchain) echo matchain ;;
     polygon) echo matic ;;
     robinhood) echo robinhood ;;
+    zerog) echo 0g ;;
     *) echo "no graph network for $1" >&2; return 1 ;;
   esac
 }

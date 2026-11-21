@@ -7,7 +7,7 @@ import {SafeERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/utils/SafeERC
 import {
     IERC3156FlashBorrower,
     ON_FLASH_LOAN_CALLBACK_SUCCESS
-} from "raindex-interface-0.1.14/src/interface/ierc3156/IERC3156FlashBorrower.sol";
+} from "raindex-interface-0.1.17/src/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {MockRaindexBase} from "test/util/abstract/MockRaindexBase.sol";
 
 /// @dev Mock raindex whose `flashLoan` performs a real net-neutral ERC3156

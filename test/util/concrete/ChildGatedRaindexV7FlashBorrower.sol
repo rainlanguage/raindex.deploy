@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 
 import {RaindexV7FlashBorrower} from "../../../src/abstract/RaindexV7FlashBorrower.sol";
 import {RaindexV7ArbTaskGated, RaindexV7ArbConfig} from "../../../src/abstract/RaindexV7ArbTaskGated.sol";
-import {TaskV3} from "raindex-interface-0.1.14/src/interface/IRaindexV7.sol";
+import {TaskV3} from "raindex-interface-0.1.17/src/interface/IRaindexV7.sol";
 
 /// @dev A task-gated flash borrower arb: combines the `arb5` entrypoint from
 /// `RaindexV7FlashBorrower` with the task-hash gating mixin

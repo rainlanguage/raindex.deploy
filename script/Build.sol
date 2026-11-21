@@ -2,13 +2,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {BuildScript, GeneratedContract, RetiredContract} from "rain-deploy-0.1.33/src/abstract/BuildScript.sol";
-import {LibRainDeploySnapshot} from "rain-deploy-0.1.33/src/lib/LibRainDeploySnapshot.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.33/src/lib/LibRainDeploy.sol";
-import {DeployDeclaration, DeploySuite} from "rain-deploy-0.1.33/src/abstract/RainDeploySuitesBase.sol";
+import {BuildScript, GeneratedContract, RetiredContract} from "rain-deploy-0.1.38/src/abstract/BuildScript.sol";
+import {LibRainDeploySnapshot} from "rain-deploy-0.1.38/src/lib/LibRainDeploySnapshot.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.38/src/lib/LibRainDeploy.sol";
+import {DeployDeclaration, DeploySuite} from "rain-deploy-0.1.38/src/abstract/RainDeploySuitesBase.sol";
 import {LibCodeGen} from "rain-sol-codegen-0.1.39/src/lib/LibCodeGen.sol";
 import {LibFs} from "rain-sol-codegen-0.1.39/src/lib/LibFs.sol";
-import {LibGenParseMeta} from "rainlang-0.2.36/src/lib/codegen/LibGenParseMeta.sol";
+import {LibGenParseMeta} from "rainlang-0.2.40/src/lib/codegen/LibGenParseMeta.sol";
 import {
     RaindexDeploySuites,
     RAINDEX_SUITE,
@@ -20,6 +20,8 @@ import {
 } from "../src/abstract/RaindexDeploySuites.sol";
 import {RaindexDeployment} from "../src/lib/LibRaindexLegacyDeployments.sol";
 import {LibRaindexDeploymentsRecord} from "./lib/LibRaindexDeploymentsRecord.sol";
+import {LibRaindexV6Released} from "../src/lib/LibRaindexV6Released.sol";
+import {LibRaindexV7Released} from "../src/lib/LibRaindexV7Released.sol";
 import {RaindexV7SubParser} from "../src/concrete/parser/RaindexV7SubParser.sol";
 import {LibRaindexSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "../src/lib/LibRaindexSubParser.sol";
 
@@ -181,7 +183,11 @@ contract Build is BuildScript, RaindexDeploySuites {
     /// subgraph, the org dashboard) never parse Solidity. One row per line, so a
     /// new deployment is a one-line diff.
     function buildDeploymentsJson() internal {
-        RaindexDeployment[] memory records = LibRaindexDeploymentsRecord.deployments(vm);
+        RaindexDeployment[] memory records = LibRaindexDeploymentsRecord.deployments(
+            vm,
+            narrowReleasedNetworks(LibRaindexV6Released.releasedSuites()),
+            narrowReleasedNetworks(LibRaindexV7Released.releasedSuites())
+        );
         string memory rows = "";
         for (uint256 i = 0; i < records.length; i++) {
             rows = string.concat(
