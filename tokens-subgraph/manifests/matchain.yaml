@@ -7,7 +7,7 @@ dataSources:
     network: matchain
     source:
       address: "0x40312EDAB8Fe65091354172ad79e9459f21094E2"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 3976602
     mapping:
       kind: ethereum/events
@@ -16,9 +16,11 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: Deposit(address,address,uint256,uint256)
           handler: handleDeposit
+        - event: "AddOrderV2(address,bytes32,(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32))"
+          handler: handleAddOrderV2
       file: ../src/tokens.ts

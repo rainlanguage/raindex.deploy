@@ -7,7 +7,7 @@ dataSources:
     network: base-sepolia
     source:
       address: "0x7242ce1ffe34297921c54cD7f9343c411E1E7759"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 38850417
     mapping:
       kind: ethereum/events
@@ -16,18 +16,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0xa560e58C77B8A841f80B4741Ad08E9260Edcab9F
     network: base-sepolia
     source:
       address: "0xa560e58C77B8A841f80B4741Ad08E9260Edcab9F"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42156188
     mapping:
       kind: ethereum/events
@@ -36,18 +38,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0x83507d7E14556A1822E6959982BebA6024245FA8
     network: base-sepolia
     source:
       address: "0x83507d7E14556A1822E6959982BebA6024245FA8"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42314813
     mapping:
       kind: ethereum/events
@@ -56,18 +60,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0x3Ee54EbB1734DA14852C06A3Be1CdEebA796B0a3
     network: base-sepolia
     source:
       address: "0x3Ee54EbB1734DA14852C06A3Be1CdEebA796B0a3"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42326836
     mapping:
       kind: ethereum/events
@@ -76,18 +82,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0xE8421069D1F56cC1207E6Ec21341BcFD044B8cd5
     network: base-sepolia
     source:
       address: "0xE8421069D1F56cC1207E6Ec21341BcFD044B8cd5"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42329386
     mapping:
       kind: ethereum/events
@@ -96,18 +104,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0xb05D73E6BCc26AEB5b67Ff68C6E9C6151073e3cE
     network: base-sepolia
     source:
       address: "0xb05D73E6BCc26AEB5b67Ff68C6E9C6151073e3cE"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42331638
     mapping:
       kind: ethereum/events
@@ -116,18 +126,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0x4F4527919DA654C1718Ca6Ef194F6547226685f6
     network: base-sepolia
     source:
       address: "0x4F4527919DA654C1718Ca6Ef194F6547226685f6"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42404017
     mapping:
       kind: ethereum/events
@@ -136,18 +148,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0xE0203890383Ca9C0c263f42a51C4C95211Cee6F9
     network: base-sepolia
     source:
       address: "0xE0203890383Ca9C0c263f42a51C4C95211Cee6F9"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42628606
     mapping:
       kind: ethereum/events
@@ -156,18 +170,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0x025e93Be5c1780240C11E34B3387266754017D20
     network: base-sepolia
     source:
       address: "0x025e93Be5c1780240C11E34B3387266754017D20"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42658389
     mapping:
       kind: ethereum/events
@@ -176,18 +192,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0x13b8f830e347a51778652C86cf3419b3E1Ab1205
     network: base-sepolia
     source:
       address: "0x13b8f830e347a51778652C86cf3419b3E1Ab1205"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42665138
     mapping:
       kind: ethereum/events
@@ -196,18 +214,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0x86594ac4319230870C6E587f4ACa48FAb575619e
     network: base-sepolia
     source:
       address: "0x86594ac4319230870C6E587f4ACa48FAb575619e"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42788671
     mapping:
       kind: ethereum/events
@@ -216,18 +236,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0x7992F7A3044258c9a200835970D5bFf275Efe5e7
     network: base-sepolia
     source:
       address: "0x7992F7A3044258c9a200835970D5bFf275Efe5e7"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42893619
     mapping:
       kind: ethereum/events
@@ -236,18 +258,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0x1115EBC9C82F074454F6AC28f123B0684A453aF7
     network: base-sepolia
     source:
       address: "0x1115EBC9C82F074454F6AC28f123B0684A453aF7"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42895413
     mapping:
       kind: ethereum/events
@@ -256,18 +280,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20
     network: base-sepolia
     source:
       address: "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 42898113
     mapping:
       kind: ethereum/events
@@ -276,18 +302,20 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
   - kind: ethereum/contract
     name: Raindex_0x91b95120D085Aa99C05167f3767eB63460c1dCaC
     network: base-sepolia
     source:
       address: "0x91b95120D085Aa99C05167f3767eB63460c1dCaC"
-      abi: RaindexDeposits
+      abi: RaindexTokenEvents
       startBlock: 50715851
     mapping:
       kind: ethereum/events
@@ -296,9 +324,11 @@ dataSources:
       entities:
         - RaindexToken
       abis:
-        - name: RaindexDeposits
-          file: ../abis/RaindexDeposits.json
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
       file: ../src/tokens.ts
