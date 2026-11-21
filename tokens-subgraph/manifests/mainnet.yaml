@@ -1,0 +1,92 @@
+specVersion: "0.0.4"
+schema:
+  file: ../schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Raindex_0xf1224A483ad7F1E9aA46A8CE41229F32d7549A74
+    network: mainnet
+    source:
+      address: "0xf1224A483ad7F1E9aA46A8CE41229F32d7549A74"
+      abi: RaindexTokenEvents
+      startBlock: 19165935
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+        - event: "AddOrder(address,address,(address,bool,(address,address,address),(address,uint8,uint256)[],(address,uint8,uint256)[]),bytes32)"
+          handler: handleAddOrder
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x0eA6d458488d1cf51695e1D6e4744e6FB715d37C
+    network: mainnet
+    source:
+      address: "0x0eA6d458488d1cf51695e1D6e4744e6FB715d37C"
+      abi: RaindexTokenEvents
+      startBlock: 21041924
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+        - event: "AddOrderV2(address,bytes32,(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32))"
+          handler: handleAddOrderV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20
+    network: mainnet
+    source:
+      address: "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20"
+      abi: RaindexTokenEvents
+      startBlock: 25818088
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x91b95120D085Aa99C05167f3767eB63460c1dCaC
+    network: mainnet
+    source:
+      address: "0x91b95120D085Aa99C05167f3767eB63460c1dCaC"
+      abi: RaindexTokenEvents
+      startBlock: 26280798
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+        - event: "AddOrderV3(address,bytes32,(address,(address,address,bytes),(address,bytes32)[],(address,bytes32)[],bytes32))"
+          handler: handleAddOrderV3
+      file: ../src/tokens.ts

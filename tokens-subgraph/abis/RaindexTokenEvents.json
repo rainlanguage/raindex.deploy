@@ -1,0 +1,371 @@
+{
+  "abi": [
+    {
+      "type": "event",
+      "name": "AddOrder",
+      "inputs": [
+        {
+          "name": "sender",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "expressionDeployer",
+          "type": "address",
+          "indexed": false,
+          "internalType": "contract IExpressionDeployerV3"
+        },
+        {
+          "name": "order",
+          "type": "tuple",
+          "indexed": false,
+          "internalType": "struct OrderV2",
+          "components": [
+            {
+              "name": "owner",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "handleIO",
+              "type": "bool",
+              "internalType": "bool"
+            },
+            {
+              "name": "evaluable",
+              "type": "tuple",
+              "internalType": "struct EvaluableV2",
+              "components": [
+                {
+                  "name": "interpreter",
+                  "type": "address",
+                  "internalType": "contract IInterpreterV2"
+                },
+                {
+                  "name": "store",
+                  "type": "address",
+                  "internalType": "contract IInterpreterStoreV2"
+                },
+                {
+                  "name": "expression",
+                  "type": "address",
+                  "internalType": "address"
+                }
+              ]
+            },
+            {
+              "name": "validInputs",
+              "type": "tuple[]",
+              "internalType": "struct IO[]",
+              "components": [
+                {
+                  "name": "token",
+                  "type": "address",
+                  "internalType": "address"
+                },
+                {
+                  "name": "decimals",
+                  "type": "uint8",
+                  "internalType": "uint8"
+                },
+                {
+                  "name": "vaultId",
+                  "type": "uint256",
+                  "internalType": "uint256"
+                }
+              ]
+            },
+            {
+              "name": "validOutputs",
+              "type": "tuple[]",
+              "internalType": "struct IO[]",
+              "components": [
+                {
+                  "name": "token",
+                  "type": "address",
+                  "internalType": "address"
+                },
+                {
+                  "name": "decimals",
+                  "type": "uint8",
+                  "internalType": "uint8"
+                },
+                {
+                  "name": "vaultId",
+                  "type": "uint256",
+                  "internalType": "uint256"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "orderHash",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "Deposit",
+      "inputs": [
+        {
+          "name": "sender",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "token",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "vaultId",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "AddOrderV2",
+      "inputs": [
+        {
+          "name": "sender",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "orderHash",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "order",
+          "type": "tuple",
+          "indexed": false,
+          "internalType": "struct OrderV3",
+          "components": [
+            {
+              "name": "owner",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "evaluable",
+              "type": "tuple",
+              "internalType": "struct EvaluableV3",
+              "components": [
+                {
+                  "name": "interpreter",
+                  "type": "address",
+                  "internalType": "contract IInterpreterV3"
+                },
+                {
+                  "name": "store",
+                  "type": "address",
+                  "internalType": "contract IInterpreterStoreV2"
+                },
+                {
+                  "name": "bytecode",
+                  "type": "bytes",
+                  "internalType": "bytes"
+                }
+              ]
+            },
+            {
+              "name": "validInputs",
+              "type": "tuple[]",
+              "internalType": "struct IO[]",
+              "components": [
+                {
+                  "name": "token",
+                  "type": "address",
+                  "internalType": "address"
+                },
+                {
+                  "name": "decimals",
+                  "type": "uint8",
+                  "internalType": "uint8"
+                },
+                {
+                  "name": "vaultId",
+                  "type": "uint256",
+                  "internalType": "uint256"
+                }
+              ]
+            },
+            {
+              "name": "validOutputs",
+              "type": "tuple[]",
+              "internalType": "struct IO[]",
+              "components": [
+                {
+                  "name": "token",
+                  "type": "address",
+                  "internalType": "address"
+                },
+                {
+                  "name": "decimals",
+                  "type": "uint8",
+                  "internalType": "uint8"
+                },
+                {
+                  "name": "vaultId",
+                  "type": "uint256",
+                  "internalType": "uint256"
+                }
+              ]
+            },
+            {
+              "name": "nonce",
+              "type": "bytes32",
+              "internalType": "bytes32"
+            }
+          ]
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "AddOrderV3",
+      "inputs": [
+        {
+          "name": "sender",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "orderHash",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "order",
+          "type": "tuple",
+          "indexed": false,
+          "internalType": "struct OrderV4",
+          "components": [
+            {
+              "name": "owner",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "evaluable",
+              "type": "tuple",
+              "internalType": "struct EvaluableV4",
+              "components": [
+                {
+                  "name": "interpreter",
+                  "type": "address",
+                  "internalType": "contract IInterpreterV4"
+                },
+                {
+                  "name": "store",
+                  "type": "address",
+                  "internalType": "contract IInterpreterStoreV3"
+                },
+                {
+                  "name": "bytecode",
+                  "type": "bytes",
+                  "internalType": "bytes"
+                }
+              ]
+            },
+            {
+              "name": "validInputs",
+              "type": "tuple[]",
+              "internalType": "struct IOV2[]",
+              "components": [
+                {
+                  "name": "token",
+                  "type": "address",
+                  "internalType": "address"
+                },
+                {
+                  "name": "vaultId",
+                  "type": "bytes32",
+                  "internalType": "bytes32"
+                }
+              ]
+            },
+            {
+              "name": "validOutputs",
+              "type": "tuple[]",
+              "internalType": "struct IOV2[]",
+              "components": [
+                {
+                  "name": "token",
+                  "type": "address",
+                  "internalType": "address"
+                },
+                {
+                  "name": "vaultId",
+                  "type": "bytes32",
+                  "internalType": "bytes32"
+                }
+              ]
+            },
+            {
+              "name": "nonce",
+              "type": "bytes32",
+              "internalType": "bytes32"
+            }
+          ]
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "DepositV2",
+      "inputs": [
+        {
+          "name": "sender",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "token",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "vaultId",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "depositAmountUint256",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    }
+  ]
+}

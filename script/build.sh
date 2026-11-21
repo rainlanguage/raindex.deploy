@@ -37,6 +37,12 @@ jq "{abi}" out/DecimalFloat.sol/DecimalFloat.json > subgraph/v7/abis/DecimalFloa
 
 (cd subgraph && npm ci && graph codegen)
 
+# The deposit and add-order events of every raindex interface version (3, 4,
+# and 5-7, which share one set) the tokens subgraph handles.
+jq -s "{abi: ([.[0].abi[] | select(.type == \"event\" and (.name == \"Deposit\" or .name == \"AddOrder\"))] + [.[1].abi[] | select(.type == \"event\" and .name == \"AddOrderV2\")] + [.[2].abi[] | select(.type == \"event\" and (.name == \"DepositV2\" or .name == \"AddOrderV3\"))])}" out/IOrderBookV3.sol/IOrderBookV3.default.json out/IOrderBookV4.sol/IOrderBookV4.default.json out/IOrderBookV5.sol/IOrderBookV5.default.json > tokens-subgraph/abis/RaindexTokenEvents.json
+
+(cd tokens-subgraph && ./gen-manifests.sh && npm ci && graph codegen)
+
 mkdir -p crates/bindings/abis
 # Sources the raindex compiler profile also compiles get per-profile artifacts.
 jq "{abi}" out/IRaindexV7.sol/IRaindexV7.default.json > crates/bindings/abis/IRaindexV7.json

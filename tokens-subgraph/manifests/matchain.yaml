@@ -1,0 +1,26 @@
+specVersion: "0.0.4"
+schema:
+  file: ../schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Raindex_0x40312EDAB8Fe65091354172ad79e9459f21094E2
+    network: matchain
+    source:
+      address: "0x40312EDAB8Fe65091354172ad79e9459f21094E2"
+      abi: RaindexTokenEvents
+      startBlock: 3976602
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexTokenEvents
+          file: ../abis/RaindexTokenEvents.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+        - event: "AddOrderV2(address,bytes32,(address,(address,address,bytes),(address,uint8,uint256)[],(address,uint8,uint256)[],bytes32))"
+          handler: handleAddOrderV2
+      file: ../src/tokens.ts

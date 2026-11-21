@@ -1,0 +1,13 @@
+"""
+A token one raindex can hold: first seen in a deposit to that raindex, or as an
+input or output of an order added to it. TVL is read on chain as the token's
+balanceOf(raindex); this only discovers the pairs.
+"""
+type RaindexToken @entity(immutable: true) {
+  "raindex address ++ token address"
+  id: Bytes!
+  raindex: Bytes!
+  token: Bytes!
+  "The block of the first deposit of `token` into `raindex`, or of the first order there listing it."
+  firstSeenBlock: BigInt!
+}
