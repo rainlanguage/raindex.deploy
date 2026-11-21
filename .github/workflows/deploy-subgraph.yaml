@@ -8,7 +8,7 @@ jobs:
       subgraph-dir: subgraph/v6
       subgraph-name: raindex-v6
       ormi-query-base: https://subgraph.api.ormilabs.com/api/public/9f4fc2fa-4a15-44f7-a7c1-66fdaa518a71
-      goldsky-query-base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg
+      goldsky-query-base: https://api.goldsky.com/api/public/project_cmjr2df7svg6t01tl2ic706ao
     secrets: inherit
   deploy-v7:
     uses: rainlanguage/rainix/.github/workflows/rainix-subgraph-deploy.yaml@main
