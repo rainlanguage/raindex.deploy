@@ -10,13 +10,23 @@ import {LibReleasedSuites} from "../../src/lib/LibReleasedSuites.sol";
 import {LibRaindexV6Released} from "../../src/lib/LibRaindexV6Released.sol";
 import {LibRaindexV7Released} from "../../src/lib/LibRaindexV7Released.sol";
 import {LibRaindexV7StartBlock} from "../../src/lib/deploy/LibRaindexV7StartBlock.sol";
+import {RaindexDeploySuites} from "../../src/abstract/RaindexDeploySuites.sol";
 import {
     LibRaindexDeploymentsRecord,
     ReleasedStartBlock,
     NoReleasedStartBlock
 } from "../../script/lib/LibRaindexDeploymentsRecord.sol";
 
-contract LibRaindexLegacyDeploymentsTest is Test {
+contract LibRaindexLegacyDeploymentsTest is Test, RaindexDeploySuites {
+    /// The composed record, from the releases narrowed to their declared networks.
+    function composedRecords() internal view returns (RaindexDeployment[] memory) {
+        return LibRaindexDeploymentsRecord.deployments(
+            vm,
+            narrowReleasedNetworks(LibRaindexV6Released.releasedSuites()),
+            narrowReleasedNetworks(LibRaindexV7Released.releasedSuites())
+        );
+    }
+
     function networkOrder(string memory a, string memory b) internal pure returns (int256) {
         bytes memory left = bytes(a);
         bytes memory right = bytes(b);
@@ -94,7 +104,7 @@ contract LibRaindexLegacyDeploymentsTest is Test {
 
     /// Composed: no (network, address) pair appears twice.
     function testDeploymentsNetworkAddressPairsUnique() external view {
-        RaindexDeployment[] memory records = LibRaindexDeploymentsRecord.deployments(vm);
+        RaindexDeployment[] memory records = composedRecords();
         for (uint256 i = 0; i < records.length; i++) {
             for (uint256 j = i + 1; j < records.length; j++) {
                 assertFalse(
@@ -106,24 +116,51 @@ contract LibRaindexLegacyDeploymentsTest is Test {
         }
     }
 
+    /// The networks `suite` is declared on: its own, or every supported one.
+    function declaredNetworks(DeploySuite memory suite) internal pure returns (string[] memory) {
+        return suite.networks.length == 0 ? LibRainDeploy.supportedNetworks() : suite.networks;
+    }
+
+    /// `suite` at `version` is in `records`, with a non-zero block, on every
+    /// network it is declared on.
+    function assertRecordedOnDeclared(RaindexDeployment[] memory records, DeploySuite memory suite, uint256 version)
+        internal
+        pure
+    {
+        string[] memory networks = declaredNetworks(suite);
+        for (uint256 n = 0; n < networks.length; n++) {
+            RaindexDeployment memory r = rowFor(records, networks[n], suite.storedDeployedAddress);
+            assertEq(r.interfaceVersion, version, string.concat("released ", suite.suite, " on ", networks[n]));
+            assertNotEq(r.blockNumber, 0, string.concat("released ", suite.suite, " block on ", networks[n]));
+        }
+    }
+
     /// Composed: every released raindex is present, at its version and with a
-    /// non-zero recorded block, on every network this repo deploys to. A
+    /// non-zero recorded block, on every network its release is declared on. A
     /// release whose blocks were not recorded fails here, naming the gap.
     function testDeploymentsIncludeEveryReleasedRaindex() external view {
-        RaindexDeployment[] memory records = LibRaindexDeploymentsRecord.deployments(vm);
-        string[] memory networks = LibRainDeploy.supportedNetworks();
+        RaindexDeployment[] memory records = composedRecords();
+        DeploySuite[] memory v6 = narrowReleasedNetworks(LibRaindexV6Released.releasedSuites());
+        DeploySuite[] memory v7 = narrowReleasedNetworks(LibRaindexV7Released.releasedSuites());
+        for (uint256 i = 0; i < v6.length; i++) {
+            assertRecordedOnDeclared(records, v6[i], 6);
+        }
+        for (uint256 i = 0; i < v7.length; i++) {
+            assertRecordedOnDeclared(records, v7[i], 7);
+        }
+    }
+
+    /// Composed: 0G runs RaindexV6 and no RaindexV7, so the record has the V6
+    /// release on `zerog` and no V7 release there.
+    function testDeploymentsOnZerogAreV6Only() external view {
+        RaindexDeployment[] memory records = composedRecords();
         DeploySuite[] memory v6 = LibRaindexV6Released.releasedSuites();
         DeploySuite[] memory v7 = LibRaindexV7Released.releasedSuites();
-        for (uint256 n = 0; n < networks.length; n++) {
-            for (uint256 i = 0; i < v6.length; i++) {
-                RaindexDeployment memory r = rowFor(records, networks[n], v6[i].storedDeployedAddress);
-                assertEq(r.interfaceVersion, 6, string.concat("released ", v6[i].suite, " on ", networks[n]));
-                assertNotEq(r.blockNumber, 0, string.concat("released ", v6[i].suite, " block on ", networks[n]));
-            }
-            for (uint256 i = 0; i < v7.length; i++) {
-                RaindexDeployment memory r = rowFor(records, networks[n], v7[i].storedDeployedAddress);
-                assertEq(r.interfaceVersion, 7, string.concat("released ", v7[i].suite, " on ", networks[n]));
-                assertNotEq(r.blockNumber, 0, string.concat("released ", v7[i].suite, " block on ", networks[n]));
+        assertEq(rowFor(records, LibRainDeploy.ZEROG, v6[v6.length - 1].storedDeployedAddress).interfaceVersion, 6);
+        for (uint256 i = 0; i < records.length; i++) {
+            if (!same(records[i].network, LibRainDeploy.ZEROG)) continue;
+            for (uint256 j = 0; j < v7.length; j++) {
+                assertNotEq(records[i].deployedAddress, v7[j].storedDeployedAddress, v7[j].suite);
             }
         }
     }

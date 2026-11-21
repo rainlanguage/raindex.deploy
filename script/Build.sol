@@ -20,6 +20,8 @@ import {
 } from "../src/abstract/RaindexDeploySuites.sol";
 import {RaindexDeployment} from "../src/lib/LibRaindexLegacyDeployments.sol";
 import {LibRaindexDeploymentsRecord} from "./lib/LibRaindexDeploymentsRecord.sol";
+import {LibRaindexV6Released} from "../src/lib/LibRaindexV6Released.sol";
+import {LibRaindexV7Released} from "../src/lib/LibRaindexV7Released.sol";
 import {RaindexV7SubParser} from "../src/concrete/parser/RaindexV7SubParser.sol";
 import {LibRaindexSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "../src/lib/LibRaindexSubParser.sol";
 
@@ -181,7 +183,11 @@ contract Build is BuildScript, RaindexDeploySuites {
     /// subgraph, the org dashboard) never parse Solidity. One row per line, so a
     /// new deployment is a one-line diff.
     function buildDeploymentsJson() internal {
-        RaindexDeployment[] memory records = LibRaindexDeploymentsRecord.deployments(vm);
+        RaindexDeployment[] memory records = LibRaindexDeploymentsRecord.deployments(
+            vm,
+            narrowReleasedNetworks(LibRaindexV6Released.releasedSuites()),
+            narrowReleasedNetworks(LibRaindexV7Released.releasedSuites())
+        );
         string memory rows = "";
         for (uint256 i = 0; i < records.length; i++) {
             rows = string.concat(

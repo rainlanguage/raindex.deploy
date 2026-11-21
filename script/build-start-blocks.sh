@@ -11,8 +11,8 @@
 #   - the RAINDEX_START_BLOCK_* constants in src/lib/deploy/LibRaindexV7StartBlock.sol
 #   - subgraph/v7/networks.json (address + startBlock per network)
 #   - subgraph/v7/subgraph.yaml (data source address)
-#   - deployments/released-start-blocks.json (this address on every supported
-#     network, read by script/lib/LibRaindexDeploymentsRecord.sol)
+#   - deployments/released-start-blocks.json (this address on every network it
+#     is declared on, read by script/lib/LibRaindexDeploymentsRecord.sol)
 #
 # RaindexV7 is CREATE2-deployed, so its address only ever holds the one bytecode
 # it was created with: the first block with code at that address IS the deploy
