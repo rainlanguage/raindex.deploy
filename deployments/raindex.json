@@ -110,6 +110,7 @@
   {"network": "linea", "address": "0xF97DE1c2d864d90851aDBcbEe0A38260440B8D90", "interfaceVersion": 4, "startBlock": 7439620},
   {"network": "linea", "address": "0x22410e2a46261a1B1e3899a072f303022801C764", "interfaceVersion": 4, "startBlock": 10147523},
   {"network": "matchain", "address": "0x40312EDAB8Fe65091354172ad79e9459f21094E2", "interfaceVersion": 4, "startBlock": 3976602},
+  {"network": "polygon", "address": "0x34200E026FbaC0c902a0ff18E77a49265CA6ac99", "interfaceVersion": 3, "startBlock": 45868729},
   {"network": "polygon", "address": "0xFb8a0C401C9d11fDecCdDDCBf89bFFA84681281d", "interfaceVersion": 3, "startBlock": 47330901},
   {"network": "polygon", "address": "0x95C9Bf235435b660AA69F519904C3F175Aab393d", "interfaceVersion": 3, "startBlock": 49421712},
   {"network": "polygon", "address": "0xd3eDaFeb9eAA454CE26E60A66CcDA73939C343A4", "interfaceVersion": 3, "startBlock": 49464751},
