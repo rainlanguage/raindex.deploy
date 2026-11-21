@@ -1,0 +1,26 @@
+{
+  "abi": [
+    {
+      "type": "event",
+      "name": "Deposit",
+      "anonymous": false,
+      "inputs": [
+        { "name": "sender", "type": "address", "indexed": false },
+        { "name": "token", "type": "address", "indexed": false },
+        { "name": "vaultId", "type": "uint256", "indexed": false },
+        { "name": "amount", "type": "uint256", "indexed": false }
+      ]
+    },
+    {
+      "type": "event",
+      "name": "DepositV2",
+      "anonymous": false,
+      "inputs": [
+        { "name": "sender", "type": "address", "indexed": false },
+        { "name": "token", "type": "address", "indexed": false },
+        { "name": "vaultId", "type": "bytes32", "indexed": false },
+        { "name": "depositAmountUint256", "type": "uint256", "indexed": false }
+      ]
+    }
+  ]
+}

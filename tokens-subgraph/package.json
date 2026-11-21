@@ -1,0 +1,16 @@
+{
+    "name": "rain-raindex-tokens-subgraph",
+    "description": "Raindex token discovery across every raindex deployment",
+    "version": "1.0.0",
+    "license": "LicenseRef-DCL-1.0",
+    "author": "Rain Open Source Software Ltd",
+    "scripts": {
+        "test": "graph test -d"
+    },
+    "dependencies": {
+        "@graphprotocol/graph-cli": "^0.63.0",
+        "@graphprotocol/graph-ts": "=0.32.0",
+        "matchstick-as": "^0.6.0",
+        "source-map-support": "^0.5.21"
+    }
+}

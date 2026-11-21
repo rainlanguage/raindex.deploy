@@ -1,0 +1,584 @@
+specVersion: "0.0.4"
+schema:
+  file: ../schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Raindex_0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+    network: flare
+    source:
+      address: "0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6"
+      abi: RaindexDeposits
+      startBlock: 18708632
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xF9bDedb1e8c32185E879E056eBA9F5aeC1839d60
+    network: flare
+    source:
+      address: "0xF9bDedb1e8c32185E879E056eBA9F5aeC1839d60"
+      abi: RaindexDeposits
+      startBlock: 21858702
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xb06202aA3Fe7d85171fB7aA5f17011d17E63f382
+    network: flare
+    source:
+      address: "0xb06202aA3Fe7d85171fB7aA5f17011d17E63f382"
+      abi: RaindexDeposits
+      startBlock: 22109423
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x762adD85a30A83722feF2e029087C9D110B6a7b3
+    network: flare
+    source:
+      address: "0x762adD85a30A83722feF2e029087C9D110B6a7b3"
+      abi: RaindexDeposits
+      startBlock: 22412710
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xD0790C27F9A8C163e55E2402c08C6ae2c53a2669
+    network: flare
+    source:
+      address: "0xD0790C27F9A8C163e55E2402c08C6ae2c53a2669"
+      abi: RaindexDeposits
+      startBlock: 23429670
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x07701e3BcE4248EFDFc7D31392a43c8b82a7A260
+    network: flare
+    source:
+      address: "0x07701e3BcE4248EFDFc7D31392a43c8b82a7A260"
+      abi: RaindexDeposits
+      startBlock: 24243780
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x4CebD993B31E8A17860337B2703f123A561F9685
+    network: flare
+    source:
+      address: "0x4CebD993B31E8A17860337B2703f123A561F9685"
+      abi: RaindexDeposits
+      startBlock: 26540405
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x582d9e838FE6cD9F8147C66A8f56A3FBE513a6A2
+    network: flare
+    source:
+      address: "0x582d9e838FE6cD9F8147C66A8f56A3FBE513a6A2"
+      abi: RaindexDeposits
+      startBlock: 26728124
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xA2Ac77b982A9c0999472c1De378A81d7363d926F
+    network: flare
+    source:
+      address: "0xA2Ac77b982A9c0999472c1De378A81d7363d926F"
+      abi: RaindexDeposits
+      startBlock: 28576185
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xaa3b14Af0e29E3854E4148f43321C4410db002bC
+    network: flare
+    source:
+      address: "0xaa3b14Af0e29E3854E4148f43321C4410db002bC"
+      abi: RaindexDeposits
+      startBlock: 28586117
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xCEe8Cd002F151A536394E564b84076c41bBBcD4d
+    network: flare
+    source:
+      address: "0xCEe8Cd002F151A536394E564b84076c41bBBcD4d"
+      abi: RaindexDeposits
+      startBlock: 29307299
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xe522cB4a5fCb2eb31a52Ff41a4653d85A4fd7C9D
+    network: flare
+    source:
+      address: "0xe522cB4a5fCb2eb31a52Ff41a4653d85A4fd7C9D"
+      abi: RaindexDeposits
+      startBlock: 42523429
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x8Dbc50485e7C6994923B9A2c603a2B6b2d8Eef64
+    network: flare
+    source:
+      address: "0x8Dbc50485e7C6994923B9A2c603a2B6b2d8Eef64"
+      abi: RaindexDeposits
+      startBlock: 49782578
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x8542c952c8D3441b9B861Fe582E2BC620058348E
+    network: flare
+    source:
+      address: "0x8542c952c8D3441b9B861Fe582E2BC620058348E"
+      abi: RaindexDeposits
+      startBlock: 50190133
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x7242ce1ffe34297921c54cD7f9343c411E1E7759
+    network: flare
+    source:
+      address: "0x7242ce1ffe34297921c54cD7f9343c411E1E7759"
+      abi: RaindexDeposits
+      startBlock: 56972130
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xa560e58C77B8A841f80B4741Ad08E9260Edcab9F
+    network: flare
+    source:
+      address: "0xa560e58C77B8A841f80B4741Ad08E9260Edcab9F"
+      abi: RaindexDeposits
+      startBlock: 61847874
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x83507d7E14556A1822E6959982BebA6024245FA8
+    network: flare
+    source:
+      address: "0x83507d7E14556A1822E6959982BebA6024245FA8"
+      abi: RaindexDeposits
+      startBlock: 62094702
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x3Ee54EbB1734DA14852C06A3Be1CdEebA796B0a3
+    network: flare
+    source:
+      address: "0x3Ee54EbB1734DA14852C06A3Be1CdEebA796B0a3"
+      abi: RaindexDeposits
+      startBlock: 62113357
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xE8421069D1F56cC1207E6Ec21341BcFD044B8cd5
+    network: flare
+    source:
+      address: "0xE8421069D1F56cC1207E6Ec21341BcFD044B8cd5"
+      abi: RaindexDeposits
+      startBlock: 62117454
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xb05D73E6BCc26AEB5b67Ff68C6E9C6151073e3cE
+    network: flare
+    source:
+      address: "0xb05D73E6BCc26AEB5b67Ff68C6E9C6151073e3cE"
+      abi: RaindexDeposits
+      startBlock: 62120965
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x4F4527919DA654C1718Ca6Ef194F6547226685f6
+    network: flare
+    source:
+      address: "0x4F4527919DA654C1718Ca6Ef194F6547226685f6"
+      abi: RaindexDeposits
+      startBlock: 62235114
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0xE0203890383Ca9C0c263f42a51C4C95211Cee6F9
+    network: flare
+    source:
+      address: "0xE0203890383Ca9C0c263f42a51C4C95211Cee6F9"
+      abi: RaindexDeposits
+      startBlock: 62584927
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x025e93Be5c1780240C11E34B3387266754017D20
+    network: flare
+    source:
+      address: "0x025e93Be5c1780240C11E34B3387266754017D20"
+      abi: RaindexDeposits
+      startBlock: 62629754
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x13b8f830e347a51778652C86cf3419b3E1Ab1205
+    network: flare
+    source:
+      address: "0x13b8f830e347a51778652C86cf3419b3E1Ab1205"
+      abi: RaindexDeposits
+      startBlock: 62642618
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x86594ac4319230870C6E587f4ACa48FAb575619e
+    network: flare
+    source:
+      address: "0x86594ac4319230870C6E587f4ACa48FAb575619e"
+      abi: RaindexDeposits
+      startBlock: 62835540
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x7992F7A3044258c9a200835970D5bFf275Efe5e7
+    network: flare
+    source:
+      address: "0x7992F7A3044258c9a200835970D5bFf275Efe5e7"
+      abi: RaindexDeposits
+      startBlock: 63004971
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x1115EBC9C82F074454F6AC28f123B0684A453aF7
+    network: flare
+    source:
+      address: "0x1115EBC9C82F074454F6AC28f123B0684A453aF7"
+      abi: RaindexDeposits
+      startBlock: 63007250
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20
+    network: flare
+    source:
+      address: "0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20"
+      abi: RaindexDeposits
+      startBlock: 63011168
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x91b95120D085Aa99C05167f3767eB63460c1dCaC
+    network: flare
+    source:
+      address: "0x91b95120D085Aa99C05167f3767eB63460c1dCaC"
+      abi: RaindexDeposits
+      startBlock: 73060354
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: DepositV2(address,address,bytes32,uint256)
+          handler: handleDepositV2
+      file: ../src/tokens.ts

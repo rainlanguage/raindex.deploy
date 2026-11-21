@@ -17,9 +17,18 @@ jobs:
       subgraph-name: raindex
       ormi-query-base: https://subgraph.api.ormilabs.com/api/public/9f4fc2fa-4a15-44f7-a7c1-66fdaa518a71
     secrets: inherit
+  # Token discovery across every recorded raindex (tokens-subgraph/manifests).
+  deploy-tokens:
+    uses: rainlanguage/rainix/.github/workflows/rainix-subgraph-deploy.yaml@main
+    with:
+      subgraph-dir: tokens-subgraph
+      subgraph-name: raindex-tokens
+      ormi-query-base: https://subgraph.api.ormilabs.com/api/public/9f4fc2fa-4a15-44f7-a7c1-66fdaa518a71
+      goldsky-query-base: https://api.goldsky.com/api/public/project_cmjr2df7svg6t01tl2ic706ao
+    secrets: inherit
   # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
   status:
-    needs: [deploy-v6, deploy-v7]
+    needs: [deploy-v6, deploy-v7, deploy-tokens]
     if: always()
     runs-on: ubuntu-latest
     steps:

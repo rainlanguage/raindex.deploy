@@ -1,0 +1,44 @@
+specVersion: "0.0.4"
+schema:
+  file: ../schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Raindex_0xF97DE1c2d864d90851aDBcbEe0A38260440B8D90
+    network: linea
+    source:
+      address: "0xF97DE1c2d864d90851aDBcbEe0A38260440B8D90"
+      abi: RaindexDeposits
+      startBlock: 7439620
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
+  - kind: ethereum/contract
+    name: Raindex_0x22410e2a46261a1B1e3899a072f303022801C764
+    network: linea
+    source:
+      address: "0x22410e2a46261a1B1e3899a072f303022801C764"
+      abi: RaindexDeposits
+      startBlock: 10147523
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - RaindexToken
+      abis:
+        - name: RaindexDeposits
+          file: ../abis/RaindexDeposits.json
+      eventHandlers:
+        - event: Deposit(address,address,uint256,uint256)
+          handler: handleDeposit
+      file: ../src/tokens.ts
