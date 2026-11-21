@@ -27,7 +27,7 @@ library LibRaindexLegacyDeployments {
     /// Every legacy deployment.
     /// @return The legacy deployments.
     function deployments() internal pure returns (RaindexDeployment[] memory) {
-        RaindexDeployment[] memory records = new RaindexDeployment[](139);
+        RaindexDeployment[] memory records = new RaindexDeployment[](140);
         records[0] = RaindexDeployment({
             network: LibRainDeploy.ARBITRUM_ONE,
             deployedAddress: address(0xee873E21F8a6A256cb9f53BE491E569eA6cdd63E),
@@ -696,167 +696,173 @@ library LibRaindexLegacyDeployments {
         });
         records[111] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
+            deployedAddress: address(0x34200E026FbaC0c902a0ff18E77a49265CA6ac99),
+            interfaceVersion: 3,
+            blockNumber: 45868729
+        });
+        records[112] = RaindexDeployment({
+            network: LibRainDeploy.POLYGON,
             deployedAddress: address(0xFb8a0C401C9d11fDecCdDDCBf89bFFA84681281d),
             interfaceVersion: 3,
             blockNumber: 47330901
         });
-        records[112] = RaindexDeployment({
+        records[113] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x95C9Bf235435b660AA69F519904C3F175Aab393d),
             interfaceVersion: 3,
             blockNumber: 49421712
         });
-        records[113] = RaindexDeployment({
+        records[114] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0xd3eDaFeb9eAA454CE26E60A66CcDA73939C343A4),
             interfaceVersion: 3,
             blockNumber: 49464751
         });
-        records[114] = RaindexDeployment({
+        records[115] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0xdcdee0E7a58Bba7e305dB3Abc42F4887CE8EF729),
             interfaceVersion: 3,
             blockNumber: 50715570
         });
-        records[115] = RaindexDeployment({
+        records[116] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x16d518706d666C549DA7Bd31110623B09eF23AbB),
             interfaceVersion: 3,
             blockNumber: 50903721
         });
-        records[116] = RaindexDeployment({
+        records[117] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0xDE5aBE2837bc042397D80E37fb7b2C850a8d5a6C),
             interfaceVersion: 3,
             blockNumber: 52621167
         });
-        records[117] = RaindexDeployment({
+        records[118] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6),
             interfaceVersion: 3,
             blockNumber: 54697866
         });
-        records[118] = RaindexDeployment({
+        records[119] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x5Cf7d0a8c61c8dcC6b0ECB281dF1C17264C2A517),
             interfaceVersion: 3,
             blockNumber: 55960481
         });
-        records[119] = RaindexDeployment({
+        records[120] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x5CeEe9F4F49C106D5Bc049C8D649C332E6d365ad),
             interfaceVersion: 3,
             blockNumber: 58063043
         });
-        records[120] = RaindexDeployment({
+        records[121] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0xAfD94467d2eC43D9aD39f835BA758b61b2f41A0E),
             interfaceVersion: 4,
             blockNumber: 59714619
         });
-        records[121] = RaindexDeployment({
+        records[122] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB),
             interfaceVersion: 4,
             blockNumber: 59720459
         });
-        records[122] = RaindexDeployment({
+        records[123] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x001B302095D66b777C04cd4d64b86CCe16de55A1),
             interfaceVersion: 4,
             blockNumber: 60620609
         });
-        records[123] = RaindexDeployment({
+        records[124] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0xb8CD71e3b4339c8B718D982358cB32Ed272e4174),
             interfaceVersion: 4,
             blockNumber: 60623145
         });
-        records[124] = RaindexDeployment({
+        records[125] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x7D2f700b1f6FD75734824EA4578960747bdF269A),
             interfaceVersion: 4,
             blockNumber: 62036116
         });
-        records[125] = RaindexDeployment({
+        records[126] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x8a3C8E610d827093F7437E0C45EFa648563c0dDA),
             interfaceVersion: 5,
             blockNumber: 76772162
         });
-        records[126] = RaindexDeployment({
+        records[127] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x7242ce1ffe34297921c54cD7f9343c411E1E7759),
             interfaceVersion: 6,
             blockNumber: 84174550
         });
-        records[127] = RaindexDeployment({
+        records[128] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0xa560e58C77B8A841f80B4741Ad08E9260Edcab9F),
             interfaceVersion: 6,
             blockNumber: 87623401
         });
-        records[128] = RaindexDeployment({
+        records[129] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x83507d7E14556A1822E6959982BebA6024245FA8),
             interfaceVersion: 6,
             blockNumber: 87804686
         });
-        records[129] = RaindexDeployment({
+        records[130] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x3Ee54EbB1734DA14852C06A3Be1CdEebA796B0a3),
             interfaceVersion: 6,
             blockNumber: 87818427
         });
-        records[130] = RaindexDeployment({
+        records[131] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0xE8421069D1F56cC1207E6Ec21341BcFD044B8cd5),
             interfaceVersion: 6,
             blockNumber: 87821341
         });
-        records[131] = RaindexDeployment({
+        records[132] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0xb05D73E6BCc26AEB5b67Ff68C6E9C6151073e3cE),
             interfaceVersion: 6,
             blockNumber: 87823915
         });
-        records[132] = RaindexDeployment({
+        records[133] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x4F4527919DA654C1718Ca6Ef194F6547226685f6),
             interfaceVersion: 6,
             blockNumber: 87914243
         });
-        records[133] = RaindexDeployment({
+        records[134] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0xE0203890383Ca9C0c263f42a51C4C95211Cee6F9),
             interfaceVersion: 6,
             blockNumber: 88213689
         });
-        records[134] = RaindexDeployment({
+        records[135] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x025e93Be5c1780240C11E34B3387266754017D20),
             interfaceVersion: 6,
             blockNumber: 88253394
         });
-        records[135] = RaindexDeployment({
+        records[136] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x13b8f830e347a51778652C86cf3419b3E1Ab1205),
             interfaceVersion: 6,
             blockNumber: 88264952
         });
-        records[136] = RaindexDeployment({
+        records[137] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x86594ac4319230870C6E587f4ACa48FAb575619e),
             interfaceVersion: 6,
             blockNumber: 88427102
         });
-        records[137] = RaindexDeployment({
+        records[138] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x7992F7A3044258c9a200835970D5bFf275Efe5e7),
             interfaceVersion: 6,
             blockNumber: 88567034
         });
-        records[138] = RaindexDeployment({
+        records[139] = RaindexDeployment({
             network: LibRainDeploy.POLYGON,
             deployedAddress: address(0x1115EBC9C82F074454F6AC28f123B0684A453aF7),
             interfaceVersion: 6,
