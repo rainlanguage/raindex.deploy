@@ -19,6 +19,10 @@ on:
           - arb-generic-pool-order-taker
           - arb-route-processor-order-taker
           - arb-generic-pool-flash-borrower
+          # Required on zerog only: dispatch with script set to
+          # script/DeployZerog.sol:DeployZerog. The default script refuses them.
+          - route-processor-six
+          - arb-route-processor-six-order-taker
           # Frozen releases: what a newly supported network needs, so the
           # addresses every consumer pins land there (the bare keys above
           # deploy current source, which has moved since these were cut).
@@ -54,7 +58,7 @@ on:
           - arb-generic-pool-flash-borrower@0_1_18
       script:
         description: >-
-          Forge script target to run. The default deploys the selected suite; script/DescribeSubParser.sol:DescribeSubParser emits the sub-parser's described-by meta on the network named by `network` (suite is ignored there).
+          Forge script target to run. The default deploys the selected suite; script/DeployZerog.sol:DeployZerog deploys it to zerog only; script/DescribeSubParser.sol:DescribeSubParser emits the sub-parser's described-by meta on the network named by `network` (suite is ignored there).
         required: false
         type: string
         default: script/Deploy.sol:Deploy

@@ -21,6 +21,10 @@ import {GenericPoolRaindexV7ArbOrderTaker} from "../concrete/arb/GenericPoolRain
 import {RouteProcessorRaindexV7ArbOrderTaker} from "../concrete/arb/RouteProcessorRaindexV7ArbOrderTaker.sol";
 import {GenericPoolRaindexV7FlashBorrower} from "../concrete/arb/GenericPoolRaindexV7FlashBorrower.sol";
 import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../lib/deploy/LibRouteProcessor4CreationCode.sol";
+import {ROUTE_PROCESSOR_6_CREATION_CODE} from "../lib/deploy/LibRouteProcessor6CreationCode.sol";
+import {
+    LibRouteProcessor6RaindexV6ArbOrderTakerCreationCode
+} from "../lib/deploy/LibRouteProcessor6RaindexV6ArbOrderTakerCreationCode.sol";
 import {LibRaindexDeploy} from "../lib/deploy/LibRaindexDeploy.sol";
 import {LibReleasedSuites} from "../lib/LibReleasedSuites.sol";
 import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.5/src/lib/LibTOFUTokenDecimals.sol";
@@ -52,6 +56,20 @@ import {
     CREATION_CODE as GENERIC_POOL_FB_CREATION_CODE_CANDIDATE,
     RUNTIME_CODE as GENERIC_POOL_FB_RUNTIME_CODE_CANDIDATE
 } from "../generated/candidate/GenericPoolRaindexV7FlashBorrower.sol";
+import {
+    BYTECODE_HASH as ROUTE_PROCESSOR_6_HASH,
+    CREATION_CODE as ROUTE_PROCESSOR_6_CREATION_CODE_CANDIDATE,
+    DEPLOYED_ADDRESS as ROUTE_PROCESSOR_6_ADDRESS,
+    RUNTIME_CODE as ROUTE_PROCESSOR_6_RUNTIME_CODE_CANDIDATE
+} from "../generated/candidate/RouteProcessor6.sol";
+import {
+    BYTECODE_HASH as RP6_ARB_OT_V6_HASH,
+    CREATION_CODE as RP6_ARB_OT_V6_CREATION_CODE_CANDIDATE,
+    DEPLOYED_ADDRESS as RP6_ARB_OT_V6_ADDRESS,
+    RUNTIME_CODE as RP6_ARB_OT_V6_RUNTIME_CODE_CANDIDATE
+} from "../generated/candidate/RouteProcessor6RaindexV6ArbOrderTaker.sol";
+import {DEPENDENCIES as RP_ARB_OT_V6_DEPENDENCIES} from "../generated/0_1_15/RouteProcessorRaindexV6ArbOrderTaker.sol";
+import {DEPLOYED_ADDRESS as ROUTE_PROCESSOR_4_V6_ADDRESS} from "../generated/0_1_15/RouteProcessor4.sol";
 
 /// Thrown when no candidate source is declared under a suite key.
 /// @param suite The suite key.
@@ -63,11 +81,13 @@ string constant ROUTE_PROCESSOR_SUITE = "route-processor";
 string constant GENERIC_POOL_ARB_ORDER_TAKER_SUITE = "arb-generic-pool-order-taker";
 string constant ROUTE_PROCESSOR_ARB_ORDER_TAKER_SUITE = "arb-route-processor-order-taker";
 string constant GENERIC_POOL_FLASH_BORROWER_SUITE = "arb-generic-pool-flash-borrower";
+string constant ROUTE_PROCESSOR_6_SUITE = "route-processor-six";
+string constant ROUTE_PROCESSOR_6_ARB_ORDER_TAKER_V6_SUITE = "arb-route-processor-six-order-taker";
 
 string constant RAINDEX_ARTIFACT_PATH = "src/concrete/raindex/RaindexV7.sol:RaindexV7";
 
 /// @title RaindexDeploySuites
-/// @notice Everything this repo deploys, declared ONCE: the six hand-written
+/// @notice Everything this repo deploys, declared ONCE: the eight hand-written
 /// candidates below, and the released side read from the generated
 /// `LibReleasedSuites`, which `script/Build.sol` emits from the frozen record.
 ///
@@ -81,19 +101,22 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
     /// @inheritdoc RainDeploySuitesBase
     /// @dev The releases pass through `narrowReleasedNetworks` first, so only
     /// the audited `RaindexV6` releases and the releases cut after `zerog`
-    /// joined are required on `zerog`.
-    function declaration() internal pure override returns (DeployDeclaration memory) {
+    /// joined are required on `zerog`, and the `RouteProcessor6` releases are
+    /// required on `zerog` only.
+    function declaration() internal pure virtual override returns (DeployDeclaration memory) {
         DeployDeclaration memory declared;
         LibRainDeployDeclaration.extend(declared);
         LibRainDeployZoltuMechanism.extend(declared);
         LibRainDeployDeclaration.addReleased(declared, narrowReleasedNetworks(LibReleasedSuites.releasedSuites()));
-        DeployCandidate[] memory candidates = new DeployCandidate[](6);
+        DeployCandidate[] memory candidates = new DeployCandidate[](8);
         candidates[0] = raindexCandidate();
         candidates[1] = subParserCandidate();
         candidates[2] = routeProcessorCandidate();
         candidates[3] = genericPoolArbOrderTakerCandidate();
         candidates[4] = routeProcessorArbOrderTakerCandidate();
         candidates[5] = genericPoolFlashBorrowerCandidate();
+        candidates[6] = routeProcessor6Candidate();
+        candidates[7] = routeProcessor6ArbOrderTakerV6Candidate();
         LibRainDeployDeclaration.addCandidates(declared, candidates);
         declared.sourceCreationCode = sourceCreationCode;
         declared.externalDeployments = externalDeployments();
@@ -130,14 +153,35 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
         return networks;
     }
 
+    /// The networks the `RouteProcessor6` suites are required on.
+    /// @return The network names.
+    function zerogNetworks() internal pure returns (string[] memory) {
+        string[] memory networks = new string[](1);
+        networks[0] = LibRainDeploy.ZEROG;
+        return networks;
+    }
+
+    /// Whether a suite key names a `RouteProcessor6` suite, which only `zerog`
+    /// requires.
+    /// @param suite The suite key.
+    /// @return True if the suite is required on `zerog` only.
+    function requiredOnZerogOnly(string memory suite) internal pure returns (bool) {
+        bytes32 name = keccak256(bytes(suiteKeyName(suite)));
+        return name == keccak256(bytes(ROUTE_PROCESSOR_6_SUITE))
+            || name == keccak256(bytes(ROUTE_PROCESSOR_6_ARB_ORDER_TAKER_V6_SUITE));
+    }
+
     /// Sets the networks of each release `notRequiredOnZerog` selects to
-    /// `networksBeforeZerog()`, and leaves every other release to the
+    /// `networksBeforeZerog()`, and of each release `requiredOnZerogOnly`
+    /// selects to `zerogNetworks()`. Leaves every other release to the
     /// declaration's networks.
     /// @param released The releases, mutated.
     /// @return `released`.
     function narrowReleasedNetworks(DeploySuite[] memory released) internal pure returns (DeploySuite[] memory) {
         for (uint256 i = 0; i < released.length; i++) {
-            if (notRequiredOnZerog(released[i].suite)) {
+            if (requiredOnZerogOnly(released[i].suite)) {
+                released[i].networks = zerogNetworks();
+            } else if (notRequiredOnZerog(released[i].suite)) {
                 released[i].networks = networksBeforeZerog();
             }
         }
@@ -183,6 +227,10 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
         }
         if (key == keccak256(bytes(GENERIC_POOL_FLASH_BORROWER_SUITE))) {
             return type(GenericPoolRaindexV7FlashBorrower).creationCode;
+        }
+        if (key == keccak256(bytes(ROUTE_PROCESSOR_6_SUITE))) return ROUTE_PROCESSOR_6_CREATION_CODE;
+        if (key == keccak256(bytes(ROUTE_PROCESSOR_6_ARB_ORDER_TAKER_V6_SUITE))) {
+            return LibRouteProcessor6RaindexV6ArbOrderTakerCreationCode.creationCode();
         }
         revert NoSourceForSuite(suite);
     }
@@ -369,6 +417,69 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 describedByMeta: ""
             }),
             unanchorableReason: ""
+        });
+    }
+
+    /// The dependencies of the `0_1_15` `RouteProcessorRaindexV6ArbOrderTaker`
+    /// (the `RaindexV6` it takes orders from, the TOFU decimals reader and
+    /// `RouteProcessor4`), with `RouteProcessor4` replaced by the
+    /// `RouteProcessor6` candidate.
+    /// @return The dependencies.
+    function routeProcessor6ArbOrderTakerV6Dependencies() internal pure returns (DeployDependency[] memory) {
+        DeployDependency[] memory deps = abi.decode(RP_ARB_OT_V6_DEPENDENCIES, (DeployDependency[]));
+        for (uint256 i = 0; i < deps.length; i++) {
+            if (deps[i].deployedAddress == ROUTE_PROCESSOR_4_V6_ADDRESS) {
+                deps[i] = DeployDependency({
+                    deployedAddress: ROUTE_PROCESSOR_6_ADDRESS, runtimeCode: ROUTE_PROCESSOR_6_RUNTIME_CODE_CANDIDATE
+                });
+            }
+        }
+        return deps;
+    }
+
+    /// The `RouteProcessor6` candidate, required on `zerog` only. There is no
+    /// local source for it. Its creation code is the pinned
+    /// `ROUTE_PROCESSOR_6_CREATION_CODE` constant, so it declares an
+    /// `unanchorableReason`.
+    /// @return The candidate.
+    function routeProcessor6Candidate() internal pure returns (DeployCandidate memory) {
+        return DeployCandidate({
+            snapshot: DeploySuite({
+                suite: ROUTE_PROCESSOR_6_SUITE,
+                creationCode: ROUTE_PROCESSOR_6_CREATION_CODE_CANDIDATE,
+                storedDeployedAddress: ROUTE_PROCESSOR_6_ADDRESS,
+                storedBytecodeHash: ROUTE_PROCESSOR_6_HASH,
+                storedRuntimeCode: ROUTE_PROCESSOR_6_RUNTIME_CODE_CANDIDATE,
+                artifactPath: "src/lib/deploy/LibRouteProcessor6CreationCode.sol:RouteProcessor6",
+                dependencies: new DeployDependency[](0),
+                mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
+                networks: zerogNetworks(),
+                describedByMeta: ""
+            }),
+            unanchorableReason: "Vendored bytecode compiled from a sushiswap fork, pinned as its creation code; no local source compiles to it."
+        });
+    }
+
+    /// The `0_1_15` `RouteProcessorRaindexV6ArbOrderTaker` with
+    /// `RouteProcessor6` in place of `RouteProcessor4`, required on `zerog`
+    /// only. Its creation code is patched from the frozen release, so it
+    /// declares an `unanchorableReason`.
+    /// @return The candidate.
+    function routeProcessor6ArbOrderTakerV6Candidate() internal pure returns (DeployCandidate memory) {
+        return DeployCandidate({
+            snapshot: DeploySuite({
+                suite: ROUTE_PROCESSOR_6_ARB_ORDER_TAKER_V6_SUITE,
+                creationCode: RP6_ARB_OT_V6_CREATION_CODE_CANDIDATE,
+                storedDeployedAddress: RP6_ARB_OT_V6_ADDRESS,
+                storedBytecodeHash: RP6_ARB_OT_V6_HASH,
+                storedRuntimeCode: RP6_ARB_OT_V6_RUNTIME_CODE_CANDIDATE,
+                artifactPath: "src/lib/deploy/LibRouteProcessor6RaindexV6ArbOrderTakerCreationCode.sol:RouteProcessor6RaindexV6ArbOrderTaker",
+                dependencies: routeProcessor6ArbOrderTakerV6Dependencies(),
+                mechanismData: LibRainDeployZoltuMechanism.mechanismData(),
+                networks: zerogNetworks(),
+                describedByMeta: ""
+            }),
+            unanchorableReason: "The 0_1_15 RouteProcessorRaindexV6ArbOrderTaker creation code with the RouteProcessor6 address in place of RouteProcessor4; no current source compiles to it."
         });
     }
 }
