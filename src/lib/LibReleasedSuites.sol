@@ -30,6 +30,10 @@ import {LibRouteProcessorRaindexV7ArbOrderTakerReleased} from "./LibRouteProcess
 
 import {LibGenericPoolRaindexV7FlashBorrowerReleased} from "./LibGenericPoolRaindexV7FlashBorrowerReleased.sol";
 
+import {LibRouteProcessor6Released} from "./LibRouteProcessor6Released.sol";
+
+import {LibRouteProcessor6RaindexV6ArbOrderTakerReleased} from "./LibRouteProcessor6RaindexV6ArbOrderTakerReleased.sol";
+
 /// @title LibReleasedSuites
 /// @notice Every frozen release this repo has cut, of every contract it
 /// deploys: the per-contract released libs concatenated, in the order the
@@ -47,7 +51,7 @@ library LibReleasedSuites {
     /// Every released suite, in the order the build script lists them.
     /// @return The released suites.
     function releasedSuites() internal pure returns (DeploySuite[] memory) {
-        DeploySuite[][] memory released = new DeploySuite[][](11);
+        DeploySuite[][] memory released = new DeploySuite[][](13);
         released[0] = LibRaindexV6Released.releasedSuites();
         released[1] = LibRaindexV6SubParserReleased.releasedSuites();
         released[2] = LibGenericPoolRaindexV6ArbOrderTakerReleased.releasedSuites();
@@ -59,6 +63,8 @@ library LibReleasedSuites {
         released[8] = LibGenericPoolRaindexV7ArbOrderTakerReleased.releasedSuites();
         released[9] = LibRouteProcessorRaindexV7ArbOrderTakerReleased.releasedSuites();
         released[10] = LibGenericPoolRaindexV7FlashBorrowerReleased.releasedSuites();
+        released[11] = LibRouteProcessor6Released.releasedSuites();
+        released[12] = LibRouteProcessor6RaindexV6ArbOrderTakerReleased.releasedSuites();
         return LibDeploySuiteConcat.concat(released);
     }
 }

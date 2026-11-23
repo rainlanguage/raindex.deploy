@@ -48,7 +48,10 @@ changed artifacts or `git-clean` drifts red. Nothing is deployed.
    `0_1_16`–`0_1_18` are not required on `zerog`, but every release cut after
    `LAST_RELEASE_BEFORE_ZEROG` (`0_1_18`) is. Before the first such cut,
    dispatch every bare suite key, unchanged suites too, or the tag's fork suite
-   fails on `zerog`.
+   fails on `zerog`. `route-processor-six` and
+   `arb-route-processor-six-order-taker` are required on `zerog` only: add
+   `-f script=script/DeployZerog.sol:DeployZerog` (the default `Deploy` refuses
+   them) and dispatch `route-processor-six` first.
 2. One PR: bump `foundry.toml [external.package].version`, run
    `forge script ./script/Build.sol --sig 'cutRelease()'` (freezes `candidate/`
    as `src/generated/<tag>/`), and if RaindexV7 moved run

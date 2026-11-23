@@ -3,10 +3,27 @@
 pragma solidity =0.8.25;
 
 import {RainDeployVerifyDeclaration} from "rain-deploy-0.1.38/src/abstract/RainDeployVerifyDeclaration.sol";
-import {DeployDeclaration, DeploySuite} from "rain-deploy-0.1.38/src/abstract/RainDeploySuitesBase.sol";
+import {
+    DeployDeclaration,
+    DeployDependency,
+    DeploySuite
+} from "rain-deploy-0.1.38/src/abstract/RainDeploySuitesBase.sol";
 import {LibRainDeploy} from "rain-deploy-0.1.38/src/lib/LibRainDeploy.sol";
 import {UnreleasableVersion} from "rain-deploy-0.1.38/src/lib/LibRainDeploySnapshot.sol";
-import {RaindexDeploySuites, NoSourceForSuite} from "../../src/abstract/RaindexDeploySuites.sol";
+import {
+    RaindexDeploySuites,
+    NoSourceForSuite,
+    ROUTE_PROCESSOR_6_SUITE,
+    ROUTE_PROCESSOR_6_ARB_ORDER_TAKER_V6_SUITE
+} from "../../src/abstract/RaindexDeploySuites.sol";
+import {
+    DEPLOYED_ADDRESS as ROUTE_PROCESSOR_6_ADDRESS,
+    RUNTIME_CODE as ROUTE_PROCESSOR_6_RUNTIME_CODE
+} from "../../src/generated/candidate/RouteProcessor6.sol";
+import {
+    DEPENDENCIES as RP_ARB_OT_V6_DEPENDENCIES
+} from "../../src/generated/0_1_15/RouteProcessorRaindexV6ArbOrderTaker.sol";
+import {DEPLOYED_ADDRESS as ROUTE_PROCESSOR_4_V6_ADDRESS} from "../../src/generated/0_1_15/RouteProcessor4.sol";
 
 contract RaindexDeployDeclarationTest is RaindexDeploySuites, RainDeployVerifyDeclaration {
     /// @param suite The suite key.
@@ -78,6 +95,8 @@ contract RaindexDeployDeclarationTest is RaindexDeploySuites, RainDeployVerifyDe
                 v7++;
                 assertEq(suite.networks, networksBeforeZerog(), suite.suite);
                 assertFalse(requiresSuiteOn(suite, LibRainDeploy.ZEROG), suite.suite);
+            } else if (requiredOnZerogOnly(suite.suite)) {
+                assertEq(suite.networks, zerogNetworks(), suite.suite);
             } else {
                 if (isRelease(suite.suite, "0_1_14") || isRelease(suite.suite, "0_1_15")) {
                     v6++;
@@ -166,6 +185,65 @@ contract RaindexDeployDeclarationTest is RaindexDeploySuites, RainDeployVerifyDe
         // Multi-digit patches whose digit sums fall inside the window.
         assertFalse(notRequiredOnZerog("raindex@0_1_25"));
         assertFalse(notRequiredOnZerog("raindex@0_1_160"));
+    }
+
+    /// The `RouteProcessor6` candidates are required on `zerog` and on no
+    /// other network.
+    function testRouteProcessor6SuitesRequiredOnZerogOnly() external pure {
+        DeployDeclaration memory d = declaration();
+        string[2] memory keys = [ROUTE_PROCESSOR_6_SUITE, ROUTE_PROCESSOR_6_ARB_ORDER_TAKER_V6_SUITE];
+        for (uint256 i = 0; i < keys.length; i++) {
+            DeploySuite memory suite = suiteByName(d, keys[i]);
+            assertEq(suite.networks, zerogNetworks(), keys[i]);
+            for (uint256 j = 0; j < d.networks.length; j++) {
+                bool isZerog = keccak256(bytes(d.networks[j])) == keccak256(bytes(LibRainDeploy.ZEROG));
+                assertEq(requiresSuiteOn(suite, d.networks[j]), isZerog, keys[i]);
+            }
+        }
+    }
+
+    /// The `RouteProcessor6` arb depends on what the `0_1_15`
+    /// `RouteProcessorRaindexV6ArbOrderTaker` depends on, with
+    /// `RouteProcessor4` replaced by the `RouteProcessor6` candidate.
+    function testRouteProcessor6ArbOrderTakerV6Dependencies() external pure {
+        DeployDependency[] memory frozen = abi.decode(RP_ARB_OT_V6_DEPENDENCIES, (DeployDependency[]));
+        DeployDependency[] memory deps =
+        suiteByName(declaration(), ROUTE_PROCESSOR_6_ARB_ORDER_TAKER_V6_SUITE).dependencies;
+        assertEq(frozen.length, 3);
+        assertEq(deps.length, 3);
+        assertEq(deps[0].deployedAddress, 0x37FC0EFec37D19f8A221aa4F8F7600C9ba2AcD20);
+        assertEq(deps[1].deployedAddress, 0x200e12D10bb0c5E4a17e7018f0F1161919bb9389);
+        for (uint256 i = 0; i < 2; i++) {
+            assertEq(deps[i].deployedAddress, frozen[i].deployedAddress);
+            assertEq(deps[i].runtimeCode, frozen[i].runtimeCode);
+        }
+        assertEq(frozen[2].deployedAddress, ROUTE_PROCESSOR_4_V6_ADDRESS);
+        assertEq(deps[2].deployedAddress, ROUTE_PROCESSOR_6_ADDRESS);
+        assertEq(deps[2].runtimeCode, ROUTE_PROCESSOR_6_RUNTIME_CODE);
+    }
+
+    /// `narrowReleasedNetworks` puts every release of the `RouteProcessor6`
+    /// suites on `zerog` only, and leaves the `RouteProcessor4` suites after
+    /// `LAST_RELEASE_BEFORE_ZEROG` as they were.
+    function testNarrowReleasedNetworksKeepsRouteProcessor6OnZerog() external pure {
+        string[] memory sentinel = new string[](1);
+        sentinel[0] = "sentinel";
+        string[4] memory keys = [
+            "route-processor-six@0_1_19",
+            "arb-route-processor-six-order-taker@0_1_19",
+            "route-processor@0_1_19",
+            "arb-route-processor-order-taker@0_1_19"
+        ];
+        bool[4] memory zerogOnly = [true, true, false, false];
+        DeploySuite[] memory released = new DeploySuite[](keys.length);
+        for (uint256 i = 0; i < keys.length; i++) {
+            released[i].suite = keys[i];
+            released[i].networks = sentinel;
+        }
+        DeploySuite[] memory narrowed = narrowReleasedNetworks(released);
+        for (uint256 i = 0; i < keys.length; i++) {
+            assertEq(narrowed[i].networks, zerogOnly[i] ? zerogNetworks() : sentinel, keys[i]);
+        }
     }
 
     /// A key whose tag is not `X_Y_Z` digits is refused, not read as a version.

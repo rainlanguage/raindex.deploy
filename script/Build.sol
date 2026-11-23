@@ -16,7 +16,9 @@ import {
     ROUTE_PROCESSOR_SUITE,
     GENERIC_POOL_ARB_ORDER_TAKER_SUITE,
     ROUTE_PROCESSOR_ARB_ORDER_TAKER_SUITE,
-    GENERIC_POOL_FLASH_BORROWER_SUITE
+    GENERIC_POOL_FLASH_BORROWER_SUITE,
+    ROUTE_PROCESSOR_6_SUITE,
+    ROUTE_PROCESSOR_6_ARB_ORDER_TAKER_V6_SUITE
 } from "../src/abstract/RaindexDeploySuites.sol";
 import {RaindexDeployment} from "../src/lib/LibRaindexLegacyDeployments.sol";
 import {LibRaindexDeploymentsRecord} from "./lib/LibRaindexDeploymentsRecord.sol";
@@ -52,7 +54,7 @@ contract Build is BuildScript, RaindexDeploySuites {
         override
         returns (GeneratedContract[] memory)
     {
-        GeneratedContract[] memory contracts = new GeneratedContract[](6);
+        GeneratedContract[] memory contracts = new GeneratedContract[](8);
         contracts[0] = GeneratedContract({
             contractName: "RaindexV7", constantPrefix: "", candidate: declaredCandidate(d, RAINDEX_SUITE)
         });
@@ -76,6 +78,16 @@ contract Build is BuildScript, RaindexDeploySuites {
             contractName: "GenericPoolRaindexV7FlashBorrower",
             constantPrefix: "",
             candidate: declaredCandidate(d, GENERIC_POOL_FLASH_BORROWER_SUITE)
+        });
+        contracts[6] = GeneratedContract({
+            contractName: "RouteProcessor6",
+            constantPrefix: "",
+            candidate: declaredCandidate(d, ROUTE_PROCESSOR_6_SUITE)
+        });
+        contracts[7] = GeneratedContract({
+            contractName: "RouteProcessor6RaindexV6ArbOrderTaker",
+            constantPrefix: "",
+            candidate: declaredCandidate(d, ROUTE_PROCESSOR_6_ARB_ORDER_TAKER_V6_SUITE)
         });
         return contracts;
     }
