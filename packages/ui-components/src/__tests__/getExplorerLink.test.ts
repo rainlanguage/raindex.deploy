@@ -25,4 +25,9 @@ describe("getExplorerLink", () => {
       "https://robinhoodchain.blockscout.com/tx/0xabc",
     );
   });
+  it("returns the 0G Chainscan link for chain 16661", () => {
+    expect(getExplorerLink("0xabc", 16661, "tx")).toBe(
+      "https://chainscan.0g.ai/tx/0xabc",
+    );
+  });
 });

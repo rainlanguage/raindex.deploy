@@ -1,8 +1,9 @@
 import * as chains from "viem/chains";
 
-// viem 2.24.3 does not ship Robinhood Chain (4663).
+// viem 2.24.3 does not ship Robinhood Chain (4663) or 0G Mainnet (16661).
 const extraExplorers: Record<number, string> = {
   4663: "https://robinhoodchain.blockscout.com",
+  16661: "https://chainscan.0g.ai",
 };
 
 export const getExplorerLink = (
