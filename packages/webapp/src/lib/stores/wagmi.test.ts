@@ -89,6 +89,27 @@ describe('wagmi store', () => {
 			};
 			expect(createAppKitArg.networks.map((network) => network.id)).toContain(4663);
 		});
+
+		it('registers 0G Mainnet (16661) with wagmi and AppKit', () => {
+			const mockConfig = { chains: [mainnet], subscribe: vi.fn() };
+			vi.mocked(createConfig).mockReturnValue(mockConfig as unknown as Config);
+
+			defaultConfig({
+				appName: 'Test App',
+				projectId: 'test-project-id',
+				connectors: []
+			});
+
+			const createConfigArg = vi.mocked(createConfig).mock.calls[0]?.[0] as unknown as {
+				chains: readonly { id: number }[];
+			};
+			expect(createConfigArg.chains.map((chain) => chain.id)).toContain(16661);
+
+			const createAppKitArg = vi.mocked(createAppKit).mock.calls[0]?.[0] as unknown as {
+				networks: readonly { id: number }[];
+			};
+			expect(createAppKitArg.networks.map((network) => network.id)).toContain(16661);
+		});
 	});
 
 	describe('init', () => {

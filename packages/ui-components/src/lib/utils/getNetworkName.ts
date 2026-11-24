@@ -11,6 +11,11 @@ function humanizeNetworkKey(key: string): string {
     .join(" ");
 }
 
+// viem 2.24.3 does not ship 0G Mainnet (16661).
+const extraNetworkNames: Record<number, string> = {
+  16661: "0G",
+};
+
 export function getNetworkName(
   chainId: number,
   configuredNetworks?: Iterable<NetworkNameConfig>,
@@ -25,6 +30,8 @@ export function getNetworkName(
 
   const chain = Object.values(chains).find((chain) => chain.id === chainId);
   if (chain?.name) return chain.name;
+
+  if (extraNetworkNames[chainId]) return extraNetworkNames[chainId];
 
   return configuredNetwork?.key
     ? humanizeNetworkKey(configuredNetwork.key)
@@ -44,6 +51,15 @@ if (import.meta.vitest) {
           { chainId: 4663, key: "robinhood", label: undefined },
         ]),
       ).toBe("Robinhood");
+    });
+
+    it("returns 0G for chain 16661 even without configured metadata", () => {
+      expect(getNetworkName(16661)).toBe("0G");
+      expect(
+        getNetworkName(16661, [
+          { chainId: 16661, key: "zerog", label: undefined },
+        ]),
+      ).toBe("0G");
     });
 
     it("prefers a configured label", () => {

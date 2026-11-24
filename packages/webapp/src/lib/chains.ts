@@ -24,6 +24,24 @@ export const robinhood = defineChain({
 	}
 });
 
+// Not in viem 2.24.3; required so wagmi switchChain(16661) succeeds.
+export const zerog = defineChain({
+	id: 16661,
+	name: '0G Mainnet',
+	nativeCurrency: { name: '0G', symbol: '0G', decimals: 18 },
+	rpcUrls: {
+		default: {
+			http: ['https://evmrpc.0g.ai', 'https://0g.drpc.org', 'https://0g-rpc.publicnode.com']
+		}
+	},
+	blockExplorers: {
+		default: {
+			name: '0G Chainscan',
+			url: 'https://chainscan.0g.ai'
+		}
+	}
+});
+
 export const SupportedChains = {
 	mainnet,
 	polygon,
@@ -32,7 +50,8 @@ export const SupportedChains = {
 	flare,
 	linea,
 	bsc,
-	robinhood
+	robinhood,
+	zerog
 } as const;
 export const supportedChainsList = [
 	mainnet,
@@ -42,5 +61,6 @@ export const supportedChainsList = [
 	flare,
 	linea,
 	bsc,
-	robinhood
+	robinhood,
+	zerog
 ] as const;
