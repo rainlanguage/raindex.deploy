@@ -1,5 +1,4 @@
 import { RegistryManager } from "../providers/registry/RegistryManager";
-import { DotrainRegistry } from "@rainlanguage/raindex";
 
 export async function loadRegistryUrl(
   url: string,
@@ -14,10 +13,10 @@ export async function loadRegistryUrl(
   }
 
   try {
-    const validationResult = await DotrainRegistry.validate(url);
-    if (validationResult.error) {
-      throw new Error(validationResult.error.readableMsg);
-    }
+    // Persist the new registry URL and reload. Page-load (+layout.ts) calls
+    // DotrainRegistry.new(url), which owns fetching and validating the registry
+    // and settings files. This function persists and reloads only; it does not
+    // fetch or validate.
     registryManager.setRegistry(url);
     window.location.reload();
   } catch (e) {
